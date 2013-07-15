@@ -9,7 +9,6 @@ local globalDefaults = {}
 local localDefaults = {}
 
 local function UpdateDatabase()
-	-- keep database up to date, i.e. remove artifacts + add new options
 	--[[ if MidgetDB == nil then
 		MidgetDB = globalDefaults
 	else
@@ -115,24 +114,9 @@ end
 function ns.HideTooltip() GameTooltip:Hide() end
 function ns.GetLinkID(link)
 	if not link or type(link) ~= "string" then return end
-	local linkType, id = link:match(".-\124H([^:]+):([^:]+)")
+	local linkType, id = link:match("\124H([^:]+):([^:]+)")
 	return linkType, tonumber(id)
 end
---[[ function string.explode(str, seperator, plain, useTable)
-	assert(type(seperator) == "string" and seperator ~= "", "Invalid seperator (need string of length >= 1)")
-	local t, pos, nexti = useTable or {}, 1, 1
-	while true do
-		local st, sp = str:find(seperator, pos, plain)
-		if not st then break end -- No more seperators found
-		if pos ~= st then
-			t[nexti] = str:sub(pos, st - 1) -- Attach chars left of current divider
-			nexti = nexti + 1
-		end
-		pos = sp + 1 -- Jump past current divider
-	end
-	t[nexti] = str:sub(pos) -- Attach chars right of last divider
-	return t
-end --]]
 -- counts table entries. for numerically indexed tables, use #table
 function ns.Count(table)
 	if not table or type(table) ~= "table" then return 0 end

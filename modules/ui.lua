@@ -7,9 +7,7 @@ local function ButtonOnClick(self, btn)
 	OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)
 	OptionsList_SelectButton(scrollFrame, self)
 
-	if self.element and type(self.element) == "table" then
-		InterfaceOptionsList_DisplayPanel(self.element)
-	end
+	if self.element and type(self.element) == "table" then --[[ InterfaceOptionsList_DisplayPanel(self.element) --]] end
 end
 
 local characters = {}
@@ -17,11 +15,8 @@ local function CharacterListUpdate(self)
 	local numButtons = #self.buttons
 	local parent = self:GetParent()
 
-	wipe(characters)
-	for characterName, characterKey in pairs(DataStore:GetCharacters()) do
-		table.insert(characters, characterName)
-	end
-	table.sort(characters)
+	-- fill char data
+	ns.data.GetCharacters(characters)
 
 	local selection = self.selection
 	OptionsList_ClearSelection(self, self.buttons)
@@ -33,7 +28,7 @@ local function CharacterListUpdate(self)
 
 		if characters[index] then
 			button.element = characters[index] -- TODO: use actual panel here!
-			button:SetText( characters[index] )
+			button:SetText( ns.data.GetCharacterText(characters[index]) )
 			button:Show()
 
 			if button.element == selection then
@@ -67,8 +62,9 @@ local function Initialize()
 	frame.TitleText:SetText(addonName)
 
 	local sidebar = CreateFrame("Frame", "$parentSidebar", frame)
-		sidebar:SetPoint("TOPLEFT", 0, -26)
-		sidebar:SetPoint("BOTTOMRIGHT", "$parent", "BOTTOMLEFT", 170, 0)
+		sidebar:SetPoint("TOPLEFT", 0, -22)
+		sidebar:SetPoint("BOTTOMRIGHT", "$parent", "BOTTOMLEFT", 170, 2)
+	frame.sidebar = sidebar
 
 	local sidebarBgTex = frame:CreateTexture(nil, "BORDER", nil, -1)
 		sidebarBgTex:SetTexture("Interface\\Common\\bluemenu-main")
@@ -82,26 +78,25 @@ local function Initialize()
 		separator:SetPoint("TOPLEFT", sidebar, "TOPRIGHT")
 		separator:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", 5, 0)
 
-	-- == Sidebar Contents ========================
+	local content = CreateFrame("Frame", "$parentContent", frame)
+		content:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 5, 0)
+		content:SetPoint("BOTTOMRIGHT", -4, 2)
+		content:SetBackdrop({
+			bgFile = 'Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg.png'
+		})
+	frame.content = content
+
 	local searchbox = CreateFrame("EditBox", "$parentSearchBox", sidebar, "SearchBoxTemplate")
-		searchbox.clearFunc = function(self) end
-		searchbox:SetPoint("BOTTOM", 4, 4)
+		searchbox:SetPoint("BOTTOM", 4, 2)
 		searchbox:SetSize(160, 20)
 		searchbox:SetScript("OnEnterPressed", EditBox_ClearFocus)
 		searchbox:SetScript("OnEscapePressed", function(self)
-			PlaySound("igMainMenuOptionCheckBoxOn")
+			PlaySound("igMainMenuOptionCheckBoxOff")
 			self:SetText(SEARCH)
 			EditBox_ClearFocus(self)
 		end)
-		searchbox:SetScript("OnTextChanged", function(self)
-			local oldText, text = self.searchString, self:GetText()
-			if text == "" or text == SEARCH then self.searchString = nil
-			else self.searchString = string.lower(text) end
-
-			if oldText ~= self.searchString then
-				-- TODO: search
-			end
-		end)
+		searchbox:SetScript("OnTextChanged", ns.search.Search)
+		searchbox.clearFunc = ns.search.Reset
 
 	local buttonHeight = 28
 	local characterList = CreateFrame("ScrollFrame", "$parentList", sidebar, "FauxScrollFrameTemplate")
@@ -116,6 +111,9 @@ local function Initialize()
 	characterList.buttons = {}
 	for i = 1, 11 do
 		local button = CreateFrame("Button", "$parentButton"..i, sidebar, "OptionsListButtonTemplate", i)
+		button.toggle = nil
+		button.toggleFunc = nil
+
 		if i == 1 then
 			button:SetPoint("TOPLEFT", characterList, "TOPLEFT")
 		else
@@ -126,14 +124,47 @@ local function Initialize()
 
 		table.insert(characterList.buttons, button)
 	end
+	characterList.selection = ns.data.GetCurrentCharacter()
 
 	HideUIPanel(frame)
 	ShowUIPanel(frame)
 
 	CharacterListUpdate(characterList)
-	searchbox:SetText(SEARCH)
+	ns.DisplayPanel("default")
 end
 
+function ns.GetSelectedCharacter()
+	local frame = _G[addonName.."UI"]
+	return frame and frame.scrollFrame.selection or ns.data.GetCurrentCharacter()
+end
+
+function ns.DisplayPanel(panel)
+	local frame = _G[addonName.."UI"]
+	if type(panel) == "string" then
+		if not ns.views[panel].panel then
+			ns.views[panel].Init()
+		end
+		panel = ns.views[panel].panel
+	end
+	if not frame or not panel then return end
+	local content = frame.content
+
+	if content.displayedPanel then
+		content.displayedPanel:Hide()
+	end
+	content.displayedPanel = panel
+
+	panel:SetParent(content)
+	panel:ClearAllPoints()
+	panel:SetAllPoints()
+	panel:Show()
+end
+
+function ns.UpdatePanel()
+	local frame = _G[addonName.."UI"]
+	if not frame or not frame.content.displayedPanel then return end
+	frame.content.displayedPanel:Update()
+end
 
 function ns.ToggleUI()
 	local frame = _G[addonName.."UI"]
@@ -143,9 +174,3 @@ function ns.ToggleUI()
 		ToggleFrame(frame)
 	end
 end
-
---[[-- gold colored horizontal line:
-local line = frame:CreateTexture()
-line:SetTexture(0.74, 0.52, 0.06)
-line:SetSize(339, 1)
---]]

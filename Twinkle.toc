@@ -15,6 +15,8 @@ core.lua
 # config.lua
 
 # modules
+modules\data.lua
+modules\search.lua
 modules\tradeskill.lua
 modules\ui.lua
 
