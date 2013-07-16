@@ -18,7 +18,10 @@ core.lua
 modules\data.lua
 modules\search.lua
 modules\tradeskill.lua
-modules\ui.lua
 
 # views
 views\default.lua
+views\containers.lua
+views\search.lua
+
+modules\ui.lua

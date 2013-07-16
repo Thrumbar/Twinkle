@@ -1,5 +1,9 @@
 local addonName, ns, _ = ...
 
+-- GLOBALS: _G, UIParent, SEARCH
+-- GLOBALS: PlaySound, OptionsList_ClearSelection, OptionsList_SelectButton, CreateFrame, ShowUIPanel, HideUIPanel, ToggleFrame, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_OnVerticalScroll, SetPortraitToTexture, EditBox_ClearFocus
+-- GLOBALS: type, table
+
 local function ButtonOnClick(self, btn)
 	PlaySound("igMainMenuOptionCheckBoxOn")
 
@@ -7,14 +11,11 @@ local function ButtonOnClick(self, btn)
 	OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)
 	OptionsList_SelectButton(scrollFrame, self)
 
-	if self.element and type(self.element) == "table" then --[[ InterfaceOptionsList_DisplayPanel(self.element) --]] end
+	ns.UpdatePanel()
 end
 
 local characters = {}
 local function CharacterListUpdate(self)
-	local numButtons = #self.buttons
-	local parent = self:GetParent()
-
 	-- fill char data
 	ns.data.GetCharacters(characters)
 
@@ -22,11 +23,14 @@ local function CharacterListUpdate(self)
 	OptionsList_ClearSelection(self, self.buttons)
 
 	local offset = FauxScrollFrame_GetOffset(self)
-	for i = 1, numButtons do
+	for i = 1, #self.buttons do
 		local index = i + offset
 		local button = self.buttons[i]
 
 		if characters[index] then
+			local level = ns.data.GetLevel(characters[index])
+			button.right:SetText(level < 90 and level or '')
+
 			button.element = characters[index] -- TODO: use actual panel here!
 			button:SetText( ns.data.GetCharacterText(characters[index]) )
 			button:Show()
@@ -42,8 +46,9 @@ local function CharacterListUpdate(self)
 
 	if selection then self.selection = selection end
 
+	local parent = self:GetParent()
 	local width = parent:GetWidth()
-	local needsScrollBar = FauxScrollFrame_Update(self, #characters, numButtons, self.buttons[1]:GetHeight(), parent:GetName().."Button", width - 18, width)
+	local needsScrollBar = FauxScrollFrame_Update(self, #characters, #self.buttons, self.buttons[1]:GetHeight(), parent:GetName().."Button", width - 18, width)
 end
 
 local function Initialize()
@@ -81,9 +86,7 @@ local function Initialize()
 	local content = CreateFrame("Frame", "$parentContent", frame)
 		content:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 5, 0)
 		content:SetPoint("BOTTOMRIGHT", -4, 2)
-		content:SetBackdrop({
-			bgFile = 'Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg.png'
-		})
+		content:SetBackdrop({ bgFile = 'Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg.png' })
 	frame.content = content
 
 	local searchbox = CreateFrame("EditBox", "$parentSearchBox", sidebar, "SearchBoxTemplate")
@@ -94,8 +97,9 @@ local function Initialize()
 			PlaySound("igMainMenuOptionCheckBoxOff")
 			self:SetText(SEARCH)
 			EditBox_ClearFocus(self)
+			self:clearFunc()
 		end)
-		searchbox:SetScript("OnTextChanged", ns.search.Search)
+		searchbox:SetScript("OnTextChanged", ns.search.Update)
 		searchbox.clearFunc = ns.search.Reset
 
 	local buttonHeight = 28
@@ -111,6 +115,10 @@ local function Initialize()
 	characterList.buttons = {}
 	for i = 1, 11 do
 		local button = CreateFrame("Button", "$parentButton"..i, sidebar, "OptionsListButtonTemplate", i)
+		local right = button:CreateFontString(nil, nil, "GameFontNormal")
+			  right:SetPoint("RIGHT", -10, 0)
+			  right:SetJustifyH("RIGHT")
+		button.right = right
 		button.toggle = nil
 		button.toggleFunc = nil
 
@@ -126,6 +134,10 @@ local function Initialize()
 	end
 	characterList.selection = ns.data.GetCurrentCharacter()
 
+	for i, view in ipairs(ns.views) do
+		view.Init()
+	end
+
 	HideUIPanel(frame)
 	ShowUIPanel(frame)
 
@@ -133,22 +145,40 @@ local function Initialize()
 	ns.DisplayPanel("default")
 end
 
+function ns.SetSelectedCharacter(character)
+	local frame = _G[addonName.."UI"]
+	if not frame then return end
+	frame.sidebar.scrollFrame.selection = character or ns.data.GetCurrentCharacter()
+	ns.Update()
+end
 function ns.GetSelectedCharacter()
 	local frame = _G[addonName.."UI"]
-	return frame and frame.scrollFrame.selection or ns.data.GetCurrentCharacter()
+	return frame and frame.sidebar.scrollFrame.selection or ns.data.GetCurrentCharacter()
+end
+function ns.GetCurrentView()
+	local frame = _G[addonName.."UI"]
+	local panel = frame.content and frame.content.displayedPanel
+	return panel and panel.view or nil
 end
 
 function ns.DisplayPanel(panel)
 	local frame = _G[addonName.."UI"]
-	if type(panel) == "string" then
-		if not ns.views[panel].panel then
-			ns.views[panel].Init()
-		end
-		panel = ns.views[panel].panel
-	end
-	if not frame or not panel then return end
-	local content = frame.content
+	if not frame then return end
 
+	if type(panel) == "string" then
+		local view
+		for i, v in ipairs(ns.views) do
+			if v.name == panel then
+				view = v
+				break
+			end
+		end
+		assert(view, "No view with name '"..panel.."' found!")
+		view:Show()
+		panel = view.panel
+	end
+
+	local content = frame.content
 	if content.displayedPanel then
 		content.displayedPanel:Hide()
 	end
@@ -158,12 +188,61 @@ function ns.DisplayPanel(panel)
 	panel:ClearAllPoints()
 	panel:SetAllPoints()
 	panel:Show()
+
+	ns.UpdateTabs()
 end
 
+local function TabOnClick(self, btn)
+	ns.DisplayPanel(self.view.name)
+end
+
+local lastTabIndex = 1
+function ns.GetTab(index, noCreate)
+	index = index or lastTabIndex
+	local tab = _G[addonName.."UITab"..index]
+	if not tab and not noCreate then
+		tab = CreateFrame("CheckButton", "$parentTab"..index, _G[addonName.."UI"], "SpellBookSkillLineTabTemplate", index)
+		tab:Show()
+		if index == 1 then
+			tab:SetPoint("TOPLEFT", "$parent", "TOPRIGHT", 0, -36)
+		else
+			tab:SetPoint("TOPLEFT", "$parentTab"..(index-1), "BOTTOMLEFT", 0, -22)
+		end
+
+		tab:RegisterForClicks("AnyUp")
+		tab:SetScript("OnEnter", ns.ShowTooltip)
+		tab:SetScript("OnLeave", ns.HideTooltip)
+		tab:SetScript("OnClick", TabOnClick)
+		lastTabIndex = lastTabIndex + 1
+	end
+	return tab
+end
+
+function ns.UpdateSidebar()
+	local frame = _G[addonName.."UI"]
+	if not frame or not frame.sidebar then return end
+	CharacterListUpdate(frame.sidebar.scrollFrame)
+end
 function ns.UpdatePanel()
 	local frame = _G[addonName.."UI"]
 	if not frame or not frame.content.displayedPanel then return end
 	frame.content.displayedPanel:Update()
+end
+function ns.UpdateTabs()
+	local currentView = ns.GetCurrentView()
+		  currentView = currentView and currentView.name or nil
+	local index = 1
+	local tab = _G[addonName.."UITab"..index]
+	while tab do
+		tab:SetChecked(tab.view.name == currentView)
+		index = index + 1
+		tab = _G[addonName.."UITab"..index]
+	end
+end
+function ns.Update()
+	ns.UpdateSidebar()
+	ns.UpdatePanel()
+	ns.UpdateTabs()
 end
 
 function ns.ToggleUI()

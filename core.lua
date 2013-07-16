@@ -2,6 +2,7 @@ local addonName, ns, _ = ...
 
 -- GLOBALS:
 
+ns.views = {}
 function ns:GetName() return addonName end
 
 -- settings
@@ -125,6 +126,29 @@ function ns.Count(table)
 		i = i + 1
 	end
 	return i
+end
+
+function ns.Find(where, what)
+	for k, v in pairs(where) do
+		if v == what then
+			return k
+		end
+	end
+end
+
+local function ViewShow(self)
+	if not self.panel then
+		self.Init()
+	end
+	self.Update()
+end
+function ns.CreateView(name)
+	local view = {}
+	view.name = name
+	view.Show = ViewShow
+	table.insert(ns.views, view)
+
+	return view
 end
 
 -- ================================================
