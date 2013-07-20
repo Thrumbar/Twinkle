@@ -80,17 +80,14 @@ function view.Init()
 		  auctions:SetPoint("TOPRIGHT", line, "BOTTOMRIGHT", 0, -10)
 	panel.auctions = auctions
 
-	-- TODO: not pretty :(
-	panel.Update = view.Update
-	panel.view = view
 	view.panel = panel
+	return panel
 end
 
-function view.Update(panel)
-	local character = ns.GetSelectedCharacter()
+function view.Update()
 	local panel = view.panel
 	assert(view.panel, "Can't update panel before it's created")
-	local panelName = panel:GetName()
+	local character = ns.GetSelectedCharacter()
 
 	local name = ns.data.GetName(character)
 	local className, class = ns.data.GetClass(character)

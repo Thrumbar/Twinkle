@@ -156,6 +156,7 @@ end
 -- ========================================
 --  Containers & Inventory
 -- ========================================
+--[[
 function data.GetContainerSlotInfo(characterKey, bag, slot)
 	if IsAddOnLoaded("DataStore_Containers") then
 		local container = DataStore:GetContainerInfo(characterKey, bag)
@@ -164,3 +165,4 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 		return nil
 	end
 end
+--]]

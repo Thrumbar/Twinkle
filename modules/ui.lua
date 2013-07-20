@@ -101,6 +101,7 @@ local function Initialize()
 		end)
 		searchbox:SetScript("OnTextChanged", ns.search.Update)
 		searchbox.clearFunc = ns.search.Reset
+	frame.search = searchbox
 
 	local buttonHeight = 28
 	local characterList = CreateFrame("ScrollFrame", "$parentList", sidebar, "FauxScrollFrameTemplate")
@@ -158,15 +159,20 @@ end
 function ns.GetCurrentView()
 	local frame = _G[addonName.."UI"]
 	local panel = frame.content and frame.content.displayedPanel
-	return panel and panel.view or nil
+
+	for i, v in ipairs(ns.views) do
+		if v.panel == panel then
+			return v
+		end
+	end
 end
 
 function ns.DisplayPanel(panel)
 	local frame = _G[addonName.."UI"]
 	if not frame then return end
 
+	local view
 	if type(panel) == "string" then
-		local view
 		for i, v in ipairs(ns.views) do
 			if v.name == panel then
 				view = v
@@ -174,8 +180,7 @@ function ns.DisplayPanel(panel)
 			end
 		end
 		assert(view, "No view with name '"..panel.."' found!")
-		view:Show()
-		panel = view.panel
+		panel = view.panel or view:Init()
 	end
 
 	local content = frame.content
@@ -189,6 +194,7 @@ function ns.DisplayPanel(panel)
 	panel:SetAllPoints()
 	panel:Show()
 
+	ns.UpdatePanel()
 	ns.UpdateTabs()
 end
 
@@ -225,8 +231,13 @@ function ns.UpdateSidebar()
 end
 function ns.UpdatePanel()
 	local frame = _G[addonName.."UI"]
-	if not frame or not frame.content.displayedPanel then return end
-	frame.content.displayedPanel:Update()
+	local view = ns.GetCurrentView()
+	if view then
+		view:Update()
+		if view.Search then
+			view.Search(frame.search.searchString)
+		end
+	end
 end
 function ns.UpdateTabs()
 	local currentView = ns.GetCurrentView()

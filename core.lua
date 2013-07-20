@@ -101,11 +101,13 @@ function ns.Debug(...)
 end
 
 function ns.ShowTooltip(self)
-	if not self.tiptext then return end
+	if not self.tiptext and not self.link then return end
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 	GameTooltip:ClearLines()
 
-	if type(self.tiptext) == "string" and self.tiptext ~= "" then
+	if self.link then
+		GameTooltip:SetHyperlink(self.link)
+	elseif type(self.tiptext) == "string" and self.tiptext ~= "" then
 		GameTooltip:SetText(self.tiptext, nil, nil, nil, nil, true)
 	elseif type(self.tiptext) == "function" then
 		self.tiptext(self, GameTooltip)
