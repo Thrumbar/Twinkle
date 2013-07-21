@@ -3,6 +3,29 @@ local view = ns.CreateView("default")
 
 local MAX_PLAYER_LEVEL = 90
 
+local function UpdateFlowContainer(container)
+	local character = ns.GetSelectedCharacter()
+	local containerWidth = container:GetWidth()
+
+	FlowContainer_PauseUpdates(container)
+	FlowContainer_RemoveAllObjects(container)
+
+	for i, object in ipairs(container.contents) do
+		if object.update then
+			object:update(character)
+		end
+		if object.span then
+			object:SetWidth(object.span * containerWidth - 10)
+		end
+		FlowContainer_AddObject(container, object)
+		-- FlowContainer_AddLineBreak(container)
+		-- FlowContainer_AddSpacer(container, 20)
+	end
+
+	FlowContainer_ResumeUpdates(container)
+	FlowContainer_DoLayout(container)
+end
+
 function view.Init()
 	local tab = ns.GetTab()
 	tab:GetNormalTexture():SetTexture("Interface\\Icons\\INV_Misc_GroupLooking")
@@ -34,7 +57,7 @@ function view.Init()
 		  level:SetJustifyH("LEFT")
 	panel.level = level
 
-	local guild = panel:CreateFontString(nil, nil, "GameFontDisable")
+	local guild = panel:CreateFontString(nil, nil, "GameFontNormal")
 		  guild:SetPoint("RIGHT", panel, "TOPRIGHT", -10, 0)
 		  guild:SetPoint("BOTTOMLEFT", name, "BOTTOMRIGHT")
 		  guild:SetJustifyH("RIGHT")
@@ -45,40 +68,164 @@ function view.Init()
 		  xp:SetJustifyH("RIGHT")
 	panel.xp = xp
 
+	local bg = panel:CreateTexture(nil, "BACKGROUND")
+		  bg:SetTexture("Interface\\TALENTFRAME\\spec-paper-bg")
+		  bg:SetTexCoord(0, 0.76, 0, 0.86)
+		  bg:SetPoint("TOPLEFT", 0, -78)
+		  bg:SetPoint("BOTTOMRIGHT")
+
 	-- gold colored horizontal line:
 	local line = panel:CreateTexture()
-	-- line:SetTexture(0.74, 0.52, 0.06, 0.6)
+	line:SetTexture(0.74, 0.52, 0.06, 0.6)
 	line:SetHeight(1)
 	line:SetPoint("TOPLEFT", portrait, "BOTTOMLEFT", 5, -4)
 	line:SetPoint("RIGHT", panel, "RIGHT", -10, 0)
 
-	local bg = panel:CreateTexture(nil, "BACKGROUND")
-		  bg:SetTexture("Interface\\TALENTFRAME\\spec-paper-bg")
-		  bg:SetTexCoord(0, 0.76, 0, 0.86)
-		  bg:SetPoint("TOPLEFT", line, "BOTTOMLEFT", -10, 2)
-		  bg:SetPoint("BOTTOMRIGHT")
+	-- flowcontainer that'll hold all our precious data
+	local contents = CreateFrame("Frame", nil, panel)
+		  contents:SetPoint("TOPLEFT", bg, "TOPLEFT", 10, -10)
+		  contents:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT", -10, 10)
+		  contents.contents = {}
+	panel.contents = contents
 
-	local money = panel:CreateFontString(nil, nil, "GameFontNormal")
-		  money:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 0, -10)
-		  money:SetJustifyH("LEFT")
-	panel.money = money
+	FlowContainer_Initialize(contents)
+	FlowContainer_SetOrientation(contents, "horizontal")
+	FlowContainer_SetHorizontalSpacing(contents, 10)
+	FlowContainer_SetVerticalSpacing(contents, 10)
 
-	local location = panel:CreateFontString(nil, nil, "GameFontNormal")
-		  location:SetJustifyH("LEFT")
-		  location:SetPoint("TOPLEFT", money, "BOTTOMLEFT", 0, -6)
-	panel.location = location
+	local money = contents:CreateFontString(nil, nil, "GameFontNormal")
+	money:SetJustifyH("LEFT")
+	money.update = function(self, character)
+		self:SetText(GetCoinTextureString( ns.data.GetMoney(character) ))
+	end
+	table.insert(contents.contents, money)
 
-	local mail = panel:CreateFontString(nil, nil, "GameFontNormal")
-		  mail:SetJustifyH("LEFT")
-		  mail:SetPoint("TOPLEFT", line, "BOTTOM", 4, -10)
-		  mail:SetWidth(80)
-	panel.mail = mail
+	local location = contents:CreateFontString(nil, nil, "GameFontNormal")
+	location:SetJustifyH("LEFT")
+	money.span = 1/2
+	money.update = function(self, character)
+		local location, isResting = ns.data.GetLocation(character)
+		self:SetFormattedText("|T%s|t %s", isResting and 'Interface\\CHARACTERFRAME\\UI-StateIcon:16:16:0:0:32:32:0:16:0:16' or 'Interface\\CURSOR\\Crosshairs:16:16', location)
+	end
+	table.insert(contents.contents, location)
 
-	local auctions = panel:CreateFontString(nil, nil, "GameFontNormal")
-		  auctions:SetJustifyH("LEFT")
-		  auctions:SetPoint("LEFT", mail, "RIGHT", 4, 0)
-		  auctions:SetPoint("TOPRIGHT", line, "BOTTOMRIGHT", 0, -10)
-	panel.auctions = auctions
+	local mail = contents:CreateFontString(nil, nil, "GameFontNormal")
+	mail:SetJustifyH("LEFT")
+	mail.span = 1/4
+	mail.update = function(self, character)
+		self:SetFormattedText("|T%s:0|t %d", "Interface\\MINIMAP\\TRACKING\\Mailbox", ns.data.GetNumMails(character))
+	end
+	table.insert(contents.contents, mail)
+
+	local mailFrame = CreateFrame("Frame", nil, contents)
+	mailFrame:SetAllPoints(mail)
+	mailFrame:SetScript("OnEnter", ns.ShowTooltip)
+	mailFrame:SetScript("OnLeave", ns.HideTooltip)
+	mailFrame.tiptext = function(self, tooltip)
+		local character = ns.GetSelectedCharacter()
+		local groupIndex, groupCount
+		local numLines = 0
+
+		for i = 1, ns.data.GetNumMails(character) do
+			if i == 1 then
+				tooltip:AddLine("Mails")
+			end
+
+			local sender, expiresIn, icon, count, link, money, text, returned = ns.data.GetMailInfo(character, i)
+			local cmpSender, cmpExpiry, _, cmpCount, cmpLink, _
+			if groupIndex then
+				cmpSender, cmpExpiry, _, cmpCount, cmpLink = ns.data.GetMailInfo(character, groupIndex)
+			end
+
+			link 		= link 	    and link:match("|H.-:(.-):")
+			expiresIn 	= expiresIn and string.format(SecondsToTimeAbbrev(expiresIn))
+			cmpLink 	= cmpLink   and cmpLink:match("|H.-:(.-):")
+			cmpExpiry 	= cmpExpiry and string.format(SecondsToTimeAbbrev(cmpExpiry))
+
+			if link then
+				if not groupIndex or (cmpSender == sender and cmpLink == link and cmpExpiry == expiresIn) then
+					groupCount = (groupCount or 0) + count
+				elseif cmpLink then
+					cmpLink = tonumber(cmpLink)
+					_, cmpLink = GetItemInfo(cmpLink)
+					tooltip:AddDoubleLine(cmpLink.."x"..groupCount, cmpSender.." ("..cmpExpiry..")")
+					groupCount = count
+					numLines = numLines + 1
+				end
+				groupIndex = i
+			end
+
+			if numLines >= 15 then
+				tooltip:AddLine("...")
+				break
+			end
+		end
+
+		if groupIndex and numLines < 15 then
+			local cmpSender, cmpExpiry, _, cmpCount, cmpLink = ns.data.GetMailInfo(character, groupIndex)
+			tooltip:AddDoubleLine(cmpLink.."x"..groupCount, cmpSender.." ("..string.format(SecondsToTimeAbbrev(cmpExpiry or 0))..")")
+		end
+	end
+	mail.trigger = mailFrame
+
+	local auctionsFrame = CreateFrame("Frame", nil, contents)
+	local auctions = auctionsFrame:CreateFontString(nil, nil, "GameFontNormal")
+	auctions:SetJustifyH("LEFT")
+	auctions.span = 1/3
+	auctions.update = function(self, character)
+		local auctions, bids = ns.data.GetAuctionState(character)
+		self:SetFormattedText("|T%s:0|t %d / %d", "Interface\\MINIMAP\\TRACKING\\Auctioneer", auctions, bids)
+	end
+	table.insert(contents.contents, auctions)
+
+	auctionsFrame:SetAllPoints(auctions)
+	auctionsFrame:SetScript("OnEnter", ns.ShowTooltip)
+	auctionsFrame:SetScript("OnLeave", ns.HideTooltip)
+	auctionsFrame.tiptext = function(self, tooltip)
+		local character = ns.GetSelectedCharacter()
+		local auctions, bids = ns.data.GetAuctionState(character)
+
+		local numLines = 0
+		for i = 1, bids do
+			if i == 1 then tooltip:AddLine("Bids") end
+			local isGoblin, itemID, count, name, price1, price2, timeLeft = ns.data.GetAuctionInfo(character, "Bids", i)
+			local text = string.format("%s%s|r|T%s:0|t",
+				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
+				( GetItemInfo(itemID) ),
+				timeLeft > 0 and '' or 'Interface\\FriendsFrame\\StatusIcon-Away')
+			tooltip:AddDoubleLine(text, price1)
+			numLines = numLines + 1
+			if numLines >= 10 then
+				tooltip:AddLine("...")
+				break
+			end
+		end
+
+		numLines = 0
+		for i = 1, auctions do
+			if i == 1 then tooltip:AddLine("Auctions") end
+			local isGoblin, itemID, count, name, price1, price2, timeLeft = ns.data.GetAuctionInfo(character, "Auctions", i)
+			local text = string.format("%s%s|r|T%s:0|t",
+				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
+				( GetItemInfo(itemID) ),
+				timeLeft > 0 and '' or 'Interface\\FriendsFrame\\StatusIcon-Away')
+			tooltip:AddDoubleLine(text, price2)
+			numLines = numLines + 1
+			if numLines >= 10 then
+				tooltip:AddLine("...")
+				break
+			end
+		end
+	end
+	auctions.trigger = auctionsFrame
+
+	local lfrs = content:CreateFontString(nil, nil, "GameFontNormal")
+	lfrs:SetJustifyH("LEFT")
+	lfrs.span = 1/3
+	lfrs.update = function(self, character)
+		self:SetFormattedText("|T%s:0|t %s", "Interface\\LFGFRAME\\BattlenetWorking18", "")
+	end
+	table.insert(contents.contents, lfrs)
 
 	view.panel = panel
 	return panel
@@ -111,22 +258,5 @@ function view.Update()
 	end
 	panel.xp:SetText(xpText)
 
-	local money = ns.data.GetMoney(character)
-	panel.money:SetText(GetCoinTextureString(money))
-
-	local location, isResting = ns.data.GetLocation(character)
-	panel.location:SetFormattedText("|T%s|t %s",
-		isResting and 'Interface\\CHARACTERFRAME\\UI-StateIcon:16:16:0:0:32:32:0:16:0:16' or 'Interface\\CURSOR\\Crosshairs:16:16',
-		location
-	)
-
-	local mailCount = ns.data.GetNumMails(character)
-	panel.mail:SetFormattedText("|T%s:0|t %d", "Interface\\MINIMAP\\TRACKING\\Mailbox", mailCount)
-
-	local auctions, bids = ns.data.GetAuctionState(character)
-	if auctions + bids > 0 then
-		panel.auctions:SetFormattedText("|T%s:0|t %d / %d", "Interface\\MINIMAP\\TRACKING\\Auctioneer", auctions, bids)
-	else
-		panel.auctions:SetText('')
-	end
+	UpdateFlowContainer(panel.contents)
 end

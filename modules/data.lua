@@ -138,11 +138,23 @@ function data.GetAuctionState(characterKey)
 		return 0, 0
 	end
 end
+function data.GetAuctionInfo(characterKey, list, index)
+	if IsAddOnLoaded("DataStore_Auctions") then
+		return DataStore:GetAuctionHouseItemInfo(characterKey, list, index)
+	end
+end
 function data.GetNumMails(characterKey)
 	if IsAddOnLoaded("DataStore_Mails") then
 		return DataStore:GetNumMails(characterKey)
 	else
 		return 0
+	end
+end
+function data.GetMailInfo(characterKey, index)
+	if IsAddOnLoaded("DataStore_Mails") then
+		local _, expires = DataStore:GetMailExpiry(characterKey, index)
+		local sender = DataStore:GetMailSender(characterKey, index)
+		return sender, expires, DataStore:GetMailInfo(characterKey, index)
 	end
 end
 function data.GetGuildInfo(characterKey)
@@ -166,3 +178,20 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 	end
 end
 --]]
+-- ========================================
+--  Activity
+-- ========================================
+function data.GetLFRInfos(characterKey, useTable)
+	if not IsAddOnLoaded("DSintegrate") then return useTable end
+
+	if useTable then
+		wipe(useTable)
+	else
+		useTable = {}
+	end
+
+	local lfrs = DataStore:GetLFRs(characterKey)
+	for dungeonID, _ in ipairs(lfrs) do
+		local resetTime, lastCheck, available, numDefeated, isCleared = DataStore:GetLFRInfo(characterKey, dungeonID)
+	end
+end

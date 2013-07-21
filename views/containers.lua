@@ -111,7 +111,7 @@ local function ListUpdate(self)
 			end
 			item.info:SetText(extra1 or subclass or class)
 			item.link = itemLink or link
-			if quality ~= 1 then
+			if quality and quality ~= 1 then
 				item.searchOverlay:SetVertexColor(
 					ITEM_QUALITY_COLORS[quality].r,
 					ITEM_QUALITY_COLORS[quality].g,
@@ -129,10 +129,7 @@ local function ListUpdate(self)
 		end
 	end
 
-	-- FIXME: scrolls tooooooo far
-	-- local rowHeight = math.floor(self.buttons[1]:GetHeight() * self.buttonScale)
-	local rowHeight = 30
-	local needsScrollBar = FauxScrollFrame_Update(self, #view.itemsTable, #self.buttons, rowHeight)
+	local needsScrollBar = FauxScrollFrame_Update(self, #view.itemsTable, #self.buttons, 22)
 	self:SetPoint("BOTTOMRIGHT", -10+(needsScrollBar and -18 or 0), 10)
 end
 
@@ -230,15 +227,15 @@ function view.Init()
 	local buttonHeight = 22
 	local list = CreateFrame("ScrollFrame", "$parentList", panel, "FauxScrollFrameTemplate")
 	list:SetSize(345, 305)
-	list:SetPoint("TOPLEFT", bg, "TOPLEFT", 10, -8)
-	list:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT", -10, 0)
+	list:SetPoint("TOPLEFT", bg, "TOPLEFT", 10, -6)
+	list:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT", -10, -6)
 	list:SetScript("OnVerticalScroll", function(self, offset)
 		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, ListUpdate)
 	end)
 
 	list.scrollBarHideable = true
 	list.buttons = {}
-	list.buttonScale = 28/37
+	list.buttonScale = 28/37 -- ItemButtonTemplate is 37px but that's too big
 	for i = 1, 10 do
 		local item = CreateFrame("Button", "$parentListButton"..i, panel, "ItemButtonTemplate")
 			  item:SetScale(list.buttonScale)
