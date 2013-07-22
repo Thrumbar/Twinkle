@@ -10,6 +10,7 @@
 # libraries
 libs\LibStub\LibStub.lua
 libs\LibItemSearch-1.0\LibItemSearch-1.0.lua
+libs\AceTimer-3.0\AceTimer-3.0.lua
 
 core.lua
 # config.lua

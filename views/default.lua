@@ -1,6 +1,7 @@
 local addonName, ns, _ = ...
 local view = ns.CreateView("default")
 
+local AceTimer = LibStub("AceTimer-3.0")
 local MAX_PLAYER_LEVEL = 90
 
 local function UpdateFlowContainer(container)
@@ -122,6 +123,7 @@ function view.Init()
 	mailFrame:SetScript("OnEnter", ns.ShowTooltip)
 	mailFrame:SetScript("OnLeave", ns.HideTooltip)
 	mailFrame.tiptext = function(self, tooltip)
+		tooltip:ClearLines()
 		local character = ns.GetSelectedCharacter()
 		local groupIndex, groupCount
 		local numLines = 0
@@ -148,6 +150,10 @@ function view.Init()
 				elseif cmpLink then
 					cmpLink = tonumber(cmpLink)
 					_, cmpLink = GetItemInfo(cmpLink)
+
+					-- delay if we don't have data
+					if not cmpLink then AceTimer:ScheduleTimer(self.tiptext, 0.1, self, tooltip); return end
+
 					tooltip:AddDoubleLine(cmpLink.."x"..groupCount, cmpSender.." ("..cmpExpiry..")")
 					groupCount = count
 					numLines = numLines + 1
@@ -182,6 +188,7 @@ function view.Init()
 	auctionsFrame:SetScript("OnEnter", ns.ShowTooltip)
 	auctionsFrame:SetScript("OnLeave", ns.HideTooltip)
 	auctionsFrame.tiptext = function(self, tooltip)
+		tooltip:ClearLines()
 		local character = ns.GetSelectedCharacter()
 		local auctions, bids = ns.data.GetAuctionState(character)
 
@@ -189,9 +196,14 @@ function view.Init()
 		for i = 1, bids do
 			if i == 1 then tooltip:AddLine("Bids") end
 			local isGoblin, itemID, count, name, price1, price2, timeLeft = ns.data.GetAuctionInfo(character, "Bids", i)
+			local itemName = GetItemInfo(itemID)
+
+			-- delay if we don't have data
+			if not itemName then AceTimer:ScheduleTimer(self.tiptext, 0.1, self, tooltip); return end
+
 			local text = string.format("%s%s|r|T%s:0|t",
 				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
-				( GetItemInfo(itemID) ),
+				itemName,
 				timeLeft > 0 and '' or 'Interface\\FriendsFrame\\StatusIcon-Away')
 			tooltip:AddDoubleLine(text, price1)
 			numLines = numLines + 1
@@ -205,9 +217,14 @@ function view.Init()
 		for i = 1, auctions do
 			if i == 1 then tooltip:AddLine("Auctions") end
 			local isGoblin, itemID, count, name, price1, price2, timeLeft = ns.data.GetAuctionInfo(character, "Auctions", i)
+			local itemName = GetItemInfo(itemID)
+
+			-- delay if we don't have data
+			if not itemName then AceTimer:ScheduleTimer(self.tiptext, 0.1, self, tooltip); return end
+
 			local text = string.format("%s%s|r|T%s:0|t",
 				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
-				( GetItemInfo(itemID) ),
+				itemName,
 				timeLeft > 0 and '' or 'Interface\\FriendsFrame\\StatusIcon-Away')
 			tooltip:AddDoubleLine(text, price2)
 			numLines = numLines + 1
@@ -219,7 +236,7 @@ function view.Init()
 	end
 	auctions.trigger = auctionsFrame
 
-	local lfrs = content:CreateFontString(nil, nil, "GameFontNormal")
+	local lfrs = contents:CreateFontString(nil, nil, "GameFontNormal")
 	lfrs:SetJustifyH("LEFT")
 	lfrs.span = 1/3
 	lfrs.update = function(self, character)

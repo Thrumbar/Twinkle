@@ -1,6 +1,8 @@
 local addonName, ns, _ = ...
 local view = ns.CreateView("containers")
 
+local AceTimer = LibStub("AceTimer-3.0")
+
 view.itemsTable = {}
 local primarySort, secondarySort
 
@@ -90,7 +92,6 @@ local function DataSort(a, b)
 	return tonumber(a[2]) < tonumber(b[2])
 end
 
--- FIXME: if item data's missing, stuff breaks
 local function ListUpdate(self)
 	local offset = FauxScrollFrame_GetOffset(self)
 	for i = 1, #self.buttons do
@@ -100,6 +101,10 @@ local function ListUpdate(self)
 		if view.itemsTable[index] then
 			local itemID, _, itemCount, itemLink, extra1, extra2 = unpack(view.itemsTable[index])
 			local name, link, quality, iLevel, reqLevel, class, subclass, _, _, texture, _ = GetItemInfo(itemID)
+
+			-- delay if we don't have data
+			if not name then AceTimer:ScheduleTimer(ListUpdate, 0.1, self); return end
+
 			SetItemButtonCount(item, itemCount)
 			SetItemButtonTexture(item, texture)
 			item.name:SetText(name)

@@ -116,7 +116,7 @@ function data.GetXPInfo(characterKey)
 		local restedXP = DataStore:GetRestXPRate(characterKey)
 
 		if restedXP and restedXP > 0 then
-			return string.format("%d%% (+%d%%)", currentXP, restedXP)
+			return string.format("%d%% (+%d%%)", currentXP, restedXP*1.5)
 		else
 			return string.format("%d%%", currentXP)
 		end
@@ -181,17 +181,25 @@ end
 -- ========================================
 --  Activity
 -- ========================================
-function data.GetLFRInfos(characterKey, useTable)
-	if not IsAddOnLoaded("DSintegrate") then return useTable end
+function data.GetLFRs(characterKey, useTable)
+	if useTable then wipe(useTable)
+	else useTable = {} end
 
-	if useTable then
-		wipe(useTable)
-	else
-		useTable = {}
-	end
+	if IsAddOnLoaded("DSintegrate") then
+		local charLevel = data.GetLevel(characterKey)
 
-	local lfrs = DataStore:GetLFRs(characterKey)
-	for dungeonID, _ in ipairs(lfrs) do
-		local resetTime, lastCheck, available, numDefeated, isCleared = DataStore:GetLFRInfo(characterKey, dungeonID)
+		for i=1, GetNumRFDungeons() do
+			local dungeonID, _, _, _, minLevel, maxLevel = GetRFDungeonInfo(i)
+
+			if charLevel > minLevel and charLevel < maxLevel then
+				local resetTime, lastCheck, available, numDefeated, isCleared = DataStore:GetLFRInfo(characterKey, dungeonID)
+				-- TODO
+			end
+		end
 	end
+	return  useTable
 end
+
+
+-- local currencyID, currencyQuantity, specificQuantity, specificLimit, overallQuantity, overallLimit, periodPurseQuantity, periodPurseLimit, purseQuantity, purseLimit, isWeekly = GetLFGDungeonRewardCapInfo(dungeonID)
+-- local numCompletions, isWeekly = LFGRewardsFrame_EstimateRemainingCompletions(dungeonID)
