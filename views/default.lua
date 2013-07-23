@@ -151,8 +151,10 @@ function view.Init()
 					cmpLink = tonumber(cmpLink)
 					_, cmpLink = GetItemInfo(cmpLink)
 
-					-- delay if we don't have data
-					if not cmpLink then AceTimer:ScheduleTimer(self.tiptext, 0.1, self, tooltip); return end
+					if not cmpLink then
+						AceTimer:ScheduleTimer(self:GetScript("OnEnter"), 0.1, self)
+						return
+					end
 
 					tooltip:AddDoubleLine(cmpLink.."x"..groupCount, cmpSender.." ("..cmpExpiry..")")
 					groupCount = count
@@ -188,7 +190,6 @@ function view.Init()
 	auctionsFrame:SetScript("OnEnter", ns.ShowTooltip)
 	auctionsFrame:SetScript("OnLeave", ns.HideTooltip)
 	auctionsFrame.tiptext = function(self, tooltip)
-		tooltip:ClearLines()
 		local character = ns.GetSelectedCharacter()
 		local auctions, bids = ns.data.GetAuctionState(character)
 
@@ -199,7 +200,10 @@ function view.Init()
 			local itemName = GetItemInfo(itemID)
 
 			-- delay if we don't have data
-			if not itemName then AceTimer:ScheduleTimer(self.tiptext, 0.1, self, tooltip); return end
+			if not itemName then
+				AceTimer:ScheduleTimer(self:GetScript("OnEnter"), 0.1, self)
+				return
+			end
 
 			local text = string.format("%s%s|r|T%s:0|t",
 				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
@@ -220,7 +224,10 @@ function view.Init()
 			local itemName = GetItemInfo(itemID)
 
 			-- delay if we don't have data
-			if not itemName then AceTimer:ScheduleTimer(self.tiptext, 0.1, self, tooltip); return end
+			if not itemName then
+				AceTimer:ScheduleTimer(self:GetScript("OnEnter"), 0.1, self)
+				return
+			end
 
 			local text = string.format("%s%s|r|T%s:0|t",
 				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
