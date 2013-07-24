@@ -40,7 +40,7 @@ local function DataUpdate(characterKey)
 		for i = 1, DataStore:GetNumMails(characterKey) do
 			local icon, count, link, money, text, returned = DataStore:GetMailInfo(characterKey, i)
 			if link then
-				local _, itemID = ns.GetLinkID(link)
+				local itemID = ns.GetLinkID(link)
 				local _, itemLink = GetItemInfo(itemID)
 				table.insert(view.itemsTable, {
 					itemID,

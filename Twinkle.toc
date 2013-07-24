@@ -9,7 +9,8 @@
 
 # libraries
 libs\LibStub\LibStub.lua
-libs\LibItemSearch-1.0\LibItemSearch-1.0.lua
+libs\CustomSearch-1.0\CustomSearch-1.0.lua
+libs\LibItemSearch-1.2\LibItemSearch-1.2.lua
 libs\AceTimer-3.0\AceTimer-3.0.lua
 
 core.lua
@@ -24,5 +25,6 @@ modules\tradeskill.lua
 views\default.lua
 views\containers.lua
 views\search.lua
+views\grids.lua
 
 modules\ui.lua

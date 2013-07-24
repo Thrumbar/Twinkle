@@ -29,10 +29,11 @@ local function CharacterListUpdate(self)
 
 		if characters[index] then
 			local level = ns.data.GetLevel(characters[index])
-			button.right:SetText(level < 90 and level or '')
+			button.info:SetText(level < 90 and level or '')
 
 			button.element = characters[index] -- TODO: use actual panel here!
 			button:SetText( ns.data.GetCharacterText(characters[index]) )
+			button:SetAlpha(1)
 			button:Show()
 
 			if button.element == selection then
@@ -116,10 +117,10 @@ local function Initialize()
 	characterList.buttons = {}
 	for i = 1, 11 do
 		local button = CreateFrame("Button", "$parentButton"..i, sidebar, "OptionsListButtonTemplate", i)
-		local right = button:CreateFontString(nil, nil, "GameFontNormal")
-			  right:SetPoint("RIGHT", -10, 0)
-			  right:SetJustifyH("RIGHT")
-		button.right = right
+		local info = button:CreateFontString(nil, nil, "GameFontNormal")
+			  info:SetPoint("RIGHT", -10, 0)
+			  info:SetJustifyH("RIGHT")
+		button.info = info
 		button.toggle = nil
 		button.toggleFunc = nil
 

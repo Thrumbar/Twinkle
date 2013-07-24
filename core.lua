@@ -118,7 +118,7 @@ function ns.HideTooltip() GameTooltip:Hide() end
 function ns.GetLinkID(link)
 	if not link or type(link) ~= "string" then return end
 	local linkType, id = link:match("\124H([^:]+):([^:]+)")
-	return linkType, tonumber(id)
+	return tonumber(id), linkType
 end
 -- counts table entries. for numerically indexed tables, use #table
 function ns.Count(table)

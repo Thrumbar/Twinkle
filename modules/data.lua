@@ -3,29 +3,33 @@ local data = {}
 ns.data = data
 
 function data.GetCharacters(useTable)
-	wipe(useTable)
+	if useTable then wipe(useTable) else useTable = {} end
 	for characterName, characterKey in pairs(DataStore:GetCharacters()) do
 		table.insert(useTable, characterKey)
 	end
 	table.sort(useTable)
+	return useTable
 end
 
 function data.GetCurrentCharacter()
 	return DataStore:GetCharacter()
 end
 
-function data.GetCharacterText(characterKey)
+function data.GetCharacterText(characterKey, noIcon)
 	local text
 	if IsAddOnLoaded('DataStore_Characters') then
-		local faction = DataStore:GetCharacterFaction(characterKey)
-		if faction == "Horde" then
-			text = '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t '
-		elseif faction == "Alliance" then
-			text = '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t '
+		if noIcon then
+			text = ''
 		else
-			text = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t '
+			local faction = DataStore:GetCharacterFaction(characterKey)
+			if faction == "Horde" then
+				text = '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t '
+			elseif faction == "Alliance" then
+				text = '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t '
+			else
+				text = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t '
+			end
 		end
-
 		text = text .. (DataStore:GetColoredCharacterName(characterKey) or '') .. '|r'
 	else
 		local _, _, characterName = strsplit('.', characterKey)
@@ -181,25 +185,40 @@ end
 -- ========================================
 --  Activity
 -- ========================================
-function data.GetLFRs(characterKey, useTable)
-	if useTable then wipe(useTable)
-	else useTable = {} end
+function data.GetRandomLFGState(characterKey, useTable)
+	useTable = useTable or {}
+	wipe(useTable)
 
-	if IsAddOnLoaded("DSintegrate") then
-		local charLevel = data.GetLevel(characterKey)
-
-		for i=1, GetNumRFDungeons() do
-			local dungeonID, _, _, _, minLevel, maxLevel = GetRFDungeonInfo(i)
-
-			if charLevel > minLevel and charLevel < maxLevel then
-				local resetTime, lastCheck, available, numDefeated, isCleared = DataStore:GetLFRInfo(characterKey, dungeonID)
-				-- TODO
+	if IsAddOnLoaded("Broker_DataStore") then
+		for dungeonID, status, resetTime, numDefeated in DataStore:GetLFGs(characterKey) do
+			local dungeon, typeID = GetLFGDungeonInfo(dungeonID)
+			if typeID == TYPEID_RANDOM_DUNGEON and type(status) == "boolean" then
+				table.insert(useTable, {
+					id = dungeonID,
+					name = dungeon,
+					complete = status
+				})
 			end
 		end
 	end
-	return  useTable
+	return useTable
 end
 
+function data.GetLFRState(characterKey, useTable)
+	useTable = useTable or {}
+	wipe(useTable)
 
--- local currencyID, currencyQuantity, specificQuantity, specificLimit, overallQuantity, overallLimit, periodPurseQuantity, periodPurseLimit, purseQuantity, purseLimit, isWeekly = GetLFGDungeonRewardCapInfo(dungeonID)
--- local numCompletions, isWeekly = LFGRewardsFrame_EstimateRemainingCompletions(dungeonID)
+	if IsAddOnLoaded("Broker_DataStore") then
+		for dungeonID, status, resetTime, numDefeated in DataStore:GetLFGs(characterKey) do
+			local dungeon, typeID, subTypeID = GetLFGDungeonInfo(dungeonID)
+			if typeID == TYPEID_DUNGEON and subTypeID == LFG_SUBTYPEID_RAID and type(status) == "boolean" then
+				table.insert(useTable, {
+					id = dungeonID,
+					name = dungeon,
+					complete = status
+				})
+			end
+		end
+	end
+	return useTable
+end

@@ -79,8 +79,8 @@ function view.Init()
 	local line = panel:CreateTexture()
 	line:SetTexture(0.74, 0.52, 0.06, 0.6)
 	line:SetHeight(1)
-	line:SetPoint("TOPLEFT", portrait, "BOTTOMLEFT", 5, -4)
-	line:SetPoint("RIGHT", panel, "RIGHT", -10, 0)
+	line:SetPoint("TOPLEFT", portrait, "BOTTOMLEFT", -10, -4)
+	line:SetPoint("RIGHT", panel, "RIGHT", 0, 0)
 
 	-- flowcontainer that'll hold all our precious data
 	local contents = CreateFrame("Frame", nil, panel)
@@ -112,7 +112,6 @@ function view.Init()
 
 	local mail = contents:CreateFontString(nil, nil, "GameFontNormal")
 	mail:SetJustifyH("LEFT")
-	mail.span = 1/4
 	mail.update = function(self, character)
 		self:SetFormattedText("|T%s:0|t %d", "Interface\\MINIMAP\\TRACKING\\Mailbox", ns.data.GetNumMails(character))
 	end
@@ -179,7 +178,6 @@ function view.Init()
 	local auctionsFrame = CreateFrame("Frame", nil, contents)
 	local auctions = auctionsFrame:CreateFontString(nil, nil, "GameFontNormal")
 	auctions:SetJustifyH("LEFT")
-	auctions.span = 1/3
 	auctions.update = function(self, character)
 		local auctions, bids = ns.data.GetAuctionState(character)
 		self:SetFormattedText("|T%s:0|t %d / %d", "Interface\\MINIMAP\\TRACKING\\Auctioneer", auctions, bids)
@@ -243,11 +241,50 @@ function view.Init()
 	end
 	auctions.trigger = auctionsFrame
 
+	local function SortByName(a, b)
+		if a.name ~= b.name then
+			return a.name < b.name
+		else
+			return a.id < b.id
+		end
+	end
+	local function SortByID(a, b)
+		return a.id < b.id
+	end
+
+	local lfgData = {}
+	local lfgs = contents:CreateFontString(nil, nil, "GameFontNormal")
+	lfgs:SetJustifyH("LEFT")
+	lfgs.update = function(self, character)
+		local data = ns.data.GetRandomLFGState(character, lfgData)
+		table.sort(data, SortByName)
+
+		local status
+		for _, dungeon in ipairs(data) do
+			status = string.format("%s|T%s:0|t %s", status and status.."|n|T:0|t " or "",
+				dungeon.complete and "Interface\\RAIDFRAME\\ReadyCheck-Ready" or "Interface\\RAIDFRAME\\ReadyCheck-NotReady",
+				dungeon.name
+			)
+		end
+		self:SetFormattedText("|TInterface\\Buttons\\UI-GroupLoot-Dice-Up:0|t %s", status or "None")
+	end
+	table.insert(contents.contents, lfgs)
+
 	local lfrs = contents:CreateFontString(nil, nil, "GameFontNormal")
 	lfrs:SetJustifyH("LEFT")
-	lfrs.span = 1/3
 	lfrs.update = function(self, character)
-		self:SetFormattedText("|T%s:0|t %s", "Interface\\LFGFRAME\\BattlenetWorking18", "")
+		local data = ns.data.GetLFRState(character, lfgData)
+		table.sort(data, SortByID)
+		FOO = data
+
+		local status
+		for _, dungeon in ipairs(data) do
+			status = string.format("%s|T%s:0|t %s", status and status.."|n|T:0|t " or "",
+				dungeon.complete and "Interface\\RAIDFRAME\\ReadyCheck-Ready" or "Interface\\RAIDFRAME\\ReadyCheck-NotReady",
+				dungeon.name
+			)
+		end
+		self:SetFormattedText("|TInterface\\LFGFRAME\\BattlenetWorking18:0:0:0:0:64:64:12:52:12:52|t %s", status or "None")
 	end
 	table.insert(contents.contents, lfrs)
 
