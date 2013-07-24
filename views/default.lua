@@ -79,7 +79,7 @@ function view.Init()
 	local line = panel:CreateTexture()
 	line:SetTexture(0.74, 0.52, 0.06, 0.6)
 	line:SetHeight(1)
-	line:SetPoint("TOPLEFT", portrait, "BOTTOMLEFT", -10, -4)
+	line:SetPoint("TOPLEFT", portrait, "BOTTOMLEFT", -5, -4)
 	line:SetPoint("RIGHT", panel, "RIGHT", 0, 0)
 
 	-- flowcontainer that'll hold all our precious data
@@ -103,8 +103,8 @@ function view.Init()
 
 	local location = contents:CreateFontString(nil, nil, "GameFontNormal")
 	location:SetJustifyH("LEFT")
-	money.span = 1/2
-	money.update = function(self, character)
+	location.span = 1/2
+	location.update = function(self, character)
 		local location, isResting = ns.data.GetLocation(character)
 		self:SetFormattedText("|T%s|t %s", isResting and 'Interface\\CHARACTERFRAME\\UI-StateIcon:16:16:0:0:32:32:0:16:0:16' or 'Interface\\CURSOR\\Crosshairs:16:16', location)
 	end
@@ -129,7 +129,7 @@ function view.Init()
 
 		for i = 1, ns.data.GetNumMails(character) do
 			if i == 1 then
-				tooltip:AddLine("Mails")
+				tooltip:AddLine(MINIMAP_TRACKING_MAILBOX)
 			end
 
 			local sender, expiresIn, icon, count, link, money, text, returned = ns.data.GetMailInfo(character, i)
@@ -241,6 +241,39 @@ function view.Init()
 	end
 	auctions.trigger = auctionsFrame
 
+	local dailyQuestTable = {}
+	local dailies = contents:CreateFontString(nil, nil, "GameFontNormal")
+	dailies:SetJustifyH("LEFT")
+	dailies.update = function(self, character)
+		local character = ns.GetSelectedCharacter()
+		dailyQuestTable = ns.data.GetDailyQuests(character, dailyQuestTable)
+		table.sort(dailyQuestTable)
+
+		self:SetFormattedText("|T%s:0|t %d", "Interface\\GossipFrame\\DailyActiveQuestIcon", #dailyQuestTable)
+	end
+	table.insert(contents.contents, dailies)
+
+	local dailiesFrame = CreateFrame("Frame", nil, contents)
+	dailiesFrame:SetAllPoints(mail)
+	dailiesFrame:SetScript("OnEnter", ns.ShowTooltip)
+	dailiesFrame:SetScript("OnLeave", ns.HideTooltip)
+	dailiesFrame.tiptext = function(self, tooltip)
+		tooltip:ClearLines()
+
+		for i, title in ipairs(dailyQuestTable) do
+			if i == 1 then
+				tooltip:AddLine(TRACKER_FILTER_COMPLETED_QUESTS)
+			end
+			tooltip:AddLine(title)
+
+			if i >= 15 then
+				tooltip:AddLine("...")
+				break
+			end
+		end
+	end
+	dailies.trigger = dailiesFrame
+
 	local function SortByName(a, b)
 		if a.name ~= b.name then
 			return a.name < b.name
@@ -262,7 +295,7 @@ function view.Init()
 		local status
 		for _, dungeon in ipairs(data) do
 			status = string.format("%s|T%s:0|t %s", status and status.."|n|T:0|t " or "",
-				dungeon.complete and "Interface\\RAIDFRAME\\ReadyCheck-Ready" or "Interface\\RAIDFRAME\\ReadyCheck-NotReady",
+				dungeon.complete and "Interface\\RAIDFRAME\\ReadyCheck-Ready" or "Interface\\FriendsFrame\\StatusIcon-Offline",
 				dungeon.name
 			)
 		end
@@ -275,12 +308,12 @@ function view.Init()
 	lfrs.update = function(self, character)
 		local data = ns.data.GetLFRState(character, lfgData)
 		table.sort(data, SortByID)
-		FOO = data
 
 		local status
 		for _, dungeon in ipairs(data) do
 			status = string.format("%s|T%s:0|t %s", status and status.."|n|T:0|t " or "",
-				dungeon.complete and "Interface\\RAIDFRAME\\ReadyCheck-Ready" or "Interface\\RAIDFRAME\\ReadyCheck-NotReady",
+				dungeon.complete and "Interface\\RAIDFRAME\\ReadyCheck-Ready" or
+				dungeon.killed > 0 and "Interface\\FriendsFrame\\StatusIcon-Online" or "Interface\\FriendsFrame\\StatusIcon-Offline",
 				dungeon.name
 			)
 		end
@@ -314,7 +347,8 @@ function view.Update()
 	if level < MAX_PLAYER_LEVEL then
 		xpText = '|TInterface\\COMMON\\ReputationStar:16:16:0:0:32:32:16:32:16:32|t ' .. ns.data.GetXPInfo(character)
 	else
-		xpText = ns.data.GetAverageItemLevel(character) .. ' |TInterface\\COMMON\\ReputationStar:16:16:0:1:32:32:0:16:0:16|t'
+		xpText = ns.data.GetAverageItemLevel(character) .. -- " |TInterface\\GossipFrame\\TabardGossipIcon:0|t"
+			' |TInterface\\COMMON\\ReputationStar:16:16:0:1:32:32:0:16:0:16|t'
 		-- '|TInterface\\PaperDollInfoFrame\\PaperDollSidebarTabs:20:20:0:1:64:256:1:34:120:155|t'
 	end
 	panel.xp:SetText(xpText)

@@ -215,9 +215,23 @@ function data.GetLFRState(characterKey, useTable)
 				table.insert(useTable, {
 					id = dungeonID,
 					name = dungeon,
+					killed = numDefeated,
 					complete = status
 				})
 			end
+		end
+	end
+	return useTable
+end
+
+function data.GetDailyQuests(characterKey, useTable)
+	useTable = useTable or {}
+	wipe(useTable)
+
+	if IsAddOnLoaded("DataStore_Quests") then
+		for i = 1, DataStore:GetDailiesHistorySize(characterKey) do
+			local _, title = DataStore:GetDailiesHistoryInfo(characterKey, i)
+			table.insert(useTable, title)
 		end
 	end
 	return useTable
