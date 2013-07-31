@@ -2,7 +2,7 @@
 ## Author: ckaotik
 ## Title: Twinkle
 ## Version: @project-version@
-# OptionalDeps:
+## OptionalDeps: TipTac
 # Dependencies:
 # SavedVariables: Twinkle_GlobalDB
 # SavedVariablesPerCharacter: Twinkle_LocalDB
@@ -20,6 +20,7 @@ core.lua
 modules\data.lua
 modules\search.lua
 modules\tradeskill.lua
+modules\tooltip.lua
 
 # views
 views\default.lua

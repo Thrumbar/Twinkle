@@ -321,6 +321,8 @@ function view.Init()
 	end
 	table.insert(contents.contents, lfrs)
 
+	-- TODO: world bosses, hearth location
+
 	view.panel = panel
 	return panel
 end
