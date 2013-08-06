@@ -299,7 +299,7 @@ function view.Init()
 				dungeon.name
 			)
 		end
-		self:SetFormattedText("|TInterface\\Buttons\\UI-GroupLoot-Dice-Up:0|t %s", status or "None")
+		self:SetFormattedText("|TInterface\\Buttons\\UI-GroupLoot-Dice-Up:0|t %s", status or NONE)
 	end
 	table.insert(contents.contents, lfgs)
 
@@ -317,11 +317,11 @@ function view.Init()
 				dungeon.name
 			)
 		end
-		self:SetFormattedText("|TInterface\\LFGFRAME\\BattlenetWorking18:0:0:0:0:64:64:12:52:12:52|t %s", status or "None")
+		self:SetFormattedText("|TInterface\\LFGFRAME\\BattlenetWorking18:0:0:0:0:64:64:12:52:12:52|t %s", status or NONE)
 	end
 	table.insert(contents.contents, lfrs)
 
-	-- TODO: world bosses, hearth location
+	-- TODO: world bosses, hearth location, raid ids
 
 	view.panel = panel
 	return panel
