@@ -12,11 +12,79 @@ local LBFactions = LibStub("LibBabble-Faction-3.0"):GetLookupTable()
 local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = GetAuctionItemClasses()
 local _, _, VALOR = GetCurrencyInfo(VALOR_CURRENCY)
 local _, _, CONQUEST = GetCurrencyInfo(CONQUEST_CURRENCY)
+local tradeskills = {
+	["Alchemy"] = 2259,
+	["Blacksmithing"] = 2018,
+	["Enchanting"] = 7411,
+	["Engineering"] = 4036,
+	["Herbalism"] = 2366,
+	["Inscription"] = 45357,
+	["Jewelcrafting"] = 25229,
+	["Leatherworking"] = 2108,
+	["Mining"] = 2575,
+	["Skinning"] = 8613,
+	["Tailoring"] = 3908,
+	["Archaeology"] = 78670,
+	["Cooking"] = 2550,
+	["First Aid"] = 3273,
+	["Fishing"] = 7620,
+}
+local reputationColors = { -- TODO: brighten up
+	[1] = "|cFFA00000", -- 861c10",
+	[2] = "|cFFA00000", -- 994515",
+	[3] = "|cFFA00000", -- aa7419",
+	[4] = "|cFFD2AC00", -- a68818",
+	[5] = "|cFF51AB01", -- 777601",
+	[6] = "|cFF51AB01", -- 527001",
+	[7] = "|cFF51AB01", -- 217201",
+	[8] = "|cFF00BE70", -- 007564",
+}
 
+
+-- ================================================
+--  Quests
+-- ================================================
+local questInfo = {}
+local function GetOnQuestInfo(questID)
+	wipe(questInfo)
+	if not IsAddOnLoaded("DataStore_Quests") then
+		return questInfo
+	end
+
+	for _, character in pairs(DataStore:GetCharacters()) do
+		local numActiveQuests = DataStore:GetQuestLogSize(character)
+		for i = 1, numActiveQuests do
+			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(i)
+			local qID = ns.GetLinkID(questLink)
+			if not isHeader and qID == questID and completed ~= 1 then
+				table.insert(questInfo, ns.data.GetCharacterText(character, true))
+			end
+		end
+	end
+	return questInfo
+end
+
+local function AddOnQuestInfo(tooltip, questID)
+	local questInfo = GetOnQuestInfo(questID)
+	if #questInfo > 0 then
+		-- ERR_QUEST_ACCEPTED_S: "Quest angenommen: ..."
+		-- ERR_QUEST_PUSH_ONQUEST_S: "... hat diese Quest bereits"
+		local text = string.format(ERR_QUEST_PUSH_ONQUEST_S, table.concat(questInfo, ", "))
+		tooltip:AddLine(text, nil, nil, nil, true)
+	end
+end
+
+-- ================================================
+--  Recipes
+-- ================================================
 local recipeKnownCharacters, recipeUnknownCharacters = {}, {}
 local function GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
 	wipe(recipeKnownCharacters)
 	wipe(recipeUnknownCharacters)
+	if not IsAddOnLoaded("DataStore_Crafts") then
+		return recipeKnownCharacters, recipeUnknownCharacters
+	end
+
 	for _, character in pairs(DataStore:GetCharacters()) do
 		local profession = DataStore:GetProfession(character, professionName)
 		if profession then
@@ -42,7 +110,6 @@ local function GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
 			end
 		end
 	end
-
 	return recipeKnownCharacters, recipeUnknownCharacters
 end
 
@@ -63,24 +130,6 @@ end
 -- ================================================
 --  Item Sources
 -- ================================================
-local tradeskills = {
-	["Alchemy"] = 2259,
-	["Blacksmithing"] = 2018,
-	["Enchanting"] = 7411,
-	["Engineering"] = 4036,
-	["Herbalism"] = 2366,
-	["Inscription"] = 45357,
-	["Jewelcrafting"] = 25229,
-	["Leatherworking"] = 2108,
-	["Mining"] = 2575,
-	["Skinning"] = 8613,
-	["Tailoring"] = 3908,
-	["Archaeology"] = 78670,
-	["Cooking"] = 2550,
-	["First Aid"] = 3273,
-	["Fishing"] = 7620,
-}
-
 local itemSources = {}
 local function GetItemSources(item)
 	LoadAddOn("Blizzard_EncounterJournal")
@@ -88,6 +137,7 @@ local function GetItemSources(item)
 	wipe(itemSources)
 	local itemName, link, quality, iLevel = GetItemInfo(item)
 	local exactMatch = type(item) == "number"
+	if not itemName then return itemSources end
 
 	EJ_SetSearch(itemName)
 	for index = 1, EJ_GetNumSearchResults() do
@@ -138,15 +188,17 @@ local function AddItemSources(tooltip, itemID)
 			faction = faction:sub(19)
 			standing = tonumber(standing)
 
-			local format = currency and "|cFFFF7F00%1$s:|r |cFF%2$.2x%3$.2x%4$.2x%5$s|r (%6$s)" or "|cFFFF7F00%s:|r |cFF%.2x%.2x%.2x%s|r"
-			local text = string.format(format, faction and LBFactions[faction] or faction,
-				FACTION_BAR_COLORS[standing].r*255, FACTION_BAR_COLORS[standing].g*255, FACTION_BAR_COLORS[standing].b*255,
+			-- local format = currency and "|cFFFF7F00%1$s:|r |cFF%2$.2x%3$.2x%4$.2x%5$s|r (%6$s)" or "|cFFFF7F00%s:|r |cFF%.2x%.2x%.2x%s|r"
+			local format = currency and "|cFFFF7F00%s:|r %s%s|r (%s)" or "|cFFFF7F00%s:|r %s%s|r"
+			local text = format:format(faction and LBFactions[faction] or faction,
+				-- FACTION_BAR_COLORS[standing].r*255, FACTION_BAR_COLORS[standing].g*255, FACTION_BAR_COLORS[standing].b*255,
+				reputationColors[standing],
 				_G["FACTION_STANDING_LABEL"..standing],
 				currency)
 
-			tooltip:AddLine(text, nil, nil, nil, true)
+			tooltip:AddLine(text)
 		elseif currency then
-			tooltip:AddLine(TABARDVENDORCOST .. " ".. currency, nil, nil, nil, true)
+			tooltip:AddLine(TABARDVENDORCOST .. " ".. currency)
 		end
 
 		-- found sources already
@@ -173,18 +225,21 @@ local function HandleTooltipItem(self)
 	if self.twinkleDone then return end
 
 	local name, link = self:GetItem()
+	if not link then return end
 	local _, _, quality, iLevel, reqLevel, class, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
 	local itemID, _ = ns.GetLinkID(link)
-	-- isGlyph, isRecipe, isMount, isPet, ownedInfo, dropInfo
+	-- isMount, isPet, ownedInfo
 
+	self:AddLine(" ")
 	if class == GLYPH then
 		-- subclass => class name
 	elseif class == RECIPE then
 		local craftedName = name:match(".-: (.+)")
 		AddCraftInfo(self, subclass, craftedName)
-	elseif class == WEAPON or class == ARMOR then
+	elseif equipSlot ~= "" and equipSlot ~= "INVTYPE_BAG" then
 		AddItemSources(self, itemID)
 	end
+	-- self:AddLine(" ")
 
 	-- TODO: list owned
 	self.twinkleDone = true
@@ -211,6 +266,13 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 
 		GameTooltip:HookScript("OnTooltipSetItem", HandleTooltipItem)
 		ItemRefTooltip:HookScript("OnTooltipSetItem", HandleTooltipItem)
+
+		hooksecurefunc(GameTooltip, "SetHyperlink", function(self, hyperlink)
+			local id, linkType = ns.GetLinkID(hyperlink)
+			if linkType == "quest" then
+				AddOnQuestInfo(self, id)
+			end
+		end)
 
 		-- GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
 
