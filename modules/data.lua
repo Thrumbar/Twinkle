@@ -15,27 +15,30 @@ function data.GetCurrentCharacter()
 	return DataStore:GetCharacter()
 end
 
-function data.GetCharacterText(characterKey, noIcon)
+function data.GetCharacterText(characterKey)
 	local text
 	if IsAddOnLoaded('DataStore_Characters') then
-		if noIcon then
-			text = ''
-		else
-			local faction = DataStore:GetCharacterFaction(characterKey)
-			if faction == "Horde" then
-				text = '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t '
-			elseif faction == "Alliance" then
-				text = '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t '
-			else
-				text = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t '
-			end
-		end
-		text = text .. (DataStore:GetColoredCharacterName(characterKey) or '') .. '|r'
+		text = DataStore:GetColoredCharacterName(characterKey) .. '|r'
 	else
 		local _, _, characterName = strsplit('.', characterKey)
 		text = characterName
 	end
-	return text
+	return text or ''
+end
+
+function data.GetCharacterFactionIcon(characterKey)
+	local text
+	if IsAddOnLoaded('DataStore_Characters') then
+		local faction = DataStore:GetCharacterFaction(characterKey)
+		if faction == "Horde" then
+			text = '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t'
+		elseif faction == "Alliance" then
+			text = '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t'
+		else
+			text = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t'
+		end
+	end
+	return text or ''
 end
 
 -- list icon: 						Interface\\FriendsFrame\\UI-FriendsList-Small-Up
@@ -74,11 +77,12 @@ function data.GetName(characterKey)
 		return characterKey
 	end
 end
-function data.GetLevel(characterKey)
+function data.GetRace(characterKey)
 	if IsAddOnLoaded("DataStore_Characters") then
-		return DataStore:GetCharacterLevel(characterKey)
+		local locale, english = DataStore:GetCharacterRace(characterKey)
+		return locale, english
 	else
-		return 0
+		return ''
 	end
 end
 function data.GetClass(characterKey)
@@ -89,10 +93,9 @@ function data.GetClass(characterKey)
 		return ''
 	end
 end
-function data.GetRace(characterKey)
+function data.GetLevel(characterKey)
 	if IsAddOnLoaded("DataStore_Characters") then
-		local locale, english = DataStore:GetCharacterRace(characterKey)
-		return locale, english
+		return DataStore:GetCharacterLevel(characterKey)
 	else
 		return 0
 	end
@@ -110,7 +113,7 @@ function data.GetAverageItemLevel(characterKey)
 	if IsAddOnLoaded("DataStore_Inventory") then
 		return math.floor(DataStore:GetAverageItemLevel(characterKey) + 0.5)
 	else
-		return ''
+		return 0
 	end
 end
 function data.GetXPInfo(characterKey)

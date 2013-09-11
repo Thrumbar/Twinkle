@@ -51,13 +51,14 @@ local function GetOnQuestInfo(questID)
 		return questInfo
 	end
 
+	-- TODO: abstract to ns.data
 	for _, character in pairs(DataStore:GetCharacters()) do
 		local numActiveQuests = DataStore:GetQuestLogSize(character)
 		for i = 1, numActiveQuests do
 			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(i)
 			local qID = ns.GetLinkID(questLink)
 			if not isHeader and qID == questID and completed ~= 1 then
-				table.insert(questInfo, ns.data.GetCharacterText(character, true))
+				table.insert(questInfo, ns.data.GetCharacterText(character))
 			end
 		end
 	end
@@ -67,6 +68,7 @@ end
 local function AddOnQuestInfo(tooltip, questID)
 	local questInfo = GetOnQuestInfo(questID)
 	if #questInfo > 0 then
+		-- QUEST_TOOLTIP_ACTIVE: "Ihr befindet Euch auf dieser Quest."
 		-- ERR_QUEST_ACCEPTED_S: "Quest angenommen: ..."
 		-- ERR_QUEST_PUSH_ONQUEST_S: "... hat diese Quest bereits"
 		local text = string.format(ERR_QUEST_PUSH_ONQUEST_S, table.concat(questInfo, ", "))
@@ -75,9 +77,90 @@ local function AddOnQuestInfo(tooltip, questID)
 end
 
 -- ================================================
+--  Social (Friends / Ignores)
+-- ================================================
+local friendInfo = {}
+local function GetFriendsInfo(unitName)
+	if not IsAddOnLoaded("DataStore_Agenda") then
+		return friendInfo
+	end
+
+	wipe(friendInfo)
+	for _, character in pairs(DataStore:GetCharacters()) do
+		-- might just as well be <nil, nil, "">
+		local _, _, note = DataStore:GetContactInfo(character, unitName)
+		if note then
+			friendInfo[ character ] = note
+			break
+		end
+	end
+	return friendInfo
+end
+
+local function AddSocialInfo(tooltip)
+	local unitName = tooltip:GetUnit()
+	if IsIgnored(unitName) then
+		local text = string.format(ERR_IGNORE_ALREADY_S, unitName)
+		tooltip:AddLine(text, nil, nil, nil, true)
+	else
+		local friends = GetFriendsInfo(unitName)
+		local text
+		for character, note in pairs(friends) do
+			local char = ns.data.GetCharacterText(character)
+			text = (text and text .. ', ' or '') .. char .. (note ~= '' and ' ('..note..')' or '')
+		end
+		if text then
+			text = DECLENSION_SET:format(BATTLENET_FRIEND, text)
+			tooltip:AddLine(text, nil, nil, nil, true)
+		end
+	end
+end
+
+-- ================================================
+--  Glyphs
+-- ================================================
+local glyphKnown = {}
+local glyphUnknown = {}
+local function GetGlyphKnownInfo(itemID, onlyUnknown)
+	wipe(glyphKnown)
+	wipe(glyphUnknown)
+	for _, character in pairs(DataStore:GetCharacters()) do
+		local isKnown, canLearn = DataStore:IsGlyphKnown(character, itemID)
+		if isKnown and not onlyUnknown then
+			table.insert(glyphKnown, ns.data.GetCharacterText(character))
+		elseif canLearn then
+			table.insert(glyphUnknown, ns.data.GetCharacterText(character))
+		end
+	end
+	-- glyphs only known/lernable for 1 class, so wie can sort by |cxxxxxxxxName|r
+	table.sort(glyphKnown)
+	table.sort(glyphUnknown)
+	return glyphKnown, glyphUnknown
+end
+
+local function AddGlyphInfo(tooltip, itemID)
+	local onlyUnknown = false -- TODO: config
+	local known, unknown = GetGlyphKnownInfo(itemID, onlyUnknown)
+
+	local list = not onlyUnknown and table.concat(known, ", ")
+	if list and list ~= "" then
+		tooltip:AddLine(RED_FONT_COLOR_CODE..ITEM_SPELL_KNOWN..": "..FONT_COLOR_CODE_CLOSE..list, nil, nil, nil, true)
+	end
+	list = table.concat(unknown, ", ")
+	if list and list ~= "" then
+		tooltip:AddLine(GREEN_FONT_COLOR_CODE..UNKNOWN..": "..FONT_COLOR_CODE_CLOSE..list, nil, nil, nil, true)
+	end
+end
+
+-- ================================================
 --  Recipes
 -- ================================================
 local recipeKnownCharacters, recipeUnknownCharacters = {}, {}
+local function SortBySkill(a, b)
+	local skillA = a:match("|r %((.-)%)$")
+	local skillB = b:match("|r %((.-)%)$")
+	return tonumber(skillA) > tonumber(skillB)
+end
 local function GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
 	wipe(recipeKnownCharacters)
 	wipe(recipeUnknownCharacters)
@@ -101,15 +184,18 @@ local function GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
 				end
 			end
 
+			local charName = ns.data.GetCharacterText(character)
 			if isKnown and not onlyUnknown then
-				table.insert(recipeKnownCharacters, ns.data.GetCharacterText(character, true))
+				table.insert(recipeKnownCharacters, charName)
 			elseif not isKnown and numCrafts > 0 then
 				local skillLevel = DataStore:GetProfessionInfo(profession)
-				local characterText = string.format("%s (%d)", ns.data.GetCharacterText(character, true), skillLevel)
+				local characterText = string.format("%s (%d)", charName, skillLevel)
 				table.insert(recipeUnknownCharacters, characterText)
 			end
 		end
 	end
+	table.sort(recipeKnownCharacters)
+	table.sort(recipeUnknownCharacters, SortBySkill)
 	return recipeKnownCharacters, recipeUnknownCharacters
 end
 
@@ -119,11 +205,11 @@ local function AddCraftInfo(tooltip, professionName, craftedName)
 
 	local list = not onlyUnknown and table.concat(known, ", ")
 	if list and list ~= "" then
-		tooltip:AddLine(ITEM_SPELL_KNOWN..": "..list, nil, nil, nil, true)
+		tooltip:AddLine(RED_FONT_COLOR_CODE..ITEM_SPELL_KNOWN..": "..FONT_COLOR_CODE_CLOSE..list, 1, 1, 1, true)
 	end
 	list = table.concat(unknown, ", ")
 	if list and list ~= "" then
-		tooltip:AddLine(UNKNOWN..": "..list, nil, nil, nil, true)
+		tooltip:AddLine(GREEN_FONT_COLOR_CODE..UNKNOWN..": "..FONT_COLOR_CODE_CLOSE..list, 1, 1, 1, true)
 	end
 end
 
@@ -136,13 +222,14 @@ local function GetItemSources(item)
 
 	wipe(itemSources)
 	local itemName, link, quality, iLevel = GetItemInfo(item)
-	local exactMatch = type(item) == "number"
+	itemName = type(item) == "string" and item or itemName
+	-- local exactMatch = type(item) == "number" -- TODO: causes issues with thunderforged etc
 	if not itemName then return itemSources end
 
 	EJ_SetSearch(itemName)
 	for index = 1, EJ_GetNumSearchResults() do
 		local resultName, _, path, _, _, resultItemID = EncounterJournal_GetSearchDisplay(index)
-		if (exactMatch and item == resultItemID) or (not exactMatch and resultName == itemName) then
+		if item == resultItemID or resultName == itemName then
 			if not tContains(itemSources, path) then
 				table.insert(itemSources, path)
 			end
@@ -208,7 +295,13 @@ local function AddItemSources(tooltip, itemID)
 		if skillLevel then
 			profession = profession:match("Tradeskill%.Crafted%.([^.]+)")
 			profession = GetSpellInfo(tradeskills[profession] or profession) or profession
-			local text = string.format("|cFFFF7F00%s:|r %s (%d)", TRADESKILLS, profession, skillLevel)
+
+			local text
+			if skillLevel ~= '0' then
+				text = string.format("|cFFFF7F00%s:|r %s (%d)", TRADESKILLS, profession, skillLevel)
+			else
+				text = string.format("|cFFFF7F00%s:|r %s", TRADESKILLS, profession)
+			end
 
 			tooltip:AddLine(text, nil, nil, nil, true)
 		end
@@ -233,6 +326,7 @@ local function HandleTooltipItem(self)
 	self:AddLine(" ")
 	if class == GLYPH then
 		-- subclass => class name
+		AddGlyphInfo(self, itemID)
 	elseif class == RECIPE then
 		local craftedName = name:match(".-: (.+)")
 		AddCraftInfo(self, subclass, craftedName)
@@ -261,23 +355,24 @@ end
 -- ================================================
 ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 	if arg1 == addonName then
-		GameTooltip:HookScript("OnTooltipCleared", ClearTooltipItem)
+		GameTooltip:HookScript("OnTooltipCleared",    ClearTooltipItem)
 		ItemRefTooltip:HookScript("OnTooltipCleared", ClearTooltipItem)
 
-		GameTooltip:HookScript("OnTooltipSetItem", HandleTooltipItem)
+		GameTooltip:HookScript("OnTooltipSetItem",    HandleTooltipItem)
 		ItemRefTooltip:HookScript("OnTooltipSetItem", HandleTooltipItem)
+
+		GameTooltip:HookScript("OnTooltipSetUnit",    AddSocialInfo)
+		ItemRefTooltip:HookScript("OnTooltipSetUnit", AddSocialInfo)
 
 		hooksecurefunc(GameTooltip, "SetHyperlink", function(self, hyperlink)
 			local id, linkType = ns.GetLinkID(hyperlink)
 			if linkType == "quest" then
+				-- would use OnTooltipSetQuest but doesn't supply id
 				AddOnQuestInfo(self, id)
 			end
 		end)
 
 		-- GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
-
-		--GameTooltip:HookScript("OnTooltipSetUnit", function(self) end) -- list ignored/friend info?
-		--GameTooltip:HookScript("OnTooltipSetQuest", function(self) end) -- list characters on this quest
 		--GameTooltip:HookScript("OnTooltipSetAchievement", function(self) end) -- list max progress char/char completion states
 		--GameTooltip:HookScript("OnTooltipSetEquipmentSet", function(self) end) -- ??
 

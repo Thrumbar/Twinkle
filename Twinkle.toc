@@ -1,4 +1,4 @@
-## Interface: 50300
+## Interface: 50400
 ## Author: ckaotik
 ## Title: Twinkle
 ## Version: @project-version@
@@ -21,6 +21,7 @@ modules\data.lua
 modules\search.lua
 modules\tradeskill.lua
 modules\tooltip.lua
+modules\autocomplete.lua
 
 # views
 views\default.lua

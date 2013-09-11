@@ -32,7 +32,9 @@ local function CharacterListUpdate(self)
 			button.info:SetText(level < 90 and level or '')
 
 			button.element = characters[index] -- TODO: use actual panel here!
-			button:SetText( ns.data.GetCharacterText(characters[index]) )
+			local icon = ns.data.GetCharacterFactionIcon(characters[index])
+			local name = ns.data.GetCharacterText(characters[index])
+			button:SetText( (icon and icon..' ' or '') .. name )
 			button:SetAlpha(1)
 			button:Show()
 

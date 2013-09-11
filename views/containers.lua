@@ -36,7 +36,26 @@ local function DataUpdate(characterKey)
 		end
 	end
 
-	if _G[filter.."Mail"]:GetChecked() then
+	local button = _G[filter.."Equipment"]
+	if button and button:GetChecked() then
+		for slotID, item in pairs(DataStore:GetInventory(characterKey)) do
+			local itemID
+			if type(item) == "number" then
+				itemID = item
+			else
+				itemID = ns.GetLinkID(item)
+			end
+			table.insert(view.itemsTable, {
+				itemID,
+				string.format("-2.%.4d", i),
+				1,
+				(type(item) == "string" and item or nil),
+			})
+		end
+	end
+
+	local button = _G[filter.."Mail"]
+	if button and button:GetChecked() then
 		for i = 1, DataStore:GetNumMails(characterKey) do
 			local icon, count, link, money, text, returned = DataStore:GetMailInfo(characterKey, i)
 			if link then
@@ -48,7 +67,7 @@ local function DataUpdate(characterKey)
 					count,
 					(itemLink ~= link and link or nil),
 					DataStore:GetMailSender(characterKey, i),
-					select(2,DataStore:GetMailExpiry(characterKey, i))
+					select(2, DataStore:GetMailExpiry(characterKey, i))
 				})
 			end
 		end
@@ -177,10 +196,11 @@ function view.Init()
 	tab.view = view
 
 	local filters = {
-		{"Bags", "Interface\\MINIMAP\\TRACKING\\Banker"},
-		{"Bank", "INTERFACE\\ICONS\\achievement_guildperk_mobilebanking"},
-		{"VoidStorage", "INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup"},
-		{"Mail", "Interface\\MINIMAP\\TRACKING\\Mailbox"},
+		IsAddOnLoaded('DataStore_Containers') and {"Bags", "Interface\\MINIMAP\\TRACKING\\Banker"},
+		IsAddOnLoaded('DataStore_Containers') and {"Bank", "INTERFACE\\ICONS\\achievement_guildperk_mobilebanking"},
+		IsAddOnLoaded('DataStore_Containers') and {"VoidStorage", "INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup"},
+		IsAddOnLoaded('DataStore_Inventory')  and {"Equipment", "Interface\\GUILDFRAME\\GuildLogo-NoLogo"},
+		IsAddOnLoaded('DataStore_Mails')      and {"Mail", "Interface\\MINIMAP\\TRACKING\\Mailbox"} or nil,
 	}
 	local filterButtons = {}
 	for i, data in ipairs(filters) do

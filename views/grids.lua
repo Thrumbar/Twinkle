@@ -2,8 +2,8 @@ local addonName, ns, _ = ...
 local view = ns.CreateView("grids")
 
 function view.Init()
-	--[[local tab = ns.GetTab()
-	tab:GetNormalTexture():SetTexture("Interface\\MINIMAP\\TRACKING\\None")
+	local tab = ns.GetTab()
+	tab:GetNormalTexture():SetTexture("INTERFACE\\ICONS\\Ability_Ensnare")
 	tab.view = view
 
 	local panel = CreateFrame("Frame") --, addonName.."PanelGrids") --]]

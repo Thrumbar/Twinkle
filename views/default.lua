@@ -48,6 +48,8 @@ function view.Init()
 		  portrait.icon = ringIcon
 	panel.portrait = portrait
 
+	-- TODO: add smaller spec icons
+
 	local name = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 		  name:SetJustifyH("LEFT")
 		  name:SetPoint("BOTTOMLEFT", ringIcon, "RIGHT", 7, 2)
