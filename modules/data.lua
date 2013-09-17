@@ -2,6 +2,8 @@ local addonName, ns, _ = ...
 local data = {}
 ns.data = data
 
+local thisCharacter = DataStore:GetCharacter()
+
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
 	for characterName, characterKey in pairs(DataStore:GetCharacters()) do
@@ -12,9 +14,19 @@ function data.GetCharacters(useTable)
 end
 
 function data.GetCurrentCharacter()
-	return DataStore:GetCharacter()
+	return thisCharacter
 end
 
+-- ========================================
+--  General Information
+-- ========================================
+function data.GetName(characterKey)
+	if IsAddOnLoaded('DataStore_Characters') then
+		return DataStore:GetCharacterName(characterKey)
+	else
+		return characterKey
+	end
+end
 function data.GetCharacterText(characterKey)
 	local text
 	if IsAddOnLoaded('DataStore_Characters') then
@@ -25,7 +37,6 @@ function data.GetCharacterText(characterKey)
 	end
 	return text or ''
 end
-
 function data.GetCharacterFactionIcon(characterKey)
 	local text
 	if IsAddOnLoaded('DataStore_Characters') then
@@ -39,43 +50,6 @@ function data.GetCharacterFactionIcon(characterKey)
 		end
 	end
 	return text or ''
-end
-
--- list icon: 						Interface\\FriendsFrame\\UI-FriendsList-Small-Up
--- cogwheel icon: 					Interface\\Scenarios\\ScenarioIcon-Interact
--- boss skull icon: 				Interface\\Scenarios\\ScenarioIcon-Boss
--- sword icon: 						Interface\\TUTORIALFRAME\\UI-TutorialFrame-AttackCursor
--- crossed swords: 					Interface\\WorldStateFrame\\CombatSwords
--- hand icon: 						Interface\\TUTORIALFRAME\\UI-TutorialFrame-GloveCursor
--- dog bone: 						Interface\\PetPaperDollFrame\\PetStable-DietIcon
--- pergament bg: 					Interface\\TALENTFRAME\\spec-paper-bg
--- pet type badges: 				Interface\\TARGETINGFRAME\\PetBadge-Water
--- green arrow ^: 					Interface\\PetBattles\\BattleBar-AbilityBadge-Strong-Small
--- red arrow v: 					Interface\\PetBattles\\BattleBar-AbilityBadge-Weak-Small
--- arrows down (green, red, yellow: Interface\\Buttons\\UI-MicroStream-Green
--- gold lock icon: 					Interface\\PetBattles\\PetBattle-LockIcon
--- yellow exclamation: 				Interface\\OPTIONSFRAME\\UI-OptionsFrame-NewFeatureIcon
--- stack of gold coins: 			Interface\\MINIMAP\\TRACKING\\Auctioneer
--- bags: 							Interface\\MINIMAP\\TRACKING\\Banker
--- hearthstone: 					Interface\\MINIMAP\\TRACKING\\Innkeeper
--- mail: 							Interface\\MINIMAP\\TRACKING\\Mailbox
--- magnifier: 						Interface\\MINIMAP\\TRACKING\\None
--- treasure chest: 					Interface\\WorldMap\\TreasureChest_64
--- lfr eye: 						Interface\\LFGFRAME\\BattlenetWorking18
--- helmet bw: 						Interface\\GUILDFRAME\\GuildLogo-NoLogo
--- gold crown: 						Interface\\GROUPFRAME\\UI-Group-LeaderIcon
--- bag w/ gold coin: 				Interface\\GossipFrame\\BankerGossipIcon
--- armor icon (1/6 MID): 			Interface\\PaperDollInfoFrame\\PaperDollSidebarTabs
-
--- ========================================
---  General Information
--- ========================================
-function data.GetName(characterKey)
-	if IsAddOnLoaded('DataStore_Characters') then
-		return DataStore:GetCharacterName(characterKey)
-	else
-		return characterKey
-	end
 end
 function data.GetRace(characterKey)
 	if IsAddOnLoaded("DataStore_Characters") then
@@ -175,6 +149,47 @@ end
 -- ========================================
 --  Containers & Inventory
 -- ========================================
+--[[ local itemCountCache = setmetatable({}, {
+	__mode = "kv",
+	__index = function(self, item)
+		return characterCounts
+	end
+}) --]]
+local itemCounts = {}
+function data.GetItemCounts(characterKey, itemID, uncached)
+	wipe(itemCounts)
+	-- TODO: cross-faction, cross-realm, ...
+	itemCounts[1], itemCounts[2], itemCounts[3] = DataStore:GetContainerItemCount(characterKey, itemID)
+	itemCounts[4] = DataStore:GetAuctionHouseItemCount(characterKey, itemID)
+	itemCounts[5] = DataStore:GetInventoryItemCount(characterKey, itemID)
+	itemCounts[6] = DataStore:GetMailItemCount(characterKey, itemID)
+	return itemCounts
+end
+local guildCounts = {}
+function data.GetGuildItemCounts(itemID, uncached)
+	wipe(guildCounts)
+	for guild, identifier in pairs( DataStore:GetGuilds() ) do
+		-- DataStore:GetGuildFaction(guild) == 'Horde' and
+		local guildText = string.format('%s%s|r', BATTLENET_FONT_COLOR_CODE,  guild)
+		local count = DataStore:GetGuildBankItemCount(identifier, itemID)
+		if count > 0 then
+			guildCounts[ guildText ] = count
+		end
+	end
+	return guildCounts
+end
+function data.GetInventoryItemLink(characterKey, slotID)
+	if characterKey == thisCharacter then
+		return GetInventoryItemLink("player", slotID)
+	elseif IsAddOnLoaded("DataStore_Inventory") then
+		-- FIXME: DataStore doesn't save upgraded items
+		local item = DataStore:GetInventoryItem(characterKey, slotID)
+		if type(item) == "number" then
+			_, item = GetItemInfo(item)
+		end
+		return item
+	end
+end
 --[[
 function data.GetContainerSlotInfo(characterKey, bag, slot)
 	if IsAddOnLoaded("DataStore_Containers") then

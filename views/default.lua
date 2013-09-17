@@ -315,7 +315,7 @@ function view.Init()
 		for _, dungeon in ipairs(data) do
 			status = string.format("%s|T%s:0|t %s", status and status.."|n|T:0|t " or "",
 				dungeon.complete and "Interface\\RAIDFRAME\\ReadyCheck-Ready" or
-				dungeon.killed > 0 and "Interface\\FriendsFrame\\StatusIcon-Online" or "Interface\\FriendsFrame\\StatusIcon-Offline",
+				dungeon.killed and dungeon.killed > 0 and "Interface\\FriendsFrame\\StatusIcon-Online" or "Interface\\FriendsFrame\\StatusIcon-Offline",
 				dungeon.name
 			)
 		end

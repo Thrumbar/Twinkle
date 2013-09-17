@@ -2,9 +2,9 @@ local addonName, ns, _ = ...
 local LPT = LibStub("LibPeriodicTable-3.1", true)
 local LBFactions = LibStub("LibBabble-Faction-3.0"):GetLookupTable()
 
--- GLOBALS: _G, DataStore, ItemRefTooltip, GameTooltip, TRADESKILLS, FACTION_BAR_COLORS, TABARDVENDORCOST, UNKNOWN, ITEM_SPELL_KNOWN
--- GLOBALS: LoadAddOn, EJ_ClearSearch, EJ_SetSearch, EJ_GetNumSearchResults, EncounterJournal_GetSearchDisplay, GetItemInfo, GetSpellInfo
--- GLOBALS: string, pairs, tonumber, table, type, wipe, tContains
+-- GLOBALS: _G, DataStore, ItemRefTooltip, GameTooltip, TRADESKILLS, FACTION_BAR_COLORS, TABARDVENDORCOST, UNKNOWN, ITEM_SPELL_KNOWN, RED_FONT_COLOR_CODE, GREEN_FONT_COLOR_CODE, FONT_COLOR_CODE_CLOSE, BATTLENET_FRIEND, DECLENSION_SET, ERR_IGNORE_ALREADY_S, AUCTIONS, TOTAL, MAIL_LABEL, BAGSLOT, ERR_QUEST_PUSH_ONQUEST_S, MINIMAP_TRACKING_BANKER, VOID_STORAGE, STAT_AVERAGE_ITEM_LEVEL_EQUIPPED
+-- GLOBALS: IsAddOnLoaded, LoadAddOn, EJ_ClearSearch, EJ_SetSearch, EJ_GetNumSearchResults, EncounterJournal_GetSearchDisplay, GetItemInfo, GetSpellInfo, IsIgnored
+-- GLOBALS: string, pairs, tonumber, table, type, wipe, tContains, ipairs, strtrim, hooksecurefunc
 
 -- ================================================
 -- Do stuffs!
@@ -40,6 +40,14 @@ local reputationColors = { -- TODO: brighten up
 	[8] = "|cFF00BE70", -- 007564",
 }
 
+local characters = ns.data.GetCharacters()
+
+local function AddEmptyLine(tooltip, slim)
+	tooltip:AddLine(' ')
+	if slim then
+		_G[tooltip:GetName()..'TextLeft'..tooltip:NumLines()]:SetText(nil)
+	end
+end
 
 -- ================================================
 --  Quests
@@ -101,7 +109,7 @@ local function AddSocialInfo(tooltip)
 	local unitName = tooltip:GetUnit()
 	if IsIgnored(unitName) then
 		local text = string.format(ERR_IGNORE_ALREADY_S, unitName)
-		tooltip:AddLine(text, nil, nil, nil, true)
+		tooltip:AddLine(text, 1, 0, 0, true)
 	else
 		local friends = GetFriendsInfo(unitName)
 		local text
@@ -111,7 +119,7 @@ local function AddSocialInfo(tooltip)
 		end
 		if text then
 			text = DECLENSION_SET:format(BATTLENET_FRIEND, text)
-			tooltip:AddLine(text, nil, nil, nil, true)
+			tooltip:AddLine(text, 0, 1, 0, true)
 		end
 	end
 end
@@ -140,16 +148,20 @@ end
 
 local function AddGlyphInfo(tooltip, itemID)
 	local onlyUnknown = false -- TODO: config
+	local linesAdded = false
 	local known, unknown = GetGlyphKnownInfo(itemID, onlyUnknown)
 
 	local list = not onlyUnknown and table.concat(known, ", ")
 	if list and list ~= "" then
 		tooltip:AddLine(RED_FONT_COLOR_CODE..ITEM_SPELL_KNOWN..": "..FONT_COLOR_CODE_CLOSE..list, nil, nil, nil, true)
+		linesAdded = true
 	end
 	list = table.concat(unknown, ", ")
 	if list and list ~= "" then
 		tooltip:AddLine(GREEN_FONT_COLOR_CODE..UNKNOWN..": "..FONT_COLOR_CODE_CLOSE..list, nil, nil, nil, true)
+		linesAdded = true
 	end
+	return linesAdded
 end
 
 -- ================================================
@@ -201,16 +213,20 @@ end
 
 local function AddCraftInfo(tooltip, professionName, craftedName)
 	local onlyUnknown = false -- TODO: config
+	local linesAdded = false
 	local known, unknown = GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
 
 	local list = not onlyUnknown and table.concat(known, ", ")
 	if list and list ~= "" then
 		tooltip:AddLine(RED_FONT_COLOR_CODE..ITEM_SPELL_KNOWN..": "..FONT_COLOR_CODE_CLOSE..list, 1, 1, 1, true)
+		linesAdded = true
 	end
 	list = table.concat(unknown, ", ")
 	if list and list ~= "" then
 		tooltip:AddLine(GREEN_FONT_COLOR_CODE..UNKNOWN..": "..FONT_COLOR_CODE_CLOSE..list, 1, 1, 1, true)
+		linesAdded = true
 	end
+	return linesAdded
 end
 
 -- ================================================
@@ -243,6 +259,7 @@ end
 
 -- TODO: mapping item -> token -> source
 local function AddItemSources(tooltip, itemID)
+	local linesAdded = false
 	local sources = GetItemSources(itemID)
 	if #sources > 0 then
 		local lastInstance, encounters
@@ -257,8 +274,8 @@ local function AddItemSources(tooltip, itemID)
 			end
 			lastInstance = instance
 		end
-		local text = string.format("|cFFFF7F00%s:|r %s", lastInstance, encounters)
-		tooltip:AddLine(text, nil, nil, nil, true)
+		tooltip:AddLine(string.format("|cFFFF7F00%s:|r %s", lastInstance, encounters), nil, nil, nil, true)
+		linesAdded = true
 	elseif LPT then
 		local amount, currency
 		amount = LPT:ItemInSet(itemID, "CurrencyItems.Valor Points")
@@ -284,8 +301,10 @@ local function AddItemSources(tooltip, itemID)
 				currency)
 
 			tooltip:AddLine(text)
+			linesAdded = true
 		elseif currency then
 			tooltip:AddLine(TABARDVENDORCOST .. " ".. currency)
+			linesAdded = true
 		end
 
 		-- found sources already
@@ -304,9 +323,51 @@ local function AddItemSources(tooltip, itemID)
 			end
 
 			tooltip:AddLine(text, nil, nil, nil, true)
+			linesAdded = true
 		end
 	end
+	return linesAdded
 end
+-- ================================================
+--  Item counts
+-- ================================================
+-- GUILD_BANK, CURRENTLY_EQUIPPED / INVENTORY_TOOLTIP, CURRENCY
+local equipped = strtrim(STAT_AVERAGE_ITEM_LEVEL_EQUIPPED, '()'):gsub(': %%d', '')
+local locationLabels = { BAGSLOT, MINIMAP_TRACKING_BANKER, VOID_STORAGE, AUCTIONS, equipped, MAIL_LABEL }
+local function AddItemCounts(tooltip, itemID)
+	local separator, showTotals, showGuilds, includeGuildCountInTotal = ', ', true, true, true
+
+	local overallCount, numLines = 0, 0
+	for i, character in ipairs(characters) do
+		local baseCount, text = overallCount, nil
+		for i, count in ipairs( ns.data.GetItemCounts(character, itemID) ) do
+			if count > 0 then
+				overallCount = overallCount + count
+				text = (text and text..separator or '') .. string.format('%s: %s%d|r', locationLabels[i], GREEN_FONT_COLOR_CODE, count)
+			end
+		end
+
+		if overallCount - baseCount > 0 then
+			tooltip:AddDoubleLine( ns.data.GetCharacterText(character) , text)
+			numLines = numLines + 1
+		end
+	end
+	if showGuilds then
+		for guild, count in pairs( ns.data.GetGuildItemCounts(itemID) ) do
+			tooltip:AddDoubleLine(guild , string.format('%s: %s%d|r', GUILD_BANK, GREEN_FONT_COLOR_CODE, count))
+			numLines = numLines + 1
+			if includeGuildCountInTotal then
+				overallCount = overallCount + count
+			end
+		end
+	end
+	if showTotals and numLines > 1 then
+		tooltip:AddDoubleLine(' ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
+	end
+
+	return numLines > 0
+end
+
 -- ================================================
 --  Handlers
 -- ================================================
@@ -316,27 +377,43 @@ end
 
 local function HandleTooltipItem(self)
 	if self.twinkleDone then return end
+	self.twinkleDone = true
 
 	local name, link = self:GetItem()
 	if not link then return end
 	local _, _, quality, iLevel, reqLevel, class, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
 	local itemID, _ = ns.GetLinkID(link)
-	-- isMount, isPet, ownedInfo
+	-- TODO: single-character mounts / mounts learned by items (e.g. cloud serpent), pets per character
 
-	self:AddLine(" ")
+	AddEmptyLine(self, true)
+
+	local linesAdded
 	if class == GLYPH then
 		-- subclass => class name
-		AddGlyphInfo(self, itemID)
+		linesAdded = AddGlyphInfo(self, itemID)
 	elseif class == RECIPE then
 		local craftedName = name:match(".-: (.+)")
-		AddCraftInfo(self, subclass, craftedName)
+		linesAdded = AddCraftInfo(self, subclass, craftedName)
 	elseif equipSlot ~= "" and equipSlot ~= "INVTYPE_BAG" then
-		AddItemSources(self, itemID)
+		linesAdded = AddItemSources(self, itemID)
 	end
-	-- self:AddLine(" ")
+	if linesAdded then
+		AddEmptyLine(self, true)
+	end
 
-	-- TODO: list owned
-	self.twinkleDone = true
+	if itemID ~= HEARTHSTONE_ITEM_ID then
+		local itemCountsOnSHIFT = true
+		if not itemCountsOnSHIFT or IsShiftKeyDown() then
+			linesAdded = AddItemCounts(self, itemID)
+			if linesAdded then
+				AddEmptyLine(self, true)
+			end
+		else
+			self:AddLine(BATTLENET_FONT_COLOR_CODE..'<Hold down SHIFT for item counts>')
+		end
+	end
+
+	self:Show()
 end
 
 local function HandleTooltipSpell(self)
@@ -365,7 +442,9 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 		ItemRefTooltip:HookScript("OnTooltipSetUnit", AddSocialInfo)
 
 		hooksecurefunc(GameTooltip, "SetHyperlink", function(self, hyperlink)
+			if self.type then print('data', self.type, self.data) end
 			local id, linkType = ns.GetLinkID(hyperlink)
+			-- print('SetHyperlink', hyperlink, linkType, id)
 			if linkType == "quest" then
 				-- would use OnTooltipSetQuest but doesn't supply id
 				AddOnQuestInfo(self, id)
@@ -376,8 +455,13 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 		--GameTooltip:HookScript("OnTooltipSetAchievement", function(self) end) -- list max progress char/char completion states
 		--GameTooltip:HookScript("OnTooltipSetEquipmentSet", function(self) end) -- ??
 
-		-- hooksecurefunc(GameTooltip, "SetCurrencyByID", function(currencyID) end) -- list owned
-		-- hooksecurefunc(GameTooltip, "SetCurrencyToken", function(listIndex) end) -- -"-
+		hooksecurefunc(GameTooltip, "SetCurrencyByID", function(self, currencyID)
+			-- print('SetCurrencyByID', currencyID)
+		end)
+		hooksecurefunc(GameTooltip, "SetCurrencyToken", function(self, listIndex)
+			-- local _, _, count = DataStore:GetCurrencyInfoByName(character, currency)
+			-- print('SetCurrencyToken', listIndex)
+		end)
 
 		ns.UnregisterEvent('ADDON_LOADED', 'tooltip_init')
 	end
