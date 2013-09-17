@@ -62,7 +62,7 @@ function view.Update()
 				wipe(stats)
 				stats = GetItemStats(itemLink, stats)
 				local from = LibReforging:GetReforgedStatIDs(reforgeID)
-				local statValue = math.floor((stats[ reforgingStats[from] ] or 0) * 0.4)
+				local statValue = stats and math.floor((stats[ reforgingStats[from] ] or 0) * 0.4) or 0
 				local from, to = LibReforging:GetReforgedStatNames(reforgeID)
 				reforged = string.format("%d %s => %s", statValue, from, to)
 			end
@@ -74,6 +74,8 @@ function view.Update()
 				else
 					color = GREEN_FONT_COLOR_CODE
 				end
+			elseif currentUpgrade == 0 then
+				color = RED_FONT_COLOR_CODE
 			else
 				color = YELLOW_FONT_COLOR_CODE
 			end
