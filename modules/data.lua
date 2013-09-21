@@ -3,10 +3,11 @@ local data = {}
 ns.data = data
 
 local thisCharacter = DataStore:GetCharacter()
+local realmCharacters  = DataStore:GetCharacters()
 
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
-	for characterName, characterKey in pairs(DataStore:GetCharacters()) do
+	for characterName, characterKey in pairs(realmCharacters) do
 		table.insert(useTable, characterKey)
 	end
 	table.sort(useTable)
@@ -15,6 +16,12 @@ end
 
 function data.GetCurrentCharacter()
 	return thisCharacter
+end
+
+function data.IsCharacter(key)
+	if ns.Find(realmCharacters, key) then
+		return true
+	end
 end
 
 -- ========================================
@@ -149,29 +156,55 @@ end
 -- ========================================
 --  Containers & Inventory
 -- ========================================
---[[ local itemCountCache = setmetatable({}, {
-	__mode = "kv",
-	__index = function(self, item)
-		return characterCounts
+local itemCountCache = setmetatable({}, {
+	__mode = 'kv',
+	__index = function(self, itemID)
+		local itemTable = {}
+		setmetatable(itemTable, {
+			__mode = 'kv',
+			__index = function(self, key)
+				local info
+				if data.IsCharacter(key) then
+					info = {}
+					info[1], info[2], info[3] = DataStore:GetContainerItemCount(key, itemID)
+					info[4] = DataStore:GetAuctionHouseItemCount(key, itemID)
+					info[5] = DataStore:GetInventoryItemCount(key, itemID)
+					info[6] = DataStore:GetMailItemCount(key, itemID)
+				else
+					-- this key identifies a guild
+					info = DataStore:GetGuildBankItemCount(key, itemID)
+				end
+
+				self[key] = info
+				return info
+			end
+		})
+		self[itemID] = itemTable
+		return itemTable
 	end
-}) --]]
-local itemCounts = {}
-function data.GetItemCounts(characterKey, itemID, uncached)
-	wipe(itemCounts)
-	-- TODO: cross-faction, cross-realm, ...
-	itemCounts[1], itemCounts[2], itemCounts[3] = DataStore:GetContainerItemCount(characterKey, itemID)
-	itemCounts[4] = DataStore:GetAuctionHouseItemCount(characterKey, itemID)
-	itemCounts[5] = DataStore:GetInventoryItemCount(characterKey, itemID)
-	itemCounts[6] = DataStore:GetMailItemCount(characterKey, itemID)
-	return itemCounts
+})
+
+function data.GetItemCounts(key, itemID, uncached)
+	if uncached then
+		-- remove previously cached data
+		local itemData = rawget(itemCountCache, itemID)
+		if itemData then
+			itemData = rawget(itemData, key)
+			if itemData then
+				rawset(itemData, key, nil)
+			end
+		end
+	end
+	-- automagically fills cache
+	return itemCountCache[itemID][key]
 end
 local guildCounts = {}
-function data.GetGuildItemCounts(itemID, uncached)
+function data.GetGuildsItemCounts(itemID, uncached)
 	wipe(guildCounts)
 	for guild, identifier in pairs( DataStore:GetGuilds() ) do
 		-- DataStore:GetGuildFaction(guild) == 'Horde' and
 		local guildText = string.format('%s%s|r', BATTLENET_FONT_COLOR_CODE,  guild)
-		local count = DataStore:GetGuildBankItemCount(identifier, itemID)
+		local count = data.GetItemCounts(identifier, itemID)
 		if count > 0 then
 			guildCounts[ guildText ] = count
 		end

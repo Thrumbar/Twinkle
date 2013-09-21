@@ -335,7 +335,7 @@ end
 local equipped = strtrim(STAT_AVERAGE_ITEM_LEVEL_EQUIPPED, '()'):gsub(': %%d', '')
 local locationLabels = { BAGSLOT, MINIMAP_TRACKING_BANKER, VOID_STORAGE, AUCTIONS, equipped, MAIL_LABEL }
 local function AddItemCounts(tooltip, itemID)
-	local separator, showTotals, showGuilds, includeGuildCountInTotal = ', ', true, true, true
+	local separator, showTotals, showGuilds, includeGuildCountInTotal = ', ', true, true, true -- TODO: config
 
 	local overallCount, numLines = 0, 0
 	for i, character in ipairs(characters) do
@@ -353,7 +353,7 @@ local function AddItemCounts(tooltip, itemID)
 		end
 	end
 	if showGuilds then
-		for guild, count in pairs( ns.data.GetGuildItemCounts(itemID) ) do
+		for guild, count in pairs( ns.data.GetGuildsItemCounts(itemID) ) do
 			tooltip:AddDoubleLine(guild , string.format('%s: %s%d|r', GUILD_BANK, GREEN_FONT_COLOR_CODE, count))
 			numLines = numLines + 1
 			if includeGuildCountInTotal then
@@ -383,13 +383,12 @@ local function HandleTooltipItem(self)
 	if not link then return end
 	local _, _, quality, iLevel, reqLevel, class, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
 	local itemID, _ = ns.GetLinkID(link)
-	-- TODO: single-character mounts / mounts learned by items (e.g. cloud serpent), pets per character
+	-- TODO: single-character pets+mounts / mounts learned by items (e.g. cloud serpent)
 
 	AddEmptyLine(self, true)
 
 	local linesAdded
 	if class == GLYPH then
-		-- subclass => class name
 		linesAdded = AddGlyphInfo(self, itemID)
 	elseif class == RECIPE then
 		local craftedName = name:match(".-: (.+)")
@@ -397,12 +396,11 @@ local function HandleTooltipItem(self)
 	elseif equipSlot ~= "" and equipSlot ~= "INVTYPE_BAG" then
 		linesAdded = AddItemSources(self, itemID)
 	end
-	if linesAdded then
-		AddEmptyLine(self, true)
-	end
+
+	if linesAdded then AddEmptyLine(self, true) end
 
 	if itemID ~= HEARTHSTONE_ITEM_ID then
-		local itemCountsOnSHIFT = true
+		local itemCountsOnSHIFT = nil -- TODO: config
 		if not itemCountsOnSHIFT or IsShiftKeyDown() then
 			linesAdded = AddItemCounts(self, itemID)
 			if linesAdded then
