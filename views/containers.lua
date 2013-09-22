@@ -3,11 +3,27 @@ local view = ns.CreateView("containers")
 
 local AceTimer = LibStub("AceTimer-3.0")
 
+-- GLOBALS: _G, DataStore, ITEM_QUALITY_COLORS, NUM_BANKBAGSLOTS, NUM_BAG_SLOTS, SEARCH
+-- GLOBALS: CreateFrame, IsAddOnLoaded, GetItemInfo, FauxScrollFrame_GetOffset, FauxScrollFrame_Update, FauxScrollFrame_OnVerticalScroll, SetItemButtonTexture, SecondsToTimeAbbrev, HandleModifiedItemClick
+-- GLOBALS: table, wipe, pairs, ipairs, assert, math, tonumber, select, unpack, string, type
+
 view.itemsTable = {}
 local primarySort, secondarySort
 
+local function ItemLinksAreEqual(link1, link2)
+	if link1 == link2 then
+		return true
+	elseif link1 and link2 then
+		-- remove uniqueID
+		link1 = link1:gsub('^(.-%l+:[^:]*:?[^:]-:[^:]-:[^:]-:[^:]-:[^:]-:[^:]-):[^:]-:(.+)$', '%1:0:%2')
+		link2 = link2:gsub('^(.-%l+:[^:]*:?[^:]-:[^:]-:[^:]-:[^:]-:[^:]-:[^:]-):[^:]-:(.+)$', '%1:0:%2')
+		return link1 == link2
+	else
+		return false
+	end
+end
+
 local function DataUpdate(characterKey)
-	local characterKey = characterKey or ns.GetSelectedCharacter()
 	local filter = addonName.."PanelContainersFilter"
 
 	local showBags, showBank, showVoid = _G[filter.."Bags"]:GetChecked(), _G[filter.."Bank"]:GetChecked(), _G[filter.."VoidStorage"]:GetChecked()
@@ -22,15 +38,27 @@ local function DataUpdate(characterKey)
 			if bagIndex and bagIndex > NUM_BAG_SLOTS then
 				bagIndex = (bagIndex == 100 and 0 or bagIndex) + NUM_BAG_SLOTS + 1
 			end
-			for i = 1, data.size do
-				local itemID = data.ids[i]
+			for slot = 1, data.size do
+				local itemID = data.ids[slot]
 				if itemID then
-					table.insert(view.itemsTable, {
-						itemID,
-						string.format("%d.%.2d", bagIndex or 100, i),
-						data.counts[i],
-						data.links[i],
-					})
+					local index
+					for i, listData in ipairs(view.itemsTable) do
+						if listData[1] and listData[1] == itemID and ItemLinksAreEqual(listData[4], data.links[i]) then
+							index = i
+							break
+						end
+					end
+
+					if index then
+						view.itemsTable[index][3] = (view.itemsTable[index][3] or 1) + (data.counts[slot] or 1)
+					else
+						table.insert(view.itemsTable, {
+							itemID,
+							string.format("%d.%.2d", bagIndex or 100, slot),
+							data.counts[slot],
+							data.links[slot],
+						})
+					end
 				end
 			end
 		end
@@ -42,36 +70,113 @@ local function DataUpdate(characterKey)
 			local itemID
 			if type(item) == "number" then
 				itemID = item
-			else
+			elseif type(item) == "string" then
 				itemID = ns.GetLinkID(item)
 			end
-			table.insert(view.itemsTable, {
-				itemID,
-				string.format("-2.%.4d", i),
-				1,
-				(type(item) == "string" and item or nil),
-			})
+
+			if itemID then
+				local index
+				for i, data in ipairs(view.itemsTable) do
+					if data[1] and data[1] == itemID and ItemLinksAreEqual(data[4], type(item) == "string" and item or nil) then
+						index = i
+						break
+					end
+				end
+
+				if index then
+					view.itemsTable[index][3] = (view.itemsTable[index][3] or 1) + 1
+				else
+					table.insert(view.itemsTable, {
+						itemID,
+						string.format("-2.%.4d", slotID),
+						1,
+						(type(item) == "string" and item or nil),
+					})
+				end
+			end
 		end
 	end
 
 	local button = _G[filter.."Mail"]
 	if button and button:GetChecked() then
 		for i = 1, DataStore:GetNumMails(characterKey) do
-			local icon, count, link, money, text, returned = DataStore:GetMailInfo(characterKey, i)
+			local _, count, link, _, _, returned = DataStore:GetMailInfo(characterKey, i)
 			if link then
 				local itemID = ns.GetLinkID(link)
-				local _, itemLink = GetItemInfo(itemID)
-				table.insert(view.itemsTable, {
-					itemID,
-					string.format("-1.%.4d", i),
-					count,
-					(itemLink ~= link and link or nil),
-					DataStore:GetMailSender(characterKey, i),
-					select(2, DataStore:GetMailExpiry(characterKey, i))
-				})
+				local _, baseLink = GetItemInfo(itemID)
+				local _, expiresIn = DataStore:GetMailExpiry(characterKey, i)
+				         expiresIn = math.floor(expiresIn)
+
+				local index
+				for j, data in ipairs(view.itemsTable) do
+					-- don't merge mail with non-mail items, don't merge different timings
+					if data[1] == itemID and ItemLinksAreEqual(data[4], baseLink ~= link and link or nil) and data[5] == expiresIn then
+						index = j
+						break
+					end
+				end
+
+				if index then
+					view.itemsTable[index][3] = (view.itemsTable[index][3] or 1) + 1
+				else
+					table.insert(view.itemsTable, {
+						itemID,
+						string.format("-1.%.4d", i),
+						count,
+						(baseLink ~= link and link or nil),
+						expiresIn
+					})
+				end
 			end
 		end
 	end
+end
+
+local function ListUpdate(self)
+	local offset = FauxScrollFrame_GetOffset(self)
+	for i = 1, #self.buttons do
+		local index = i + offset
+		local item = self.buttons[i]
+
+		if view.itemsTable[index] then
+			local itemID, _, itemCount, itemLink, timeLeft = unpack(view.itemsTable[index])
+			local name, link, quality, iLevel, reqLevel, class, subclass, _, _, texture, _ = GetItemInfo(itemID)
+
+			-- delay if we don't have data
+			if not name then AceTimer:ScheduleTimer(ListUpdate, 0.1, self); return end
+
+			item.icon:SetTexture(texture)
+			item.item.link = itemLink or link
+			item.name:SetText(name)
+			item.count:SetText(itemCount and itemCount > 1 and itemCount or nil)
+
+			if timeLeft then
+				if timeLeft <= 7*24*60*60 then
+					item.level:SetTextColor(1, 0, 0)
+				else
+					item.level:SetTextColor(1, 0.82, 0)
+				end
+				item.level:SetFormattedText(SecondsToTimeAbbrev(timeLeft))
+			else
+				item.level:SetTextColor(1, 1, 1)
+				item.level:SetFormattedText("%4d", iLevel or 0)
+			end
+
+			-- item.name:SetTextColor(ITEM_QUALITY_COLORS[quality].r, ITEM_QUALITY_COLORS[quality].g, ITEM_QUALITY_COLORS[quality].b)
+			if quality and quality ~= 1 then
+				item.backdrop:Show()
+				item.backdrop:SetVertexColor(ITEM_QUALITY_COLORS[quality].r, ITEM_QUALITY_COLORS[quality].g, ITEM_QUALITY_COLORS[quality].b, 0.5)
+			else
+				item.backdrop:Hide()
+			end
+			item:Show()
+		else
+			item:Hide()
+		end
+	end
+
+	local needsScrollBar = FauxScrollFrame_Update(self, #view.itemsTable, #self.buttons, 22)
+	self:SetPoint("BOTTOMRIGHT", -10+(needsScrollBar and -18 or 0), 10)
 end
 
 local function DataSort(a, b)
@@ -83,8 +188,8 @@ local function DataSort(a, b)
 	if primarySort then
 		reverse = primarySort < 0
 		s = math.abs(primarySort)
-		sortA = (s == 1 and a[2]) or (s == 2 and namea) or (s == 3 and qualitya) or (s == 4 and (a[6] or iLevela)) or (a[5] or subclassa or classa)
-		sortB = (s == 1 and b[2]) or (s == 2 and nameb) or (s == 3 and qualityb) or (s == 4 and (b[6] or iLevelb)) or (b[5] or subclassb or classb)
+		sortA = (s == 3 and a[2]) or (s == 2 and namea) or (s == 1 and qualitya) or (s == 4 and (a[6] or iLevela))
+		sortB = (s == 3 and b[2]) or (s == 2 and nameb) or (s == 1 and qualityb) or (s == 4 and (b[6] or iLevelb))
 	end
 	if (sortA ~= nil and sortB ~= nil) and sortA ~= sortB then
 		if reverse then
@@ -97,8 +202,8 @@ local function DataSort(a, b)
 	if secondarySort then
 		reverse = secondarySort < 0
 		s = math.abs(secondarySort)
-		sortA = (s == 1 and a[2]) or (s == 2 and namea) or (s == 3 and qualitya) or (s == 4 and (a[6] or iLevela)) or (a[5] or subclassa or classa)
-		sortB = (s == 1 and b[2]) or (s == 2 and nameb) or (s == 3 and qualityb) or (s == 4 and (b[6] or iLevelb)) or (b[5] or subclassb or classb)
+		sortA = (s == 3 and a[2]) or (s == 2 and namea) or (s == 1 and qualitya) or (s == 4 and (a[6] or iLevela))
+		sortB = (s == 3 and b[2]) or (s == 2 and nameb) or (s == 1 and qualityb) or (s == 4 and (b[6] or iLevelb))
 	end
 	if (sortA ~= nil and sortB ~= nil) and sortA ~= sortB then
 		if reverse then
@@ -109,52 +214,6 @@ local function DataSort(a, b)
 	end
 
 	return tonumber(a[2]) < tonumber(b[2])
-end
-
-local function ListUpdate(self)
-	local offset = FauxScrollFrame_GetOffset(self)
-	for i = 1, #self.buttons do
-		local index = i + offset
-		local item = self.buttons[i]
-
-		if view.itemsTable[index] then
-			local itemID, _, itemCount, itemLink, extra1, extra2 = unpack(view.itemsTable[index])
-			local name, link, quality, iLevel, reqLevel, class, subclass, _, _, texture, _ = GetItemInfo(itemID)
-
-			-- delay if we don't have data
-			if not name then AceTimer:ScheduleTimer(ListUpdate, 0.1, self); return end
-
-			SetItemButtonCount(item, itemCount)
-			SetItemButtonTexture(item, texture)
-			item.name:SetText(name)
-			-- item.name:SetTextColor(ITEM_QUALITY_COLORS[quality].r, ITEM_QUALITY_COLORS[quality].g, ITEM_QUALITY_COLORS[quality].b, 1)
-			if extra2 then
-				item.level:SetFormattedText(SecondsToTimeAbbrev(extra2))
-			else
-				item.level:SetFormattedText("%4d", iLevel or 0)
-			end
-			item.info:SetText(extra1 or subclass or class)
-			item.link = itemLink or link
-			if quality and quality ~= 1 then
-				item.searchOverlay:SetVertexColor(
-					ITEM_QUALITY_COLORS[quality].r,
-					ITEM_QUALITY_COLORS[quality].g,
-					ITEM_QUALITY_COLORS[quality].b,
-					0.8
-				)
-				item.searchOverlay:SetDesaturated(true)
-				item.searchOverlay:Show()
-			else
-				item.searchOverlay:Hide()
-			end
-			item:Show()
-		else
-			item:Hide()
-		end
-	end
-
-	local needsScrollBar = FauxScrollFrame_Update(self, #view.itemsTable, #self.buttons, 22)
-	self:SetPoint("BOTTOMRIGHT", -10+(needsScrollBar and -18 or 0), 10)
 end
 
 local function Sort(self, btn)
@@ -179,16 +238,6 @@ local function Sort(self, btn)
 	ListUpdate(view.panel.scrollFrame)
 end
 
-local function Filter(self)
-	DataUpdate()
-	table.sort(view.itemsTable, DataSort)
-	ListUpdate(view.panel.scrollFrame)
-end
-
-local function ItemButtonClick(self, btn)
-	HandleModifiedItemClick(self.link)
-end
-
 function view.Init()
 	local panel = CreateFrame("Frame", addonName.."PanelContainers")
 	local tab = ns.GetTab()
@@ -200,14 +249,14 @@ function view.Init()
 		IsAddOnLoaded('DataStore_Containers') and {"Bank", "INTERFACE\\ICONS\\achievement_guildperk_mobilebanking"},
 		IsAddOnLoaded('DataStore_Containers') and {"VoidStorage", "INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup"},
 		IsAddOnLoaded('DataStore_Inventory')  and {"Equipment", "Interface\\GUILDFRAME\\GuildLogo-NoLogo"},
-		IsAddOnLoaded('DataStore_Mails')      and {"Mail", "Interface\\MINIMAP\\TRACKING\\Mailbox"} or nil,
+		IsAddOnLoaded('DataStore_Mails')      and {"Mail", "Interface\\MINIMAP\\TRACKING\\Mailbox"},
 	}
 	local filterButtons = {}
 	for i, data in ipairs(filters) do
 		local filter = CreateFrame("CheckButton", "$parentFilter"..data[1], panel, "PopupButtonTemplate", i) -- SimplePopupButtonTemplate
 			  filter:SetNormalTexture(data[2])
 			  filter:SetChecked(true)
-			  filter:SetScript("OnClick", Filter)
+			  filter:SetScript("OnClick", view.Update)
 			  filter:SetScript("OnEnter", ns.ShowTooltip)
 			  filter:SetScript("OnLeave", ns.HideTooltip)
 			  filter.tiptext = data[1]
@@ -221,7 +270,7 @@ function view.Init()
 	end
 	panel.filters = filterButtons
 
-	local sorters = {"Count", "Name", "Quality", "Level", "Type"}
+	local sorters = {"Quality", "Name", "Count", "Level"}
 	local sortButtons = {}
 	for i, name in ipairs(sorters) do
 		local sorter = CreateFrame("Button", "$parentSorter"..i, panel, "AuctionSortButtonTemplate", i)
@@ -258,43 +307,68 @@ function view.Init()
 		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, ListUpdate)
 	end)
 
+	local function ItemButtonClick(self, btn)
+		HandleModifiedItemClick(self.link)
+	end
+
 	list.scrollBarHideable = true
 	list.buttons = {}
-	list.buttonScale = 28/37 -- ItemButtonTemplate is 37px but that's too big
 	for i = 1, 10 do
-		local item = CreateFrame("Button", "$parentListButton"..i, panel, "ItemButtonTemplate")
-			  item:SetScale(list.buttonScale)
-			  item:SetScript("OnEnter", ns.ShowTooltip)
-			  item:SetScript("OnLeave", ns.HideTooltip)
-			  item:SetScript("OnClick", ItemButtonClick)
-		local name = item:CreateFontString(nil, nil, "GameFontNormalLarge")
+		local row = CreateFrame("Frame", nil, panel, nil, i)
+		row:SetHeight(30)
+		row:Hide()
+
+		row:SetPoint("RIGHT", list, "RIGHT", 2, 0)
+		if i == 1 then
+			row:SetPoint("TOPLEFT", list, "TOPLEFT")
+		else
+			row:SetPoint("TOPLEFT", list.buttons[i-1], "BOTTOMLEFT", 0, 0)
+		end
+
+		local backdrop = row:CreateTexture(nil, "BACKGROUND")
+		      backdrop:SetTexture("Interface\\HelpFrame\\HelpFrameButton-Highlight")
+		      backdrop:SetTexCoord(0, 1, 0, 0.578125)
+		      backdrop:SetDesaturated(true)
+		      backdrop:SetBlendMode("ADD")
+		      backdrop:SetAllPoints()
+		row.backdrop = backdrop
+
+		local item = CreateFrame("Button", nil, row)
+		      item:SetSize(26, 26)
+		      item:SetPoint("LEFT", 2, 0)
+		      item:SetScript("OnEnter", ns.ShowTooltip)
+		      item:SetScript("OnLeave", ns.HideTooltip)
+		      item:SetScript("OnClick", ItemButtonClick)
+		row.item = item
+		local icon = item:CreateTexture(nil, "BORDER")
+		      icon:SetAllPoints()
+		row.icon = icon
+
+		local normalTexture = item:CreateTexture()
+		      normalTexture:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+		      normalTexture:SetSize(42, 42)
+		      normalTexture:SetPoint("CENTER")
+		item:SetNormalTexture(normalTexture)
+		item:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+		item:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+
+		local name = row:CreateFontString(nil, nil, "GameFontHighlight")
 			  name:SetPoint("LEFT", item, "RIGHT", 6, 0)
 			  name:SetJustifyH("LEFT")
-			  name:SetTextColor(1, 1, 1, 1)
-			  name:SetWidth(250)
-		item.name = name
-		local level = item:CreateFontString(nil, nil, "ErrorFont")
-			  level:SetPoint("LEFT", name, "RIGHT", 6, 0)
-			  level:SetJustifyH("LEFT")
-		item.level = level
-		local info = item:CreateFontString(nil, nil, "ErrorFont")
-			  info:SetPoint("LEFT", level, "RIGHT", 6, 0)
-			  info:SetPoint("RIGHT", list, "RIGHT", 0, 0)
-			  info:SetJustifyH("RIGHT")
-		item.info = info
+			  name:SetWidth(210)
+		row.name = name
+		local count = row:CreateFontString(nil, nil, "GameFontHighlight")
+		      count:SetWidth(40)
+		      count:SetPoint("LEFT", name, "RIGHT", 6, 0)
+		      count:SetJustifyH("RIGHT")
+		row.count = count
+		local level = row:CreateFontString(nil, nil, "GameFontHighlight")
+			  level:SetPoint("LEFT", count, "RIGHT", 6, 0)
+			  level:SetPoint("RIGHT")
+			  level:SetJustifyH("RIGHT")
+		row.level = level
 
-		item.searchOverlay:SetBlendMode("ADD")
-		item.searchOverlay:SetTexture("Interface\\Buttons\\CheckButtonHilight")
-		item.searchOverlay:Show()
-
-		if i == 1 then
-			item:SetPoint("TOPLEFT", list, "TOPLEFT")
-		else
-			item:SetPoint("TOPLEFT", list.buttons[i-1], "BOTTOMLEFT", 0, -4)
-		end
-		item:Hide()
-
-		table.insert(list.buttons, item)
+		table.insert(list.buttons, row)
 	end
 	panel.scrollFrame = list
 
@@ -305,10 +379,15 @@ end
 function view.Update()
 	local panel = view.panel
 	assert(panel, "Can't update panel before it's created")
-	-- local character = ns.GetSelectedCharacter()
+	local character = ns.GetSelectedCharacter()
 
-	DataUpdate()
-	table.sort(view.itemsTable, DataSort)
+	local currentSearch = _G[addonName.."UI"].search.searchString
+	if currentSearch and currentSearch ~= "" and currentSearch ~= SEARCH then
+		view.Search(currentSearch, character)
+	else
+		DataUpdate(character)
+		table.sort(view.itemsTable, DataSort)
+	end
 	panel.scrollFrame:SetVerticalScroll(0)
 	ListUpdate(panel.scrollFrame)
 end
