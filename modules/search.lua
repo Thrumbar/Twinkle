@@ -45,7 +45,7 @@ function search.Update(self)
 
 	local view = ns.GetCurrentView()
 	if view and view.name ~= "search" and view.Search then
-		view.Search(self.searchString)
+		view.Search(self.searchString, ns.GetSelectedCharacter())
 	else
 		local scrollFrame = _G[addonName.."UI"].sidebar.scrollFrame
 		OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)

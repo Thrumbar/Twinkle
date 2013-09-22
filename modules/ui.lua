@@ -238,7 +238,7 @@ function ns.UpdatePanel()
 	if view then
 		view:Update()
 		if view.Search then
-			view.Search(frame.search.searchString)
+			view.Search(frame.search.searchString, ns.GetSelectedCharacter())
 		end
 	end
 end
