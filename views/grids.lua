@@ -54,7 +54,7 @@ function view.Update()
 			local upgradeID = LibItemUpgrade:GetUpgradeID(itemLink)
 			local currentUpgrade = LibItemUpgrade:GetCurrentUpgrade(upgradeID) or 0
 			local maxUpgrade = LibItemUpgrade:GetMaximumUpgrade(upgradeID) or 0
-			local itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink)
+			local itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink) or 0
 
 			local reforgeID = LibReforging:GetReforgeID(itemLink)
 			local reforged = ''
