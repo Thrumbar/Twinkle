@@ -184,16 +184,27 @@ local itemCountCache = setmetatable({}, {
 	end
 })
 
-function data.GetItemCounts(key, itemID, uncached)
-	if uncached then
-		-- remove previously cached data
-		local itemData = rawget(itemCountCache, itemID)
-		if itemData then
-			itemData = rawget(itemData, key)
-			if itemData then
+local function ClearCacheItemCount(itemID, key)
+	-- remove previously cached data
+	local itemData = rawget(itemCountCache, itemID)
+	if itemData then
+		if key then
+			-- clear data for this key
+			if rawget(itemData, key) then
 				rawset(itemData, key, nil)
 			end
+		else
+			-- clear data for all keys
+			for k, v in pairs(itemData) do
+				rawset(itemData, k, nil)
+			end
 		end
+	end
+end
+
+function data.GetItemCounts(key, itemID, uncached)
+	if uncached then
+		ClearCacheItemCount(itemID, key)
 	end
 	-- automagically fills cache
 	return itemCountCache[itemID][key]
@@ -211,18 +222,25 @@ function data.GetGuildsItemCounts(itemID, uncached)
 	end
 	return guildCounts
 end
-function data.GetInventoryItemLink(characterKey, slotID)
+function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	if characterKey == thisCharacter then
 		return GetInventoryItemLink("player", slotID)
 	elseif IsAddOnLoaded("DataStore_Inventory") then
 		-- FIXME: DataStore doesn't save upgraded items
 		local item = DataStore:GetInventoryItem(characterKey, slotID)
-		if type(item) == "number" then
+		if not rawOnly and type(item) == "number" then
 			_, item = GetItemInfo(item)
 		end
 		return item
 	end
 end
+
+ns.RegisterEvent("CHAT_MSG_LOOT", function(self, event, message)
+	local id, linkType = ns.GetLinkID(message)
+	if id and linkType == "item" then
+		ClearCacheItemCount(id, thisCharacter)
+	end
+end, "updateitemcounts")
 --[[
 function data.GetContainerSlotInfo(characterKey, bag, slot)
 	if IsAddOnLoaded("DataStore_Containers") then

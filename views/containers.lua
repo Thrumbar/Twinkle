@@ -43,20 +43,20 @@ local function DataUpdate(characterKey)
 				if itemID then
 					local index
 					for i, listData in ipairs(view.itemsTable) do
-						if listData[1] and listData[1] == itemID and ItemLinksAreEqual(listData[4], data.links[i]) then
+						if listData[1] and listData[1] == itemID and ItemLinksAreEqual(listData[3], data.links[i]) then
 							index = i
 							break
 						end
 					end
 
 					if index then
-						view.itemsTable[index][3] = (view.itemsTable[index][3] or 1) + (data.counts[slot] or 1)
+						view.itemsTable[index][2] = (view.itemsTable[index][2] or 1) + (data.counts[slot] or 1)
 					else
 						table.insert(view.itemsTable, {
 							itemID,
-							string.format("%d.%.2d", bagIndex or 100, slot),
 							data.counts[slot],
 							data.links[slot],
+							[0] = tonumber(string.format("%d.%.2d", bagIndex or 100, slot)),
 						})
 					end
 				end
@@ -66,31 +66,33 @@ local function DataUpdate(characterKey)
 
 	local button = _G[filter.."Equipment"]
 	if button and button:GetChecked() then
-		for slotID, item in pairs(DataStore:GetInventory(characterKey)) do
-			local itemID
-			if type(item) == "number" then
-				itemID = item
-			elseif type(item) == "string" then
-				itemID = ns.GetLinkID(item)
-			end
+		for slotID = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
+			local item = ns.data.GetInventoryItemLink(characterKey, slotID, true)
+			if item then
+				local itemID, itemLink
+				if type(item) == "string" then
+					itemID = ns.GetLinkID(item)
+					itemLink = item
+				else
+					itemID = item
+				end
 
-			if itemID then
 				local index
 				for i, data in ipairs(view.itemsTable) do
-					if data[1] and data[1] == itemID and ItemLinksAreEqual(data[4], type(item) == "string" and item or nil) then
+					if data[1] and data[1] == itemID and ItemLinksAreEqual(data[3], itemLink) then
 						index = i
 						break
 					end
 				end
 
 				if index then
-					view.itemsTable[index][3] = (view.itemsTable[index][3] or 1) + 1
+					view.itemsTable[index][2] = (view.itemsTable[index][2] or 1) + 1
 				else
 					table.insert(view.itemsTable, {
 						itemID,
-						string.format("-2.%.4d", slotID),
 						1,
-						(type(item) == "string" and item or nil),
+						itemLink,
+						[0] = tonumber(string.format("-2.%.4d", slotID)),
 					})
 				end
 			end
@@ -110,21 +112,21 @@ local function DataUpdate(characterKey)
 				local index
 				for j, data in ipairs(view.itemsTable) do
 					-- don't merge mail with non-mail items, don't merge different timings
-					if data[1] == itemID and ItemLinksAreEqual(data[4], baseLink ~= link and link or nil) and data[5] == expiresIn then
+					if data[1] == itemID and ItemLinksAreEqual(data[3], baseLink ~= link and link or nil) and data[4] == expiresIn then
 						index = j
 						break
 					end
 				end
 
 				if index then
-					view.itemsTable[index][3] = (view.itemsTable[index][3] or 1) + 1
+					view.itemsTable[index][2] = (view.itemsTable[index][2] or 1) + 1
 				else
 					table.insert(view.itemsTable, {
 						itemID,
-						string.format("-1.%.4d", i),
 						count,
 						(baseLink ~= link and link or nil),
-						expiresIn
+						expiresIn,
+						[0] = tonumber(string.format("-1.%.4d", i)),
 					})
 				end
 			end
@@ -139,7 +141,7 @@ local function ListUpdate(self)
 		local item = self.buttons[i]
 
 		if view.itemsTable[index] then
-			local itemID, _, itemCount, itemLink, timeLeft = unpack(view.itemsTable[index])
+			local itemID, itemCount, itemLink, timeLeft = unpack(view.itemsTable[index])
 			local name, link, quality, iLevel, reqLevel, class, subclass, _, _, texture, _ = GetItemInfo(itemID)
 
 			-- delay if we don't have data
@@ -188,10 +190,10 @@ local function DataSort(a, b)
 	if primarySort then
 		reverse = primarySort < 0
 		s = math.abs(primarySort)
-		sortA = (s == 3 and a[2]) or (s == 2 and namea) or (s == 1 and qualitya) or (s == 4 and (a[6] or iLevela))
-		sortB = (s == 3 and b[2]) or (s == 2 and nameb) or (s == 1 and qualityb) or (s == 4 and (b[6] or iLevelb))
+		sortA = (s == 1 and qualitya) or (s == 2 and namea) or (s == 3 and (a[2] or 1)) or (s == 4 and (a[4] or iLevela))
+		sortB = (s == 1 and qualityb) or (s == 2 and nameb) or (s == 3 and (b[2] or 1)) or (s == 4 and (b[4] or iLevelb))
 	end
-	if (sortA ~= nil and sortB ~= nil) and sortA ~= sortB then
+	if sortA and sortB and sortA ~= sortB then
 		if reverse then
 			return sortA > sortB
 		else
@@ -202,10 +204,10 @@ local function DataSort(a, b)
 	if secondarySort then
 		reverse = secondarySort < 0
 		s = math.abs(secondarySort)
-		sortA = (s == 3 and a[2]) or (s == 2 and namea) or (s == 1 and qualitya) or (s == 4 and (a[6] or iLevela))
-		sortB = (s == 3 and b[2]) or (s == 2 and nameb) or (s == 1 and qualityb) or (s == 4 and (b[6] or iLevelb))
+		sortA = (s == 1 and qualitya) or (s == 2 and namea) or (s == 3 and (a[2] or 1)) or (s == 4 and (a[4] or iLevela))
+		sortB = (s == 1 and qualityb) or (s == 2 and nameb) or (s == 3 and (b[2] or 1)) or (s == 4 and (b[4] or iLevelb))
 	end
-	if (sortA ~= nil and sortB ~= nil) and sortA ~= sortB then
+	if sortA and sortB and sortA ~= sortB then
 		if reverse then
 			return sortA > sortB
 		else
@@ -213,10 +215,10 @@ local function DataSort(a, b)
 		end
 	end
 
-	return tonumber(a[2]) < tonumber(b[2])
+	return tonumber(a[0]) < tonumber(b[0])
 end
 
-local function Sort(self, btn)
+local function SortOnClick(self, btn)
 	local newSort = self:GetID()
 	local reverse = primarySort and math.abs(primarySort) == math.abs(newSort)
 	secondarySort = reverse and  secondarySort or primarySort
@@ -276,7 +278,7 @@ function view.Init()
 		local sorter = CreateFrame("Button", "$parentSorter"..i, panel, "AuctionSortButtonTemplate", i)
 			  sorter:SetText(name)
 			  sorter:SetSize(sorter:GetTextWidth() + 34, 19)
-			  sorter:SetScript("OnClick", Sort)
+			  sorter:SetScript("OnClick", SortOnClick)
 		_G[sorter:GetName().."Arrow"]:Hide()
 
 		if i == 1 then
