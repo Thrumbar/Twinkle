@@ -10,24 +10,36 @@ local LBFactions = LibStub("LibBabble-Faction-3.0"):GetLookupTable()
 -- Do stuffs!
 -- ================================================
 local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = GetAuctionItemClasses()
+local _, LEATHERWORKING, TAILORING, ENGINEERING, BLACKSMITHING, COOKING, ALCHEMY, FIRSTAID, ENCHANTING, FISHING, JEWELCRAFTING, INSCRIPTION = GetAuctionItemSubClasses(7)
 local _, _, VALOR = GetCurrencyInfo(VALOR_CURRENCY)
 local _, _, CONQUEST = GetCurrencyInfo(CONQUEST_CURRENCY)
 local tradeskills = {
 	["Alchemy"] = 2259,
+	[ALCHEMY]   = 2259,
 	["Blacksmithing"] = 2018,
+	[BLACKSMITHING]   = 2018,
 	["Enchanting"] = 7411,
+	[ENCHANTING]   = 7411,
 	["Engineering"] = 4036,
-	["Herbalism"] = 2366,
+	[ENGINEERING]   = 4036,
 	["Inscription"] = 45357,
+	[INSCRIPTION]   = 45357,
 	["Jewelcrafting"] = 25229,
+	[JEWELCRAFTING]   = 25229,
 	["Leatherworking"] = 2108,
+	[LEATHERWORKING]   = 2108,
+	["Tailoring"] = 3908,
+	[TAILORING]   = 3908,
+	["Cooking"] = 2550,
+	[COOKING]   = 2550,
+	["First Aid"] = 3273,
+	[FIRSTAID]    = 3273,
+	["Fishing"] = 7620,
+	[FISHING]   = 7620,
+	["Herbalism"] = 2366,
 	["Mining"] = 2575,
 	["Skinning"] = 8613,
-	["Tailoring"] = 3908,
 	["Archaeology"] = 78670,
-	["Cooking"] = 2550,
-	["First Aid"] = 3273,
-	["Fishing"] = 7620,
 }
 local reputationColors = { -- TODO: brighten up
 	[1] = "|cFFA00000", -- 861c10",
@@ -381,19 +393,24 @@ local function HandleTooltipItem(self)
 
 	local name, link = self:GetItem()
 	if not link then return end
-	local _, _, quality, iLevel, reqLevel, class, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
+	local _, _, quality, iLevel, reqLevel, itemClass, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
 	local itemID, _ = ns.GetLinkID(link)
 	-- TODO: single-character pets+mounts / mounts learned by items (e.g. cloud serpent)
 
 	AddEmptyLine(self, true)
 
 	local linesAdded
-	if class == GLYPH then
+	if itemClass == GLYPH then
 		linesAdded = AddGlyphInfo(self, itemID)
-	elseif class == RECIPE then
+	elseif itemClass == RECIPE then
 		local craftedName = name:match(".-: (.+)")
-		linesAdded = AddCraftInfo(self, subclass, craftedName)
-	elseif equipSlot ~= "" and equipSlot ~= "INVTYPE_BAG" then
+		if tradeskills[subclass] then
+			profession = GetSpellInfo(tradeskills[subclass])
+		else
+			profession = subclass
+		end
+		linesAdded = AddCraftInfo(self, profession, craftedName)
+	elseif (equipSlot ~= "" and equipSlot ~= "INVTYPE_BAG") or (quality >= 3 and itemClass == MISC) then
 		linesAdded = AddItemSources(self, itemID)
 	end
 
