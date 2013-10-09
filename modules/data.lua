@@ -235,6 +235,7 @@ function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	end
 end
 
+-- TODO: also react to BAG_UPDATE_DELAYED, PLAYER_INVENTORY_CHANGED
 ns.RegisterEvent("CHAT_MSG_LOOT", function(self, event, message)
 	local id, linkType = ns.GetLinkID(message)
 	if id and linkType == "item" then
