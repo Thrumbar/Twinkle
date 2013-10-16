@@ -202,6 +202,28 @@ local function ClearCacheItemCount(itemID, key)
 	end
 end
 
+local function ClearCache(key)
+	local charData
+	for itemID, data in pairs(itemCountCache) do
+		charData = rawget(data, key)
+		if charData then
+			wipe(charData)
+			rawset(data, key, nil)
+		end
+	end
+end
+
+--[[-- gets handled by BAG_UPDATE_DELAYED handler
+ns.RegisterEvent("CHAT_MSG_LOOT", function(self, event, message)
+	local id, linkType = ns.GetLinkID(message)
+	if id and linkType == "item" then
+		ClearCacheItemCount(id, thisCharacter)
+	end
+end, "updateitemcounts") --]]
+ns.RegisterEvent("BAG_UPDATE_DELAYED", function(self, event)
+	ClearCache(thisCharacter)
+end, "clearitemcounts")
+
 function data.GetItemCounts(key, itemID, uncached)
 	if uncached then
 		ClearCacheItemCount(itemID, key)
@@ -235,13 +257,6 @@ function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	end
 end
 
--- TODO: also react to BAG_UPDATE_DELAYED, PLAYER_INVENTORY_CHANGED
-ns.RegisterEvent("CHAT_MSG_LOOT", function(self, event, message)
-	local id, linkType = ns.GetLinkID(message)
-	if id and linkType == "item" then
-		ClearCacheItemCount(id, thisCharacter)
-	end
-end, "updateitemcounts")
 --[[
 function data.GetContainerSlotInfo(characterKey, bag, slot)
 	if IsAddOnLoaded("DataStore_Containers") then
