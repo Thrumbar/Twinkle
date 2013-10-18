@@ -22,6 +22,10 @@ modules\search.lua
 modules\tradeskill.lua
 modules\tooltip.lua
 modules\autocomplete.lua
+modules\calendar.lua
+
+# brokers
+brokers\currency.lua
 
 # views
 views\default.lua
