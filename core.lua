@@ -27,23 +27,6 @@ local function UpdateDatabase()
 	end--]]
 end
 
-local function InitializeLDB()
-	ns.ldb = LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject(addonName, {
-		type  = "launcher",
-		icon  = "Interface\\Icons\\ACHIEVEMENT_GUILDPERK_MRPOPULARITY_RANK2",
-		label = addonName,
-
-		OnClick = function(self, button)
-			if button == "RightButton" then
-				-- open config
-				-- InterfaceOptionsFrame_OpenToCategory(Viewda.options)
-			else
-				ns.ToggleUI()
-			end
-		end,
-	})
-end
-
 local frame, eventHooks = CreateFrame("Frame", "MidgetEventHandler"), {}
 local function eventHandler(frame, event, arg1, ...)
 	if event == 'ADDON_LOADED' and arg1 == addonName then
@@ -141,6 +124,15 @@ function ns.Find(where, what)
 	end
 end
 
+function ns.GlobalStringToPattern(str)
+	str = gsub(str, "([%(%)])", "%%%1")
+	str = gsub(str, "%%%d?$?c", "(.+)")
+	str = gsub(str, "%%%d?$?s", "(.+)")
+	str = gsub(str, "%%%d?$?d", "(%%d+)")
+	return str
+end
+
+
 local function ViewShow(self)
 	if not self.panel then
 		self.Init()
@@ -159,7 +151,21 @@ end
 -- ================================================
 function ns.Initialize()
 	UpdateDatabase()
-	InitializeLDB()
+
+	ns.ldb = LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject(addonName, {
+		type  = "launcher",
+		icon  = "Interface\\Icons\\ACHIEVEMENT_GUILDPERK_MRPOPULARITY_RANK2",
+		label = addonName,
+
+		OnClick = function(self, button)
+			if button == "RightButton" then
+				-- open config
+				-- InterfaceOptionsFrame_OpenToCategory(Viewda.options)
+			else
+				ns.ToggleUI()
+			end
+		end,
+	})
 
 	-- expose us
 	Twinkle = ns
