@@ -16,7 +16,12 @@ end
 local function SortNames(a, b)
 	local nameA = GetCleanName(a)
 	local nameB = GetCleanName(b)
-	return nameA < nameB
+	if (nameA ~= a and nameB ~= b) or (nameA == a and nameB == b) then
+		return nameA < nameB
+	else
+		-- show our own characters first
+		return nameA ~= a
+	end
 end
 
 local characters, thisCharacter, lastQuery = ns.data.GetCharacters(), ns.data.GetCurrentCharacter(), nil
