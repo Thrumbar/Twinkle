@@ -2,8 +2,8 @@ local addonName, ns, _ = ...
 local LPT = LibStub("LibPeriodicTable-3.1", true)
 local LBFactions = LibStub("LibBabble-Faction-3.0"):GetLookupTable()
 
--- GLOBALS: _G, DataStore, ItemRefTooltip, GameTooltip, TRADESKILLS, FACTION_BAR_COLORS, TABARDVENDORCOST, UNKNOWN, ITEM_SPELL_KNOWN, RED_FONT_COLOR_CODE, GREEN_FONT_COLOR_CODE, FONT_COLOR_CODE_CLOSE, BATTLENET_FRIEND, DECLENSION_SET, ERR_IGNORE_ALREADY_S, AUCTIONS, TOTAL, MAIL_LABEL, BAGSLOT, ERR_QUEST_PUSH_ONQUEST_S, MINIMAP_TRACKING_BANKER, VOID_STORAGE, STAT_AVERAGE_ITEM_LEVEL_EQUIPPED
--- GLOBALS: IsAddOnLoaded, LoadAddOn, EJ_ClearSearch, EJ_SetSearch, EJ_GetNumSearchResults, EncounterJournal_GetSearchDisplay, GetItemInfo, GetSpellInfo, IsIgnored
+-- GLOBALS: _G, DataStore, ItemRefTooltip, GameTooltip, TRADESKILLS, FACTION_BAR_COLORS, TABARDVENDORCOST, UNKNOWN, ITEM_SPELL_KNOWN, RED_FONT_COLOR_CODE, GREEN_FONT_COLOR_CODE, HIGHLIGHT_FONT_COLOR_CODE, BATTLENET_FONT_COLOR_CODE, FONT_COLOR_CODE_CLOSE, BATTLENET_FRIEND, DECLENSION_SET, ERR_IGNORE_ALREADY_S, AUCTIONS, TOTAL, MAIL_LABEL, BAGSLOT, ERR_QUEST_PUSH_ONQUEST_S, MINIMAP_TRACKING_BANKER, VOID_STORAGE, GUILD_BANK, STAT_AVERAGE_ITEM_LEVEL_EQUIPPED, HEARTHSTONE_ITEM_ID
+-- GLOBALS: IsAddOnLoaded, IsShiftKeyDown, LoadAddOn, EJ_ClearSearch, EJ_SetSearch, EJ_GetNumSearchResults, EncounterJournal_GetSearchDisplay, GetItemInfo, GetSpellInfo, IsIgnored
 -- GLOBALS: string, pairs, tonumber, table, type, wipe, tContains, ipairs, strtrim, hooksecurefunc
 
 -- ================================================
@@ -13,44 +13,29 @@ local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUES
 local _, LEATHERWORKING, TAILORING, ENGINEERING, BLACKSMITHING, COOKING, ALCHEMY, FIRSTAID, ENCHANTING, FISHING, JEWELCRAFTING, INSCRIPTION = GetAuctionItemSubClasses(7)
 local _, _, VALOR = GetCurrencyInfo(VALOR_CURRENCY)
 local _, _, CONQUEST = GetCurrencyInfo(CONQUEST_CURRENCY)
+local PROFESSION_MIN_SKILL = '^' .. ns.GlobalStringToPattern(_G["ITEM_MIN_SKILL"]) .. '$'
+
 local tradeskills = {
-	["Alchemy"] = 2259,
-	[ALCHEMY]   = 2259,
-	["Blacksmithing"] = 2018,
-	[BLACKSMITHING]   = 2018,
-	["Enchanting"] = 7411,
-	[ENCHANTING]   = 7411,
-	["Engineering"] = 4036,
-	[ENGINEERING]   = 4036,
-	["Inscription"] = 45357,
-	[INSCRIPTION]   = 45357,
-	["Jewelcrafting"] = 25229,
-	[JEWELCRAFTING]   = 25229,
-	["Leatherworking"] = 2108,
-	[LEATHERWORKING]   = 2108,
-	["Tailoring"] = 3908,
-	[TAILORING]   = 3908,
-	["Cooking"] = 2550,
-	[COOKING]   = 2550,
-	["First Aid"] = 3273,
-	[FIRSTAID]    = 3273,
-	["Fishing"] = 7620,
-	[FISHING]   = 7620,
-	["Herbalism"] = 2366,
-	["Mining"] = 2575,
-	["Skinning"] = 8613,
-	["Archaeology"] = 78670,
+	["Alchemy"]			= 2259,		[ALCHEMY]			= 2259,
+	["Blacksmithing"]	= 2018,		[BLACKSMITHING]		= 2018,
+	["Enchanting"]		= 7411,		[ENCHANTING]		= 7411,
+	["Engineering"]		= 4036,		[ENGINEERING]		= 4036,
+	["Inscription"]		= 45357,	[INSCRIPTION]		= 45357,
+	["Jewelcrafting"]	= 25229,	[JEWELCRAFTING]		= 25229,
+	["Leatherworking"]	= 2108,		[LEATHERWORKING]	= 2108,
+	["Tailoring"]		= 3908,		[TAILORING]			= 3908,
+	["Herbalism"]		= 2366,
+	["Mining"]			= 2575,
+	["Skinning"]		= 8613,
+
+	-- TODO: add "way of the X" as fake professions to track their levels? see item:87266
+	["Cooking"]			= 2550,		[COOKING]			= 2550,
+	["First Aid"]		= 3273,		[FIRSTAID]			= 3273,
+	["Fishing"]			= 7620,		[FISHING]			= 7620,
+	["Archaeology"]		= 78670,
 }
-local reputationColors = { -- TODO: brighten up
-	[1] = "|cFFA00000", -- 861c10",
-	[2] = "|cFFA00000", -- 994515",
-	[3] = "|cFFA00000", -- aa7419",
-	[4] = "|cFFD2AC00", -- a68818",
-	[5] = "|cFF51AB01", -- 777601",
-	[6] = "|cFF51AB01", -- 527001",
-	[7] = "|cFF51AB01", -- 217201",
-	[8] = "|cFF00BE70", -- 007564",
-}
+-- TODO: brighten up
+local reputationColors = { "|cFFA00000", "|cFFA00000", "|cFFA00000", "|cFFD2AC00", "|cFF51AB01", "|cFF51AB01", "|cFF51AB01", "|cFF00BE70" }
 
 local characters = ns.data.GetCharacters()
 
@@ -141,11 +126,11 @@ end
 -- ================================================
 local glyphKnown = {}
 local glyphUnknown = {}
-local function GetGlyphKnownInfo(itemID, onlyUnknown)
+local function GetGlyphKnownInfo(glyph, onlyUnknown)
 	wipe(glyphKnown)
 	wipe(glyphUnknown)
 	for _, character in pairs(DataStore:GetCharacters()) do
-		local isKnown, canLearn = DataStore:IsGlyphKnown(character, itemID)
+		local isKnown, canLearn = DataStore:IsGlyphKnown(character, glyph)
 		if isKnown and not onlyUnknown then
 			table.insert(glyphKnown, ns.data.GetCharacterText(character))
 		elseif canLearn then
@@ -158,10 +143,11 @@ local function GetGlyphKnownInfo(itemID, onlyUnknown)
 	return glyphKnown, glyphUnknown
 end
 
-local function AddGlyphInfo(tooltip, itemID)
+-- <glyph: itemID | glyph name>
+local function AddGlyphInfo(tooltip, glyph)
 	local onlyUnknown = false -- TODO: config
 	local linesAdded = false
-	local known, unknown = GetGlyphKnownInfo(itemID, onlyUnknown)
+	local known, unknown = GetGlyphKnownInfo(glyph, onlyUnknown)
 
 	local list = not onlyUnknown and table.concat(known, ", ")
 	if list and list ~= "" then
@@ -181,18 +167,25 @@ end
 -- ================================================
 local recipeKnownCharacters, recipeUnknownCharacters = {}, {}
 local function SortBySkill(a, b)
-	local skillA = a:match("|r %((.-)%)$")
-	local skillB = b:match("|r %((.-)%)$")
+	local skillA = a:match("%((.-)%)")
+	local skillB = b:match("%((.-)%)")
 	return tonumber(skillA) > tonumber(skillB)
 end
-local function GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
+local function SortByName(a, b)
+	local nameA = a:gsub('|c........', ''):gsub('|r', '')
+	local nameB = b:gsub('|c........', ''):gsub('|r', '')
+	return nameA < nameB
+end
+local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
+	local onlyUnknown = false -- TODO: config
+
 	wipe(recipeKnownCharacters)
 	wipe(recipeUnknownCharacters)
 	if not IsAddOnLoaded("DataStore_Crafts") then
 		return recipeKnownCharacters, recipeUnknownCharacters
 	end
 
-	for _, character in pairs(DataStore:GetCharacters()) do
+	for _, character in pairs(ns.data.GetCharacters()) do
 		local profession = DataStore:GetProfession(character, professionName)
 		if profession then
 			local numCrafts = DataStore:GetNumCraftLines(profession)
@@ -213,20 +206,23 @@ local function GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
 				table.insert(recipeKnownCharacters, charName)
 			elseif not isKnown and numCrafts > 0 then
 				local skillLevel = DataStore:GetProfessionInfo(profession)
-				local characterText = string.format("%s (%d)", charName, skillLevel)
+				local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
+					or (skillLevel >= requiredSkill and GREEN_FONT_COLOR_CODE)
+					or RED_FONT_COLOR_CODE
+				local characterText = string.format("%s %s(%d)|r", charName, learnableColor, skillLevel)
 				table.insert(recipeUnknownCharacters, characterText)
 			end
 		end
 	end
-	table.sort(recipeKnownCharacters)
+	table.sort(recipeKnownCharacters, SortByName)
 	table.sort(recipeUnknownCharacters, SortBySkill)
 	return recipeKnownCharacters, recipeUnknownCharacters
 end
 
-local function AddCraftInfo(tooltip, professionName, craftedName)
+local function AddCraftInfo(tooltip, professionName, craftedName, requiredSkill)
 	local onlyUnknown = false -- TODO: config
 	local linesAdded = false
-	local known, unknown = GetRecipeKnownInfo(professionName, craftedName, onlyUnknown)
+	local known, unknown = GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 
 	local list = not onlyUnknown and table.concat(known, ", ")
 	if list and list ~= "" then
@@ -387,47 +383,73 @@ local function ClearTooltipItem(self)
 	self.twinkleDone = nil
 end
 
+-- TODO: single-character pets+mounts / mounts learned by items (e.g. cloud serpent)
 local function HandleTooltipItem(self)
-	if self.twinkleDone then return end
-	self.twinkleDone = true
-
 	local name, link = self:GetItem()
 	if not link then return end
 	local _, _, quality, iLevel, reqLevel, itemClass, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
-	local itemID, _ = ns.GetLinkID(link)
-	-- TODO: single-character pets+mounts / mounts learned by items (e.g. cloud serpent)
+	local itemID = ns.GetLinkID(link)
 
-	AddEmptyLine(self, true)
+	local craftedName, professionName, professionRequiredSkill
+	if itemClass == RECIPE then
+		-- gather recipe information
+		for line = 1, self:NumLines() do
+			local left = _G[self:GetName() .. "TextLeft"..line]:GetText()
+			if left and left ~= "" then
+				if not craftedName then
+					craftedName = left:match("^\n(.+)")
+				end
 
-	local linesAdded
-	if itemClass == GLYPH then
-		linesAdded = AddGlyphInfo(self, itemID)
-	elseif itemClass == RECIPE then
-		local craftedName = name:match(".-: (.+)")
-		if tradeskills[subclass] then
-			profession = GetSpellInfo(tradeskills[subclass])
-		else
-			profession = subclass
+				if not professionName then
+					local profession, requiredSkill = left:match(PROFESSION_MIN_SKILL)
+					if profession and requiredSkill then
+						professionName = profession
+						professionRequiredSkill = tonumber(requiredSkill)
+					end
+				end
+
+				if craftedName and professionName then break end
+			end
 		end
-		linesAdded = AddCraftInfo(self, profession, craftedName)
-	elseif (equipSlot ~= "" and equipSlot ~= "INVTYPE_BAG") or (quality >= 3 and itemClass == MISC) then
-		linesAdded = AddItemSources(self, itemID)
+
+		if not professionName then
+			professionName = tradeskills[subclass] and GetSpellInfo(tradeskills[subclass]) or subclass
+		end
 	end
 
+	if not self.twinkleDone and craftedName then
+		-- show info of crafted item
+		name = craftedName
+		_, link = GetItemInfo(name)
+		itemID = link and ns.GetLinkID(link)
+	end
+
+	local linesAdded = nil
+	AddEmptyLine(self, true)
+
+	if (equipSlot ~= "" and equipSlot ~= "INVTYPE_BAG") or (quality >= 3 and itemClass == MISC) then
+		-- crafted items don't need source info - their source is the currently viewed recipe
+		linesAdded = AddItemSources(self, itemID or name)
+	elseif itemClass == GLYPH or (itemClass == RECIPE and not self.twinkleDone) then
+		-- glyphs can be shown on recipes, too
+		linesAdded = AddGlyphInfo(self, itemID or name)
+	elseif itemClass == RECIPE and self.twinkleDone then
+		-- onl print crafting recipe info on second run
+		linesAdded = AddCraftInfo(self, professionName, craftedName, professionRequiredSkill)
+	end
 	if linesAdded then AddEmptyLine(self, true) end
 
-	if itemID ~= HEARTHSTONE_ITEM_ID then
+	if itemID and itemID ~= HEARTHSTONE_ITEM_ID then
 		local itemCountsOnSHIFT = nil -- TODO: config
 		if not itemCountsOnSHIFT or IsShiftKeyDown() then
 			linesAdded = AddItemCounts(self, itemID)
-			if linesAdded then
-				AddEmptyLine(self, true)
-			end
+			if linesAdded then AddEmptyLine(self, true) end
 		else
 			self:AddLine(BATTLENET_FONT_COLOR_CODE..'<Hold down SHIFT for item counts>')
 		end
 	end
 
+	self.twinkleDone = true
 	self:Show()
 end
 
@@ -457,7 +479,6 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 		ItemRefTooltip:HookScript("OnTooltipSetUnit", AddSocialInfo)
 
 		hooksecurefunc(GameTooltip, "SetHyperlink", function(self, hyperlink)
-			if self.type then print('data', self.type, self.data) end
 			local id, linkType = ns.GetLinkID(hyperlink)
 			-- print('SetHyperlink', hyperlink, linkType, id)
 			if linkType == "quest" then
