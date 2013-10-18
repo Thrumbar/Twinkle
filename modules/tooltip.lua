@@ -38,11 +38,18 @@ local tradeskills = {
 local reputationColors = { "|cFFA00000", "|cFFA00000", "|cFFA00000", "|cFFD2AC00", "|cFF51AB01", "|cFF51AB01", "|cFF51AB01", "|cFF00BE70" }
 
 local characters = ns.data.GetCharacters()
+local thisCharacter = ns.data.GetCurrentCharacter()
 
-local function AddEmptyLine(tooltip, slim)
-	tooltip:AddLine(' ')
+local function AddEmptyLine(tooltip, slim, force)
+	local numLines = tooltip:NumLines()
+	local lastText = _G[tooltip:GetName()..'TextLeft'..numLines]
+	-- don't create multiple blank lines
+	if force or (lastText and lastText:GetText() ~= nil) then
+		tooltip:AddLine(' ')
+		numLines = numLines + 1
+	end
 	if slim then
-		_G[tooltip:GetName()..'TextLeft'..tooltip:NumLines()]:SetText(nil)
+		_G[tooltip:GetName()..'TextLeft'..numLines]:SetText(nil)
 	end
 end
 
@@ -129,6 +136,7 @@ local glyphUnknown = {}
 local function GetGlyphKnownInfo(glyph, onlyUnknown)
 	wipe(glyphKnown)
 	wipe(glyphUnknown)
+	-- TODO: add level learnable info "Mychar (60)"
 	for _, character in pairs(DataStore:GetCharacters()) do
 		local isKnown, canLearn = DataStore:IsGlyphKnown(character, glyph)
 		if isKnown and not onlyUnknown then
@@ -185,7 +193,8 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 		return recipeKnownCharacters, recipeUnknownCharacters
 	end
 
-	for _, character in pairs(ns.data.GetCharacters()) do
+	local selfKnown = nil
+	for _, character in pairs(characters) do
 		local profession = DataStore:GetProfession(character, professionName)
 		if profession then
 			local numCrafts = DataStore:GetNumCraftLines(profession)
@@ -199,6 +208,10 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 						break
 					end
 				end
+			end
+
+			if isKnown and character == thisCharacter then
+				selfKnown = true
 			end
 
 			local charName = ns.data.GetCharacterText(character)
@@ -216,16 +229,29 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	end
 	table.sort(recipeKnownCharacters, SortByName)
 	table.sort(recipeUnknownCharacters, SortBySkill)
-	return recipeKnownCharacters, recipeUnknownCharacters
+	return recipeKnownCharacters, recipeUnknownCharacters, selfKnown
 end
 
 local function AddCraftInfo(tooltip, professionName, craftedName, requiredSkill)
 	local onlyUnknown = false -- TODO: config
 	local linesAdded = false
-	local known, unknown = GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
+	local known, unknown, selfKnown = GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 
 	local list = not onlyUnknown and table.concat(known, ", ")
 	if list and list ~= "" then
+		if selfKnown then
+			-- don't show duplicate ITEM_SPELL_KNOWN line
+			local line, text
+			for lineNum = tooltip:NumLines(), 1, -1 do
+				line = _G[tooltip:GetName().."TextLeft"..lineNum]
+				text = line:GetText()
+				if text and text == ITEM_SPELL_KNOWN then
+					line:SetText(nil)
+					break
+				end
+			end
+		end
+
 		tooltip:AddLine(RED_FONT_COLOR_CODE..ITEM_SPELL_KNOWN..": "..FONT_COLOR_CODE_CLOSE..list, 1, 1, 1, true)
 		linesAdded = true
 	end
