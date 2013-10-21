@@ -1,7 +1,9 @@
 local addonName, ns, _ = ...
 local view = ns.CreateView("search")
 
--- GLOBALS: _G, AceTimer, ITEM_QUALITY_COLORS
+local AceTimer = LibStub("AceTimer-3.0")
+
+-- GLOBALS: _G, ITEM_QUALITY_COLORS
 -- GLOBALS: CreateFrame, GetSpellInfo, GetSpellLink, GetItemInfo, SetItemButtonTexture, SetItemButtonCount, FauxScrollFrame_GetOffset, FauxScrollFrame_Update, FauxScrollFrame_OnVerticalScroll
 -- GLOBALS: table, string, pairs, ipairs, strsplit, assert
 
