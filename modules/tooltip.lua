@@ -57,35 +57,45 @@ end
 --  Quests
 -- ================================================
 local questInfo = {}
-local function GetOnQuestInfo(questID)
+-- TODO: return list of characters that completed quest, too
+local function GetOnQuestInfo(questID, onlyActive)
 	wipe(questInfo)
 	if not IsAddOnLoaded("DataStore_Quests") then
 		return questInfo
 	end
 
 	-- TODO: abstract to ns.data
-	for _, character in pairs(DataStore:GetCharacters()) do
+	for _, character in pairs(characters) do
 		local numActiveQuests = DataStore:GetQuestLogSize(character)
 		for i = 1, numActiveQuests do
-			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(i)
+			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(character, i)
 			local qID = ns.GetLinkID(questLink)
 			if not isHeader and qID == questID and completed ~= 1 then
 				table.insert(questInfo, ns.data.GetCharacterText(character))
 			end
 		end
 	end
+
+	-- ERR_QUEST_PUSH_ACCEPTED_S = "%1$s hat Eure Quest angenommen."
+	-- ERR_QUEST_PUSH_ALREADY_DONE_S = "%s hat die Quest abgeschlossen"
+	-- QUEST_COMPLETE = "Quest abgeschlossen"
+
 	return questInfo
 end
 
 local function AddOnQuestInfo(tooltip, questID)
-	local questInfo = GetOnQuestInfo(questID)
+	local linesAdded = nil
+	local onlyActive = false -- TODO: config
+	local questInfo = GetOnQuestInfo(questID, onlyActive)
 	if #questInfo > 0 then
 		-- QUEST_TOOLTIP_ACTIVE: "Ihr befindet Euch auf dieser Quest."
 		-- ERR_QUEST_ACCEPTED_S: "Quest angenommen: ..."
 		-- ERR_QUEST_PUSH_ONQUEST_S: "... hat diese Quest bereits"
-		local text = string.format(ERR_QUEST_PUSH_ONQUEST_S, table.concat(questInfo, ", "))
+		local text = string.format(ERR_QUEST_ACCEPTED_S, table.concat(questInfo, ", "))
 		tooltip:AddLine(text, nil, nil, nil, true)
+		linesAdded = true
 	end
+	return linesAdded
 end
 
 -- ================================================
@@ -509,7 +519,11 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 			-- print('SetHyperlink', hyperlink, linkType, id)
 			if linkType == "quest" then
 				-- would use OnTooltipSetQuest but doesn't supply id
-				AddOnQuestInfo(self, id)
+				local linesAdded = nil
+				AddEmptyLine(self, true)
+
+				linesAdded = AddOnQuestInfo(self, id)
+				if linesAdded then AddEmptyLine(self, true) end
 			end
 		end)
 
