@@ -168,5 +168,5 @@ function ns.Initialize()
 	})
 
 	-- expose us
-	Twinkle = ns
+	_G[addonName] = ns
 end
