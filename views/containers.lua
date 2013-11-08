@@ -246,6 +246,7 @@ function view.Init()
 	tab:GetNormalTexture():SetTexture("Interface\\Buttons\\Button-Backpack-Up")
 	tab.view = view
 
+	-- TODO: show slot count (13/97) on icons
 	local filters = {
 		IsAddOnLoaded('DataStore_Containers') and {"Bags", "Interface\\MINIMAP\\TRACKING\\Banker"},
 		IsAddOnLoaded('DataStore_Containers') and {"Bank", "INTERFACE\\ICONS\\achievement_guildperk_mobilebanking"},
