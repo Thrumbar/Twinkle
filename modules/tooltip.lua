@@ -184,15 +184,19 @@ end
 --  Recipes
 -- ================================================
 local recipeKnownCharacters, recipeUnknownCharacters = {}, {}
-local function SortBySkill(a, b)
-	local skillA = a:match("%((.-)%)")
-	local skillB = b:match("%((.-)%)")
-	return tonumber(skillA) > tonumber(skillB)
-end
 local function SortByName(a, b)
 	local nameA = a:gsub('|c........', ''):gsub('|r', '')
 	local nameB = b:gsub('|c........', ''):gsub('|r', '')
 	return nameA < nameB
+end
+local function SortBySkill(a, b)
+	local skillA = a:match("%((.-)%)") or math.huge
+	local skillB = b:match("%((.-)%)") or math.huge
+	if skillA ~= skillB then
+		return tonumber(skillA) > tonumber(skillB)
+	else
+		return SortByName(a, b)
+	end
 end
 local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	local onlyUnknown = false -- TODO: config
@@ -229,10 +233,17 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 				table.insert(recipeKnownCharacters, charName)
 			elseif not isKnown and numCrafts > 0 then
 				local skillLevel = DataStore:GetProfessionInfo(profession)
-				local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
+				--[[ local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
 					or (skillLevel >= requiredSkill and GREEN_FONT_COLOR_CODE)
-					or RED_FONT_COLOR_CODE
-				local characterText = string.format("%s %s(%d)|r", charName, learnableColor, skillLevel)
+					or RED_FONT_COLOR_CODE --]]
+
+				local characterText
+				if not requiredSkill or skillLevel >= requiredSkill then
+					characterText = charName
+				else
+					characterText = string.format("%s %s(%d)|r", charName, RED_FONT_COLOR_CODE, skillLevel)
+				end
+				-- local characterText = string.format("%s %s(%d)|r", charName, learnableColor, skillLevel)
 				table.insert(recipeUnknownCharacters, characterText)
 			end
 		end
