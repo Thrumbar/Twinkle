@@ -462,6 +462,9 @@ local function HandleTooltipItem(self)
 		if not professionName then
 			professionName = tradeskills[subclass] and GetSpellInfo(tradeskills[subclass]) or subclass
 		end
+	elseif itemClass == GLYPH then
+		professionName = GetSpellInfo(tradeskills['Inscription'])
+		craftedName = name
 	end
 
 	if not self.twinkleDone and craftedName then
@@ -539,9 +542,15 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 		end)
 
 		-- GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
-		--GameTooltip:HookScript("OnTooltipSetAchievement", function(self) end) -- list max progress char/char completion states
-		--GameTooltip:HookScript("OnTooltipSetEquipmentSet", function(self) end) -- ??
+		-- GameTooltip:HookScript("OnTooltipSetAchievement", function(self) end) -- list max progress char/char completion states
+		-- GameTooltip:HookScript("OnTooltipSetEquipmentSet", function(self) end) -- ??
 
+		hooksecurefunc(GameTooltip, "SetGlyphByID", function(self, glyphID)
+			-- shown when hovering a glyph in the talent ui
+			local professionName = GetSpellInfo(tradeskills['Inscription'])
+			local craftedName = _G[self:GetName().."TextLeft1"]:GetText()
+			AddCraftInfo(self, professionName, craftedName)
+		end)
 		hooksecurefunc(GameTooltip, "SetCurrencyByID", function(self, currencyID)
 			-- print('SetCurrencyByID', currencyID)
 		end)
