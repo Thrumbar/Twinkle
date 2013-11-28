@@ -484,7 +484,7 @@ local function HandleTooltipItem(self)
 		-- glyphs can be shown on recipes, too
 		linesAdded = AddGlyphInfo(self, itemID or name)
 	elseif itemClass == RECIPE and self.twinkleDone then
-		-- onl print crafting recipe info on second run
+		-- only print crafting recipe info on second run
 		linesAdded = AddCraftInfo(self, professionName, craftedName, professionRequiredSkill)
 	end
 	if linesAdded then AddEmptyLine(self, true) end
