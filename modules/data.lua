@@ -267,6 +267,27 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 	end
 end
 --]]
+
+-- ========================================
+--  Currencies
+-- ========================================
+function data.GetNumCurrencies(characterKey)
+	if characterKey == thisCharacter then
+		return GetCurrencyListSize()
+	else
+		return DataStore:GetNumCurrencies(characterKey)
+	end
+end
+
+function data.GetCurrencyInfo(characterKey, index)
+	if characterKey == thisCharacter then
+		local name, isHeader, _, _, _, count, icon = GetCurrencyListInfo(index)
+		return isHeader, name, count, icon
+	else
+		return DataStore:GetCurrencyInfo(characterKey, index)
+	end
+end
+
 -- ========================================
 --  Activity
 -- ========================================
