@@ -279,12 +279,23 @@ function data.GetNumCurrencies(characterKey)
 	end
 end
 
-function data.GetCurrencyInfo(characterKey, index)
+function data.GetCurrencyInfoByIndex(characterKey, index)
 	if characterKey == thisCharacter then
 		local name, isHeader, _, _, _, count, icon = GetCurrencyListInfo(index)
 		return isHeader, name, count, icon
 	else
 		return DataStore:GetCurrencyInfo(characterKey, index)
+	end
+end
+
+-- identifier may be currencyID or currencyName
+function data.GetCurrencyInfo(characterKey, identifier)
+	local compareName = type(identifier) == 'number' and GetCurrencyInfo(identifier) or identifier
+	for index = 1, data.GetNumCurrencies(characterKey) do
+		local isHeader, name, count, icon = data.GetCurrencyInfoByIndex(characterKey, index)
+		if name == compareName then
+			return isHeader, name, count, icon, identifier
+		end
 	end
 end
 

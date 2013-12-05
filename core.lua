@@ -83,9 +83,9 @@ function ns.Debug(...)
   end
 end
 
-function ns.ShowTooltip(self)
+function ns.ShowTooltip(self, altSelf)
 	if not self.tiptext and not self.link then return end
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	GameTooltip:SetOwner(altSelf or self, "ANCHOR_RIGHT")
 	GameTooltip:ClearLines()
 
 	if self.link then

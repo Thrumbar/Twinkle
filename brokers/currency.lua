@@ -1,12 +1,23 @@
 local addonName, ns, _ = ...
 
--- GLOBALS: CURRENCY, NORMAL_FONT_COLOR
--- GLOBALS: GetCurrencyInfo
--- GLOBALS: wipe, unpack, select, pairs, ipairs
+-- GLOBALS: _G, NORMAL_FONT_COLOR, LibStub
+-- GLOBALS: GetCurrencyInfo, ToggleCharacter
+-- GLOBALS: wipe, unpack, select, pairs, ipairs, strsplit
+
+--[[
+  TODO list:
+  	- [config] currency order
+  	- [config] currencies to display in LDB
+  	- [config] currencies to display in tooltip
+  	- [feature] colorize for current/max count
+  	- [feature] colorize for current/weekly count
+  	- [feature] add indicator for related (weekly) quests
+--]]
 
 local LDB     = LibStub('LibDataBroker-1.1')
 local LibQTip = LibStub('LibQTip-1.0')
 
+local characters = {}
 local thisCharacter = ns.data.GetCurrentCharacter()
 local showCurrency = {
 	395,	-- justice
@@ -18,6 +29,9 @@ local showCurrency = {
 	777,	-- timeless
 }
 
+-- ========================================================
+--  Gathering data
+-- ========================================================
 local function ShowCurrency(name)
 	local currencyName
 	for _, currencyID in ipairs(showCurrency) do
@@ -28,7 +42,6 @@ local function ShowCurrency(name)
 	end
 end
 
-local currencyInfos = {}
 local currencyReturns = {}
 local function GetCurrencyHeaders()
 	wipe(currencyReturns)
@@ -41,22 +54,12 @@ local function GetCurrencyHeaders()
 end
 
 local function GetCurrencyCounts(characterKey, asTable)
-	wipe(currencyInfos)
-
-	local numCurrencies = ns.data.GetNumCurrencies(characterKey or thisCharacter)
-	local isHeader, name, count, icon, currencyID
-	for index = 1, numCurrencies do
-		isHeader, name, count, icon = ns.data.GetCurrencyInfo(characterKey or thisCharacter, index)
-		currencyID = ShowCurrency(name)
-		if not isHeader and currencyID then
-			currencyInfos[currencyID] = count
-		end
-	end
-
 	wipe(currencyReturns)
 	for _, currencyID in pairs(showCurrency) do
-		table.insert(currencyReturns, currencyInfos[currencyID] or '')
+		local isHeader, name, count, icon = ns.data.GetCurrencyInfo(characterKey or thisCharacter, currencyID)
+		table.insert(currencyReturns, count or 0)
 	end
+
 	if asTable then
 		return currencyReturns
 	else
@@ -64,14 +67,69 @@ local function GetCurrencyCounts(characterKey, asTable)
 	end
 end
 
-local characters = {}
+--[[
+local function GetCharacterCurrencyInfo(character, currency)
+	local name, currentAmount, _, weeklyAmount, weeklyMax, totalMax = GetCurrencyInfo(currency)
+	if character ~= thisCharacter then
+		currentAmount = 0
+		weeklyAmount = DataStore:GetCurrencyWeeklyAmount(character, currency)
+		if IsAddOnLoaded('DataStore_Currencies') then
+			_, _, currentAmount = DataStore:GetCurrencyInfoByName(character, name)
+		end
+	end
+	currentAmount = currentAmount or 0
+	weeklyAmount  = weeklyAmount or 0
+
+	if totalMax%100 == 99 then -- valor and justice caps are weird
+		totalMax  = math.floor(totalMax/100)
+		weeklyMax = math.floor(weeklyMax/100)
+	end
+
+	return currentAmount, totalMax, weeklyAmount, weeklyMax
+end
+--]]
+
+-- ========================================================
+--  LDB Display & Sorting
+-- ========================================================
+-- forward declaration
+local OnEnter = function() end
+
+local sortCurrencyIndex, sortCurrencyReverse
+local function SortByCharacter(a, b)
+	return ns.data.GetName(a) < ns.data.GetName(b)
+end
+local function SortByCurrency(a, b)
+	local countA = select(sortCurrencyIndex, GetCurrencyCounts(a))
+	local countB = select(sortCurrencyIndex, GetCurrencyCounts(b))
+	if sortCurrencyReverse then
+		return countA > countB
+	else
+		return countA < countB
+	end
+end
+local function SortCurrencyList(self, sortType, btn, up)
+	if sortType == 0 then
+		table.sort(characters, SortByCharacter)
+	else
+		if sortCurrencyIndex == sortType then
+			sortCurrencyReverse = not sortCurrencyReverse
+		else
+			sortCurrencyIndex = sortType
+			sortCurrencyReverse = false
+		end
+		table.sort(characters, SortByCurrency)
+	end
+	OnEnter()
+end
+
 local tooltip
 local function OnEnter(self)
 	local numColumns = #showCurrency + 1
 	if LibStub('LibQTip-1.0'):IsAcquired('TwinkleCurrency') then
 		tooltip:Clear()
 	else
-		tooltip = LibQTip:Acquire(addonName..'Currency', numColumns)
+		tooltip = LibQTip:Acquire(addonName..'Currency', numColumns, 'LEFT', strsplit(',', string.rep('RIGHT,', numColumns-1)))
 		tooltip:SmartAnchorTo(self)
 		tooltip:SetAutoHideDelay(0.25, self)
 		tooltip:GetFont():SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
@@ -80,13 +138,23 @@ local function OnEnter(self)
 	local lineNum
 	lineNum = tooltip:AddHeader()
 			  tooltip:SetCell(lineNum, 1, addonName .. 'Currency', 'CENTER', numColumns)
-	-- tooltip:AddSeparator(2)
-
-	lineNum = tooltip:AddLine('', GetCurrencyHeaders())
-	-- tooltip:SetCellScript(lineNum, 1, 'OnMouseUp', SortGuildList, 'note')
 	tooltip:AddSeparator(2)
 
-	for _, characterKey in ipairs(ns.data.GetCharacters(characters)) do
+	lineNum = tooltip:AddLine(_G.CHARACTER, GetCurrencyHeaders())
+	for column = 1, numColumns do
+		-- make list sortable
+		tooltip:SetCellScript(lineNum, column, 'OnMouseUp', SortCurrencyList, column-1)
+		if column > 1 then
+			-- show tooltip for currency headers
+			local cell = tooltip.lines[lineNum].cells[column]
+			      cell.link = 'currency:'..showCurrency[column-1]
+			tooltip:SetCellScript(lineNum, column, 'OnEnter', ns.ShowTooltip, tooltip)
+			tooltip:SetCellScript(lineNum, column, 'OnLeave', ns.HideTooltip, tooltip)
+		end
+	end
+	tooltip:AddSeparator(2)
+
+	for _, characterKey in ipairs(characters) do
 		lineNum = tooltip:AddLine( ns.data.GetCharacterText(characterKey),  GetCurrencyCounts(characterKey) )
 	end
 
@@ -100,7 +168,7 @@ local function Update(self)
 			table.remove(currencies, i)
 		else
 			local _, _, icon = GetCurrencyInfo( showCurrency[i] )
-			currencies[i] = string.format('%1$s|T%2$s:0|t', currencies[i], icon)
+			currencies[i] = string.format('%1$s |T%2$s:0|t', currencies[i], icon)
 		end
 	end
 
@@ -116,14 +184,17 @@ local function Update(self)
 end
 
 local function OnClick(self, btn, down)
-	-- body
+	ToggleCharacter("TokenFrame")
 end
 
+-- ========================================================
+--  Setup
+-- ========================================================
 ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 	if arg1 == addonName then
 		local plugin = LDB:NewDataObject(addonName..'Currency', {
 			type	= 'data source',
-			label	= CURRENCY,
+			label	= _G.CURRENCY,
 			-- text 	= CURRENCY,
 			-- icon    = 'Interface\\Icons\\Spell_Holy_EmpowerChampion',
 
@@ -131,6 +202,9 @@ ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 			OnEnter = OnEnter,
 			OnLeave = function() end,	-- needed for e.g. NinjaPanel
 		})
+
+		-- fill character list
+		characters = ns.data.GetCharacters(characters)
 
 		ns.UnregisterEvent('ADDON_LOADED', 'currencies')
 	end
