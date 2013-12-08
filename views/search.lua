@@ -74,6 +74,10 @@ local function ListUpdate(self)
 	self:SetPoint("BOTTOMRIGHT", -10+(needsScrollBar and -18 or 0), 10)
 end
 
+local function ItemButtonClick(self, btn, up)
+	HandleModifiedItemClick(self.link)
+end
+
 function view.Init()
 	local tab = ns.GetTab()
 	tab:GetNormalTexture():SetTexture("Interface\\MINIMAP\\TRACKING\\None")
@@ -126,7 +130,7 @@ function view.Init()
 			  item:SetScale(list.buttonScale)
 			  item:SetScript("OnEnter", ns.ShowTooltip)
 			  item:SetScript("OnLeave", ns.HideTooltip)
-			  -- item:SetScript("OnClick", ItemButtonClick)
+			  item:SetScript("OnClick", ItemButtonClick)
 		local name = item:CreateFontString(nil, nil, "GameFontNormalLarge")
 			  name:SetPoint("LEFT", item, "RIGHT", 6, 0)
 			  name:SetJustifyH("LEFT")
