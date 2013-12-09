@@ -68,6 +68,12 @@ end
 -- ================================================
 -- Little Helpers
 -- ================================================
+function ns.GetLinkData(link)
+	if not link or type(link) ~= "string" then return end
+	local linkType, id, data = link:match("(%l+):([^:\124]*):?([^\124]*)")
+	return linkType, tonumber(id), data
+end
+
 function ns.Print(text, ...)
 	if ... and text:find("%%") then
 		text = format(text, ...)
@@ -85,7 +91,10 @@ end
 
 function ns.ShowTooltip(self, altSelf)
 	if not self.tiptext and not self.link then return end
-	GameTooltip:SetOwner(altSelf or self, "ANCHOR_RIGHT")
+	if altSelf and type(altSelf) == 'table' then
+		self = altSelf
+	end
+	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 	GameTooltip:ClearLines()
 
 	if self.link then
