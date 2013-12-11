@@ -65,7 +65,7 @@ local function GetOnQuestInfo(questID, onlyActive)
 	end
 
 	-- TODO: abstract to ns.data
-	for _, character in pairs(characters) do
+	for _, character in ipairs(characters) do
 		local numActiveQuests = DataStore:GetQuestLogSize(character)
 		for i = 1, numActiveQuests do
 			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(character, i)
@@ -108,7 +108,7 @@ local function GetFriendsInfo(unitName)
 	end
 
 	wipe(friendInfo)
-	for _, character in pairs(DataStore:GetCharacters()) do
+	for _, character in ipairs(characters) do
 		-- might just as well be <nil, nil, "">
 		local _, _, note = DataStore:GetContactInfo(character, unitName)
 		if note then
@@ -119,11 +119,11 @@ local function GetFriendsInfo(unitName)
 	return friendInfo
 end
 
-local function AddSocialInfo(tooltip)
-	local unitName = tooltip:GetUnit()
+local function AddSocialInfo(self)
+	local unitName = self:GetUnit()
 	if IsIgnored(unitName) then
 		local text = string.format(ERR_IGNORE_ALREADY_S, unitName)
-		tooltip:AddLine(text, 1, 0, 0, true)
+		self:AddLine(text, 1, 0, 0, true)
 	else
 		local friends = GetFriendsInfo(unitName)
 		local text
@@ -133,9 +133,45 @@ local function AddSocialInfo(tooltip)
 		end
 		if text then
 			text = DECLENSION_SET:format(BATTLENET_FRIEND, text)
-			tooltip:AddLine(text, 0, 1, 0, true)
+			self:AddLine(text, 0, 1, 0, true)
 		end
 	end
+	self:Show()
+end
+
+-- ================================================
+--  Currencies
+-- ================================================
+local currencyInfo = {}
+local function GetCurrencyInfo(currencyID)
+	wipe(currencyInfo)
+	for _, character in ipairs(characters) do
+		for i = 1, ns.data.GetNumCurrencies(character) do
+			local isHeader, _, count, _ = ns.data.GetCurrencyInfo(character, currencyID)
+			if not isHeader and count and count > 0 then
+				currencyInfo[character] = count
+			end
+		end
+	end
+	return currencyInfo
+end
+
+local function AddCurrencyInfo(tooltip, currencyID)
+	local showTotals = true -- TODO: config
+
+	local linesAdded, overallCount = nil, 0
+	local data = GetCurrencyInfo(currencyID)
+	for characterKey, count in pairs(data) do
+		local characterText = ns.data.GetCharacterText(characterKey)
+		overallCount = overallCount + count
+		tooltip:AddDoubleLine(characterText, count)
+		linesAdded = (linesAdded or 0) + 1
+	end
+	if showTotals and linesAdded and linesAdded > 1 then
+		tooltip:AddDoubleLine(' ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
+	end
+
+	return linesAdded
 end
 
 -- ================================================
@@ -147,7 +183,7 @@ local function GetGlyphKnownInfo(glyph, onlyUnknown)
 	wipe(glyphKnown)
 	wipe(glyphUnknown)
 	-- TODO: add level learnable info "Mychar (60)"
-	for _, character in pairs(DataStore:GetCharacters()) do
+	for _, character in ipairs(characters) do
 		local isKnown, canLearn = DataStore:IsGlyphKnown(character, glyph)
 		if isKnown and not onlyUnknown then
 			table.insert(glyphKnown, ns.data.GetCharacterText(character))
@@ -208,7 +244,7 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	end
 
 	local selfKnown = nil
-	for _, character in pairs(characters) do
+	for _, character in ipairs(characters) do
 		local profession = DataStore:GetProfession(character, professionName)
 		if profession then
 			local numCrafts = DataStore:GetNumCraftLines(profession)
@@ -393,7 +429,7 @@ local function AddItemCounts(tooltip, itemID)
 	local separator, showTotals, showGuilds, includeGuildCountInTotal = ', ', true, true, true -- TODO: config
 
 	local overallCount, numLines = 0, 0
-	for i, character in ipairs(characters) do
+	for _, character in ipairs(characters) do
 		local baseCount, text = overallCount, nil
 		for i, count in ipairs( ns.data.GetItemCounts(character, itemID) ) do
 			if count > 0 then
@@ -512,6 +548,8 @@ local function HandleTooltipSpell(self)
 			AddCraftInfo(self, profession, name)
 		end
 	end
+
+	self:Show()
 end
 
 -- ================================================
@@ -538,7 +576,10 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 
 				linesAdded = AddOnQuestInfo(self, id)
 				if linesAdded then AddEmptyLine(self, true) end
+			else
+				-- print('SetHyperlink', hyperlink)
 			end
+			self:Show()
 		end)
 
 		-- GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
@@ -550,13 +591,16 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 			local professionName = GetSpellInfo(tradeskills['Inscription'])
 			local craftedName = _G[self:GetName().."TextLeft1"]:GetText()
 			AddCraftInfo(self, professionName, craftedName)
+			self:Show()
 		end)
 		hooksecurefunc(GameTooltip, "SetCurrencyByID", function(self, currencyID)
-			-- print('SetCurrencyByID', currencyID)
+			AddCurrencyInfo(self, currencyID)
+			self:Show()
 		end)
-		hooksecurefunc(GameTooltip, "SetCurrencyToken", function(self, listIndex)
-			-- local _, _, count = DataStore:GetCurrencyInfoByName(character, currency)
-			-- print('SetCurrencyToken', listIndex)
+		hooksecurefunc(GameTooltip, "SetCurrencyToken", function(self, index)
+			local linKType, linkID, data = ns.GetLinkData( GetCurrencyListLink(index) )
+			AddCurrencyInfo(self, linkID)
+			self:Show()
 		end)
 
 		ns.UnregisterEvent('ADDON_LOADED', 'tooltip_init')
