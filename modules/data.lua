@@ -34,6 +34,15 @@ function data.GetName(characterKey)
 		return characterKey
 	end
 end
+function data.GetFullName(characterKey)
+	if IsAddOnLoaded('DataStore_Characters') then
+		-- return DataStore:GetCharacterName(characterKey)
+		local account, realm, character = strsplit('.', characterKey)
+		return character..'-'..string.gsub(realm, ' ', '')
+	else
+		return characterKey
+	end
+end
 function data.GetCharacterText(characterKey)
 	local text
 	if IsAddOnLoaded('DataStore_Characters') then
@@ -283,7 +292,7 @@ function data.GetCurrencyInfoByIndex(characterKey, index)
 	if characterKey == thisCharacter then
 		local name, isHeader, _, _, _, count, icon = GetCurrencyListInfo(index)
 		return isHeader, name, count, icon
-	else
+	elseif IsAddOnLoaded("DataStore_Currencies") then
 		return DataStore:GetCurrencyInfo(characterKey, index)
 	end
 end
@@ -294,7 +303,7 @@ function data.GetCurrencyInfo(characterKey, identifier)
 	for index = 1, data.GetNumCurrencies(characterKey) do
 		local isHeader, name, count, icon = data.GetCurrencyInfoByIndex(characterKey, index)
 		if name == compareName then
-			return isHeader, name, count, icon, identifier
+			return isHeader, name, count, icon
 		end
 	end
 end
