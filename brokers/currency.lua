@@ -12,6 +12,9 @@ local addonName, ns, _ = ...
   	- [feature] colorize for current/max count
   	- [feature] colorize for current/weekly count
   	- [feature] add indicator for related (weekly) quests
+
+	[drag handle] [icon] currency name 		[x:ldb] [x:tooltip]
+
 --]]
 
 local LDB     = LibStub('LibDataBroker-1.1')
@@ -19,6 +22,7 @@ local LibQTip = LibStub('LibQTip-1.0')
 
 local characters = {}
 local thisCharacter = ns.data.GetCurrentCharacter()
+local currencies = {}
 local showCurrency = {
 	395,	-- justice
 	396,	-- valor
@@ -28,6 +32,12 @@ local showCurrency = {
 	776,	-- loot coin
 	777,	-- timeless
 }
+local showCurrencyInLDB = {
+	[396] = true,
+	[776] = true,
+	[777] = true,
+}
+
 
 -- ========================================================
 --  Gathering data
@@ -93,7 +103,7 @@ end
 --  LDB Display & Sorting
 -- ========================================================
 -- forward declaration
-local OnEnter = function() end
+local OnLDBEnter = function() end
 
 local sortCurrencyIndex, sortCurrencyReverse
 local function SortByCharacter(a, b)
@@ -120,11 +130,11 @@ local function SortCurrencyList(self, sortType, btn, up)
 		end
 		table.sort(characters, SortByCurrency)
 	end
-	OnEnter()
+	OnLDBEnter()
 end
 
 local tooltip
-local function OnEnter(self)
+local function OnLDBEnter(self)
 	local numColumns = #showCurrency + 1
 	if LibStub('LibQTip-1.0'):IsAcquired('TwinkleCurrency') then
 		tooltip:Clear()
@@ -164,7 +174,7 @@ end
 local function Update(self)
 	local currencies = GetCurrencyCounts(nil, true)
 	for i = #currencies, 1, -1 do
-		if currencies[i] == '' then
+		if currencies[i] == '' or not showCurrencyInLDB[ showCurrency[i] ] then
 			table.remove(currencies, i)
 		else
 			local _, _, icon = GetCurrencyInfo( showCurrency[i] )
@@ -179,11 +189,11 @@ local function Update(self)
 
 	-- update tooltip, if shown
 	if LibQTip:IsAcquired(addonName..'Currency') then
-		OnEnter(self)
+		OnLDBEnter(self)
 	end
 end
 
-local function OnClick(self, btn, down)
+local function OnLDBClick(self, btn, down)
 	ToggleCharacter("TokenFrame")
 end
 
@@ -198,13 +208,24 @@ ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 			-- text 	= CURRENCY,
 			-- icon    = 'Interface\\Icons\\Spell_Holy_EmpowerChampion',
 
-			OnClick = OnClick,
-			OnEnter = OnEnter,
+			OnClick = OnLDBClick,
+			OnEnter = OnLDBEnter,
 			OnLeave = function() end,	-- needed for e.g. NinjaPanel
 		})
 
 		-- fill character list
 		characters = ns.data.GetCharacters(characters)
+
+		-- fill currencies list
+		for _, characterKey in ipairs(characters) do
+			for index = 1, ns.data.GetNumCurrencies(characterKey) or 0 do
+				local isHeader, name = ns.data.GetCurrencyInfoByIndex(characterKey, index)
+				if not isHeader and not ns.Find(currencies, name) then
+					-- TODO: would be more useful to have currencyID instead ...
+					table.insert(currencies, name)
+				end
+			end
+		end
 
 		ns.UnregisterEvent('ADDON_LOADED', 'currencies')
 	end
