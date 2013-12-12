@@ -90,7 +90,12 @@ end
 ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 	if arg1 == addonName then
 		hooksecurefunc('AutoComplete_Update', AddAltsToAutoComplete)
-		-- hooksecurefunc('AutoCompleteButton_OnClick', CleanAutoCompleteOutput)
+		hooksecurefunc('AutoCompleteEditBox_OnEnterPressed', function(self)
+			local text = self:GetText()
+			if text and text ~= '' then
+				self:SetText( GetCleanName(text) )
+			end
+		end)
 		for i = 1, AUTOCOMPLETE_MAX_BUTTONS do
 			_G['AutoCompleteButton'..i]:HookScript('OnClick', CleanAutoCompleteOutput)
 		end
