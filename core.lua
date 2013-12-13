@@ -68,12 +68,6 @@ end
 -- ================================================
 -- Little Helpers
 -- ================================================
-function ns.GetLinkData(link)
-	if not link or type(link) ~= "string" then return end
-	local linkType, id, data = link:match("(%l+):([^:\124]*):?([^\124]*)")
-	return linkType, tonumber(id), data
-end
-
 function ns.Print(text, ...)
 	if ... and text:find("%%") then
 		text = format(text, ...)
@@ -87,6 +81,15 @@ function ns.Debug(...)
   if true then
 	ns.Print("! "..join(", ", tostringall(...)))
   end
+end
+
+function ns.GetLinkID(link)
+	if not link or type(link) ~= "string" then return end
+	local linkType, id = link:match("\124H([^:]+):([^:]+)")
+	if not linkType then
+		linkType, id = link:match("([^:]+):([^:]+)")
+	end
+	return tonumber(id), linkType
 end
 
 function ns.ShowTooltip(self, altSelf)
@@ -107,14 +110,7 @@ function ns.ShowTooltip(self, altSelf)
 	GameTooltip:Show()
 end
 function ns.HideTooltip() GameTooltip:Hide() end
-function ns.GetLinkID(link)
-	if not link or type(link) ~= "string" then return end
-	local linkType, id = link:match("\124H([^:]+):([^:]+)")
-	if not linkType then
-		linkType, id = link:match("([^:]+):([^:]+)")
-	end
-	return tonumber(id), linkType
-end
+
 -- counts table entries. for numerically indexed tables, use #table
 function ns.Count(table)
 	if not table or type(table) ~= "table" then return 0 end
@@ -140,7 +136,6 @@ function ns.GlobalStringToPattern(str)
 	str = gsub(str, "%%%d?$?d", "(%%d+)")
 	return str
 end
-
 
 local function ViewShow(self)
 	if not self.panel then
