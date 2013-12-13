@@ -75,10 +75,22 @@ function data.GetRace(characterKey)
 		return ''
 	end
 end
+
+local function GetClassID(class)
+	for i = 1, GetNumClasses() do
+		local className, classTag, classID = GetClassInfo(i)
+		if classTag == class then
+			return classID
+		end
+	end
+end
 function data.GetClass(characterKey)
-	if IsAddOnLoaded("DataStore_Characters") then
+	if characterKey == thisCharacter then
+		return UnitClass("player")
+	elseif IsAddOnLoaded("DataStore_Characters") then
 		local locale, english = DataStore:GetCharacterClass(characterKey)
-		return locale, english
+		local classID = GetClassID(english)
+		return locale, english, classID
 	else
 		return ''
 	end
