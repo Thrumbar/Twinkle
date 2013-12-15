@@ -25,6 +25,7 @@ end
 
 local characters, thisCharacter = ns.data.GetCharacters(), ns.data.GetCurrentCharacter(), nil
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
+	if not parent or not parent.autoCompleteParams then return end
 	-- possible flags can be found here: http://wow.go-hero.net/framexml/16650/AutoComplete.lua
 	local include, exclude = parent.autoCompleteParams.include, parent.autoCompleteParams.exclude
 	local newResults = GetAutoCompleteResults(text, include, exclude, AUTOCOMPLETE_MAX_BUTTONS+1, cursorPosition)
@@ -82,12 +83,14 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 			local priority
 			local className, classTag, classID = GetClassInfo(index)
 
+			-- class coloring for alts
 			priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ALTS, classID))
 			_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
 				key  = alt .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
 				text = string.format(your_character, className),
 			}
 
+			-- class coloring for guild members
 			priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_GUILD, classID))
 			_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
 				key  = guild .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
