@@ -23,14 +23,23 @@ local function GetGuildMemberClass(character)
 	end
 end
 
+local function SortSuggestions(a, b)
+	if math.floor(a.priority) == math.floor(b.priority) then
+		return a.name < b.name
+	else
+		return a.priority > b.priority
+	end
+end
+
+local lastQuery, firstSuggestion
 local characters, thisCharacter = ns.data.GetCharacters(), ns.data.GetCurrentCharacter(), nil
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
-	if not parent or not parent.autoCompleteParams then return end
+	if not parent or not parent.autoCompleteParams or text == '' then return end
 	-- possible flags can be found here: http://wow.go-hero.net/framexml/16650/AutoComplete.lua
 	local include, exclude = parent.autoCompleteParams.include, parent.autoCompleteParams.exclude
 	local newResults = GetAutoCompleteResults(text, include, exclude, AUTOCOMPLETE_MAX_BUTTONS+1, cursorPosition)
 
-	if parent == SendMailNameEditBox and text ~= '' and cursorPosition <= strlen(text) then
+	if parent == SendMailNameEditBox and cursorPosition <= strlen(text) then
 		-- add suitable alts to autocomplete
 		for _, characterKey in pairs(characters) do
 			if characterKey ~= thisCharacter then
@@ -68,7 +77,21 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 		end
 	end
 
+	table.sort(newResults, SortSuggestions)
+
 	AutoComplete_UpdateResults(AutoCompleteBox, newResults)
+
+	-- prepare outputting first match
+	if newResults[1] and text ~= lastQuery and text:len() == cursorPosition then
+		local name = Ambiguate(newResults[1].name, parent.autoCompleteContext or "all")
+		local newText = string.gsub(text, AUTOCOMPLETE_SIMPLE_REGEX,
+			string.format(AUTOCOMPLETE_SIMPLE_FORMAT_REGEX, name,
+			string.match(text, AUTOCOMPLETE_SIMPLE_REGEX)),
+			1)
+
+		firstSuggestion = newText
+		lastQuery = text
+	end
 end
 
 -- UnitIsGroupLeader(unit, LE_PARTY_HOME) local leader = '|TInterface\\GroupFrame\\UI-Group-LeaderIcon:0|t'
@@ -98,6 +121,15 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 			}
 		end
 		hooksecurefunc('AutoComplete_Update', AddAltsToAutoComplete)
+
+		-- overwrite whatever completions blizzard has supplied before
+		hooksecurefunc("AutoCompleteEditBox_AddHighlightedText", function(editBox, text)
+			if firstSuggestion then
+				editBox:SetText(firstSuggestion)
+				editBox:HighlightText(strlen(text), strlen(firstSuggestion))
+				editBox:SetCursorPosition(strlen(text))
+			end
+		end)
 
 		ns.UnregisterEvent('ADDON_LOADED', 'autocomplete')
 	end
