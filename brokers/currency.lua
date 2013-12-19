@@ -229,6 +229,6 @@ ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 
 		ns.UnregisterEvent('ADDON_LOADED', 'currencies')
 	end
-end, 'currencies')
+end, 'currencies', true)
 
 ns.RegisterEvent('CURRENCY_DISPLAY_UPDATE', Update, 'currencies_update')
