@@ -80,8 +80,8 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	table.sort(newResults, SortSuggestions)
 
 	AutoComplete_UpdateResults(AutoCompleteBox, newResults)
-
-	-- prepare outputting first match
+	-- prepare output of first match
+	firstSuggestion = nil
 	if newResults[1] and text ~= lastQuery and text:len() == cursorPosition then
 		local name = Ambiguate(newResults[1].name, parent.autoCompleteContext or "all")
 		local newText = string.gsub(text, AUTOCOMPLETE_SIMPLE_REGEX,
@@ -124,6 +124,9 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 
 		-- overwrite whatever completions blizzard has supplied before
 		hooksecurefunc("AutoCompleteEditBox_AddHighlightedText", function(editBox, text)
+			if firstSuggestion and not firstSuggestion:find('^'..text) then
+				firstSuggestion = nil
+			end
 			if firstSuggestion then
 				editBox:SetText(firstSuggestion)
 				editBox:HighlightText(strlen(text), strlen(firstSuggestion))
