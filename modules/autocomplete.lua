@@ -31,13 +31,14 @@ local function SortSuggestions(a, b)
 	end
 end
 
-local lastQuery, firstSuggestion
+local lastQuery, firstSuggestion, blizzSuggestion
 local characters, thisCharacter = ns.data.GetCharacters(), ns.data.GetCurrentCharacter(), nil
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	if not parent or not parent.autoCompleteParams or text == '' then return end
 	-- possible flags can be found here: http://wow.go-hero.net/framexml/16650/AutoComplete.lua
 	local include, exclude = parent.autoCompleteParams.include, parent.autoCompleteParams.exclude
 	local newResults = GetAutoCompleteResults(text, include, exclude, AUTOCOMPLETE_MAX_BUTTONS+1, cursorPosition)
+	blizzSuggestion = newResults[1]
 
 	if parent == SendMailNameEditBox and cursorPosition <= strlen(text) then
 		-- add suitable alts to autocomplete
@@ -124,7 +125,8 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 
 		-- overwrite whatever completions blizzard has supplied before
 		hooksecurefunc("AutoCompleteEditBox_AddHighlightedText", function(editBox, text)
-			if firstSuggestion and not firstSuggestion:find('^'..text) then
+			local suggestion = blizzSuggestion and Ambiguate(blizzSuggestion.name, editBox.autoCompleteContext or "all")
+			if editBox:GetText() == text and firstSuggestion and not firstSuggestion:find('^'..text) then
 				firstSuggestion = nil
 			end
 			if firstSuggestion then
