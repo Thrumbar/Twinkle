@@ -33,7 +33,7 @@ end
 
 local firstSuggestion, blizzSuggestion
 local function AddHighlightedText(editBox, text)
-	local suggestion = blizzSuggestion and Ambiguate(blizzSuggestion.name, editBox.autoCompleteContext or "all")
+	-- local suggestion = blizzSuggestion and Ambiguate(blizzSuggestion.name, editBox.autoCompleteContext or "all")
 	if editBox:GetText() == text and firstSuggestion and not firstSuggestion:find('^'..text) then
 		firstSuggestion = nil
 	end
@@ -73,7 +73,8 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 						newResults[index] = {}
 					end
 					local priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ALTS, classID))
-					newResults[index].name     = Ambiguate(characterFullName, parent.autoCompleteContext or 'all')
+					-- Ambiguate(characterFullName, parent.autoCompleteContext or 'all')
+					newResults[index].name     = characterFullName
 					newResults[index].priority = priority
 				end
 			end
