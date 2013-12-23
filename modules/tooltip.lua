@@ -146,11 +146,9 @@ local currencyInfo = {}
 local function GetCurrencyInfo(currencyID)
 	wipe(currencyInfo)
 	for _, character in ipairs(characters) do
-		for i = 1, ns.data.GetNumCurrencies(character) do
-			local isHeader, _, count, _ = ns.data.GetCurrencyInfo(character, currencyID)
-			if not isHeader and count and count > 0 then
-				currencyInfo[character] = count
-			end
+		local isHeader, _, count, _ = ns.data.GetCurrencyInfo(character, currencyID)
+		if count and count > 0 then -- and not isHeader and
+			currencyInfo[character] = count
 		end
 	end
 	return currencyInfo
@@ -161,14 +159,21 @@ local function AddCurrencyInfo(tooltip, currencyID)
 
 	local linesAdded, overallCount = nil, 0
 	local data = GetCurrencyInfo(currencyID)
-	for characterKey, count in pairs(data) do
-		local characterText = ns.data.GetCharacterText(characterKey)
-		overallCount = overallCount + count
-		tooltip:AddDoubleLine(characterText, count)
-		linesAdded = (linesAdded or 0) + 1
+	for _, characterKey in pairs(characters) do
+		local count = data[characterKey]
+		if count then
+			local characterText = ns.data.GetCharacterText(characterKey)
+			if overallCount == 0 then
+				AddEmptyLine(tooltip, true)
+			end
+			tooltip:AddDoubleLine(characterText, AbbreviateLargeNumbers(count))
+			overallCount = overallCount + count
+			linesAdded = (linesAdded or 0) + 1
+		end
 	end
 	if showTotals and linesAdded and linesAdded > 1 then
-		tooltip:AddDoubleLine(' ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
+		tooltip:AddDoubleLine(' ', string.format('%s: %s', TOTAL, AbbreviateLargeNumbers(overallCount)),
+			nil, nil, nil, 1, 1, 1)
 	end
 
 	return linesAdded
@@ -325,9 +330,9 @@ end
 -- ================================================
 local itemSources = {}
 local function GetItemSources(item)
+	wipe(itemSources)
 	LoadAddOn("Blizzard_EncounterJournal")
 
-	wipe(itemSources)
 	local itemName, link, quality, iLevel = GetItemInfo(item)
 	itemName = type(item) == "string" and item or itemName
 	-- local exactMatch = type(item) == "number" -- TODO: causes issues with thunderforged etc
@@ -468,6 +473,9 @@ end
 
 -- TODO: single-character pets+mounts / mounts learned by items (e.g. cloud serpent)
 local function HandleTooltipItem(self)
+	-- avoid script running out of time
+	if InCombatLockdown() then return end
+
 	local name, link = self:GetItem()
 	if not link then return end
 	local _, _, quality, iLevel, reqLevel, itemClass, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
@@ -598,7 +606,8 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 			self:Show()
 		end)
 		hooksecurefunc(GameTooltip, "SetCurrencyToken", function(self, index)
-			local currencyID = ns.GetLinkID( GetCurrencyListLink(index) )
+			local currencyLink = GetCurrencyListLink(index)
+			local currencyID = ns.GetLinkID(currencyLink)
 			AddCurrencyInfo(self, currencyID)
 			self:Show()
 		end)
