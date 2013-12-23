@@ -38,6 +38,9 @@ local showCurrencyInLDB = {
 	[777] = true,
 }
 
+local function dummy()
+	-- do nothing
+end
 
 -- ========================================================
 --  Gathering data
@@ -63,18 +66,13 @@ local function GetCurrencyHeaders()
 	return unpack(currencyReturns)
 end
 
-local function GetCurrencyCounts(characterKey, asTable)
+local function GetCurrencyCounts(characterKey)
 	wipe(currencyReturns)
 	for _, currencyID in pairs(showCurrency) do
 		local isHeader, name, count, icon = ns.data.GetCurrencyInfo(characterKey or thisCharacter, currencyID)
 		table.insert(currencyReturns, count or 0)
 	end
-
-	if asTable then
-		return currencyReturns
-	else
-		return unpack(currencyReturns)
-	end
+	return currencyReturns
 end
 
 --[[
@@ -110,8 +108,8 @@ local function SortByCharacter(a, b)
 	return ns.data.GetName(a) < ns.data.GetName(b)
 end
 local function SortByCurrency(a, b)
-	local countA = select(sortCurrencyIndex, GetCurrencyCounts(a))
-	local countB = select(sortCurrencyIndex, GetCurrencyCounts(b))
+	local countA = GetCurrencyCounts(a)[sortCurrencyIndex]
+	local countB = GetCurrencyCounts(b)[sortCurrencyIndex]
 	if sortCurrencyReverse then
 		return countA > countB
 	else
@@ -134,7 +132,9 @@ local function SortCurrencyList(self, sortType, btn, up)
 end
 
 local tooltip
-local function OnLDBEnter(self)
+-- local function OnLDBEnter(self)
+-- override predeclared function
+OnLDBEnter = function(self)
 	local numColumns = #showCurrency + 1
 	if LibStub('LibQTip-1.0'):IsAcquired('TwinkleCurrency') then
 		tooltip:Clear()
@@ -165,14 +165,24 @@ local function OnLDBEnter(self)
 	tooltip:AddSeparator(2)
 
 	for _, characterKey in ipairs(characters) do
-		lineNum = tooltip:AddLine( ns.data.GetCharacterText(characterKey),  GetCurrencyCounts(characterKey) )
+		local data = GetCurrencyCounts(characterKey)
+		local hasData = nil
+		for i, count in ipairs(data) do
+			hasData = hasData or count > 0
+			data[i] = AbbreviateLargeNumbers(count)
+		end
+
+		if hasData then
+			lineNum = tooltip:AddLine( ns.data.GetCharacterText(characterKey),  unpack(data))
+			tooltip:SetLineScript(lineNum, 'OnEnter', dummy)
+		end
 	end
 
 	tooltip:Show()
 end
 
 local function Update(self)
-	local currencies = GetCurrencyCounts(nil, true)
+	local currencies = GetCurrencyCounts(nil)
 	for i = #currencies, 1, -1 do
 		if currencies[i] == '' or not showCurrencyInLDB[ showCurrency[i] ] then
 			table.remove(currencies, i)
