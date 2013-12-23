@@ -85,19 +85,16 @@ end
 
 function ns.GetLinkID(link)
 	if not link or type(link) ~= "string" then return end
-	local linkType, id = link:match("\124H([^:]+):([^:]+)")
+	local linkType, id = link:match("\124H([^:]+):([^:\124]+)")
 	if not linkType then
-		linkType, id = link:match("([^:]+):([^:]+)")
+		linkType, id = link:match("([^:\124]+):([^:\124]+)")
 	end
 	return tonumber(id), linkType
 end
 
-function ns.ShowTooltip(self, altSelf)
+function ns.ShowTooltip(self, anchor)
 	if not self.tiptext and not self.link then return end
-	if altSelf and type(altSelf) == 'table' then
-		self = altSelf
-	end
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	GameTooltip:SetOwner(anchor or self, "ANCHOR_RIGHT")
 	GameTooltip:ClearLines()
 
 	if self.link then
