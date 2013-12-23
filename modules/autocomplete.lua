@@ -31,7 +31,19 @@ local function SortSuggestions(a, b)
 	end
 end
 
-local lastQuery, firstSuggestion, blizzSuggestion
+local firstSuggestion, blizzSuggestion
+local function AddHighlightedText(editBox, text)
+	local suggestion = blizzSuggestion and Ambiguate(blizzSuggestion.name, editBox.autoCompleteContext or "all")
+	if editBox:GetText() == text and firstSuggestion and not firstSuggestion:find('^'..text) then
+		firstSuggestion = nil
+	end
+	if firstSuggestion then
+		editBox:SetText(firstSuggestion)
+		editBox:HighlightText(strlen(text), strlen(firstSuggestion))
+		editBox:SetCursorPosition(strlen(text))
+	end
+end
+
 local characters, thisCharacter = ns.data.GetCharacters(), ns.data.GetCurrentCharacter(), nil
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	if not parent or not parent.autoCompleteParams or text == '' then return end
@@ -61,7 +73,7 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 						newResults[index] = {}
 					end
 					local priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ALTS, classID))
-					newResults[index].name     = Ambiguate(characterFullName, 'all')
+					newResults[index].name     = Ambiguate(characterFullName, parent.autoCompleteContext or 'all')
 					newResults[index].priority = priority
 				end
 			end
@@ -83,15 +95,17 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	AutoComplete_UpdateResults(AutoCompleteBox, newResults)
 	-- prepare output of first match
 	firstSuggestion = nil
-	if newResults[1] and text ~= lastQuery and text:len() == cursorPosition then
+	if newResults[1] and (not blizzSuggestion or blizzSuggestion.name ~= newResults[1].name) then
 		local name = Ambiguate(newResults[1].name, parent.autoCompleteContext or "all")
 		local newText = string.gsub(text, AUTOCOMPLETE_SIMPLE_REGEX,
 			string.format(AUTOCOMPLETE_SIMPLE_FORMAT_REGEX, name,
 			string.match(text, AUTOCOMPLETE_SIMPLE_REGEX)),
 			1)
-
 		firstSuggestion = newText
-		lastQuery = text
+
+		if not blizzSuggestion then
+			AddHighlightedText(parent, text)
+		end
 	end
 end
 
@@ -124,17 +138,7 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 		hooksecurefunc('AutoComplete_Update', AddAltsToAutoComplete)
 
 		-- overwrite whatever completions blizzard has supplied before
-		hooksecurefunc("AutoCompleteEditBox_AddHighlightedText", function(editBox, text)
-			local suggestion = blizzSuggestion and Ambiguate(blizzSuggestion.name, editBox.autoCompleteContext or "all")
-			if editBox:GetText() == text and firstSuggestion and not firstSuggestion:find('^'..text) then
-				firstSuggestion = nil
-			end
-			if firstSuggestion then
-				editBox:SetText(firstSuggestion)
-				editBox:HighlightText(strlen(text), strlen(firstSuggestion))
-				editBox:SetCursorPosition(strlen(text))
-			end
-		end)
+		hooksecurefunc("AutoCompleteEditBox_AddHighlightedText", AddHighlightedText)
 
 		ns.UnregisterEvent('ADDON_LOADED', 'autocomplete')
 	end
