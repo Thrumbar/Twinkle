@@ -2,7 +2,7 @@ local addonName, ns, _ = ...
 local view = ns.CreateView("grids")
 
 local LibItemUpgrade = LibStub("LibItemUpgradeInfo-1.0")
-local LibReforging = LibStub("LibReforgingInfo-1.0")
+local LibReforging   = LibStub("LibReforgingInfo-1.0")
 
 function view.Init()
 	local tab = ns.GetTab()
@@ -60,7 +60,7 @@ function view.Update()
 			local reforged = ''
 			if reforgeID then
 				wipe(stats)
-				stats = GetItemStats(itemLink, stats)
+				stats = GetItemStats(itemLink, stats) or {}
 				local from = LibReforging:GetReforgedStatIDs(reforgeID)
 				local statValue = stats and math.floor((stats[ reforgingStats[from] ] or 0) * 0.4) or 0
 				local from, to = LibReforging:GetReforgedStatNames(reforgeID)

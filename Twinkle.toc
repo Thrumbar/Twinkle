@@ -30,12 +30,14 @@ modules\autocomplete.lua
 modules\calendar.lua
 
 # brokers
+brokers\general.lua
 brokers\currency.lua
 
 # views
 views\default.lua
 views\containers.lua
 views\search.lua
+views\tasks.lua
 views\grids.lua
 
 modules\ui.lua
