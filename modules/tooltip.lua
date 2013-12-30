@@ -66,12 +66,16 @@ local function GetOnQuestInfo(questID, onlyActive)
 
 	-- TODO: abstract to ns.data
 	for _, character in ipairs(characters) do
-		local numActiveQuests = DataStore:GetQuestLogSize(character)
-		for i = 1, numActiveQuests do
-			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(character, i)
-			local qID = ns.GetLinkID(questLink)
-			if not isHeader and qID == questID and completed ~= 1 then
-				table.insert(questInfo, ns.data.GetCharacterText(character))
+		if character ~= thisCharacter then
+			local numActiveQuests = DataStore:GetQuestLogSize(character)
+			for i = 1, numActiveQuests do
+				local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(character, i)
+				local qID = ns.GetLinkID(questLink)
+				if not isHeader and qID == questID and completed ~= 1 then
+					local progress = DataStore:GetQuestProgressPercentage(character, questID)
+					local text = string.format('%s (%d%%)', ns.data.GetCharacterText(character), progress*100)
+					table.insert(questInfo, text)
+				end
 			end
 		end
 	end
@@ -174,6 +178,69 @@ local function AddCurrencyInfo(tooltip, currencyID)
 	if showTotals and linesAdded and linesAdded > 1 then
 		tooltip:AddDoubleLine(' ', string.format('%s: %s', TOTAL, AbbreviateLargeNumbers(overallCount)),
 			nil, nil, nil, 1, 1, 1)
+	end
+
+	return linesAdded
+end
+
+-- ================================================
+--  Achievements
+-- ================================================
+local achievementInfo = {}
+local achievementDone = {}
+local function GetAchievementCompletionInfo(achievementID, onlyIncomplete)
+	wipe(achievementInfo)
+	wipe(achievementDone)
+	for _, characterKey in ipairs(characters) do
+		local started, completed = DataStore:GetAchievementInfo(characterKey, achievementID)
+		if completed then
+			if not onlyIncomplete then
+				-- data is pre-sorted
+				table.insert(achievementDone, ns.data.GetCharacterText(characterKey))
+			end
+		elseif started then
+			local isShared = nil
+			local achievementProgress = 0
+			local achievementGoal = 0
+
+			for index = 1, GetAchievementNumCriteria(achievementID) do
+				local _, _, _, _, requiredQuantity = GetAchievementCriteriaInfo(achievementID, index)
+				local critStarted, critCompleted, progress = DataStore:GetCriteriaInfo(characterKey, achievementID, index, isShared)
+				if not critStarted and not isShared then
+					critStarted, critCompleted, progress = DataStore:GetCriteriaInfo(characterKey, achievementID, index, true)
+					isShared = critStarted
+				end
+
+				achievementProgress = achievementProgress + (critCompleted and requiredQuantity or progress or 0)
+				achievementGoal     = achievementGoal + requiredQuantity
+			end
+			achievementInfo[characterKey] = achievementGoal == 0 and 0 or achievementProgress / achievementGoal
+		end
+	end
+	return achievementInfo, achievementDone
+end
+
+local function AddAchievementInfo(tooltip, achievementID)
+	local onlyIncomplete = false
+	tooltip:AddLine(' ')
+
+	local linesAdded, data = nil, nil
+	local incomplete, complete = GetAchievementCompletionInfo(achievementID, onlyIncomplete)
+	for _, characterKey in pairs(characters) do
+		local progress = incomplete[characterKey]
+		if progress then
+			local characterText = ns.data.GetCharacterText(characterKey)
+			data = (data and data .. ', ' or '') .. string.format('%s (%d%%)', characterText, progress*100)
+			linesAdded = (linesAdded or 0) + 1
+		end
+	end
+	if data then
+		tooltip:AddLine(string.format('%s: %s', _G.ACHIEVEMENTFRAME_FILTER_INCOMPLETE, data), nil, nil, nil, true)
+	end
+
+	if not onlyIncomplete and #complete > 0 then
+		tooltip:AddLine(string.format('%s: %s', _G.ACHIEVEMENTFRAME_FILTER_COMPLETED, table.concat(complete, ', ')), nil, nil, nil, true)
+		linesAdded = (linesAdded or 0) + 1
 	end
 
 	return linesAdded
@@ -317,6 +384,7 @@ local function AddCraftInfo(tooltip, professionName, craftedName, requiredSkill)
 		tooltip:AddLine(RED_FONT_COLOR_CODE..ITEM_SPELL_KNOWN..": "..FONT_COLOR_CODE_CLOSE..list, 1, 1, 1, true)
 		linesAdded = true
 	end
+
 	list = table.concat(unknown, ", ")
 	if list and list ~= "" then
 		tooltip:AddLine(GREEN_FONT_COLOR_CODE..UNKNOWN..": "..FONT_COLOR_CODE_CLOSE..list, 1, 1, 1, true)
@@ -511,11 +579,17 @@ local function HandleTooltipItem(self)
 		craftedName = name
 	end
 
-	if not self.twinkleDone and craftedName then
+	if itemClass == RECIPE and not craftedName then
+		-- recipe does not seem to create an item
+		craftedName = name:match('^[^:]+: (.+)$')
+		self.twinkleDone = true
+	elseif not self.twinkleDone then
 		-- show info of crafted item
-		name = craftedName
 		_, link = GetItemInfo(name)
-		itemID = link and ns.GetLinkID(link)
+		if link then
+			itemID = ns.GetLinkID(link) or itemID
+			name = craftedName
+		end
 	end
 
 	local linesAdded = nil
@@ -584,6 +658,9 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 
 				linesAdded = AddOnQuestInfo(self, id)
 				if linesAdded then AddEmptyLine(self, true) end
+			elseif linkType == 'achievement' then
+				-- TODO: FIXME: conflicts with TipTacItemRef
+				-- AddAchievementInfo(self, id)
 			else
 				-- print('SetHyperlink', hyperlink)
 			end
@@ -591,7 +668,6 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 		end)
 
 		-- GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
-		-- GameTooltip:HookScript("OnTooltipSetAchievement", function(self) end) -- list max progress char/char completion states
 		-- GameTooltip:HookScript("OnTooltipSetEquipmentSet", function(self) end) -- ??
 
 		hooksecurefunc(GameTooltip, "SetGlyphByID", function(self, glyphID)
@@ -615,3 +691,27 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 		ns.UnregisterEvent('ADDON_LOADED', 'tooltip_init')
 	end
 end, 'tooltip_init')
+
+
+--[[
+local function AddPetOwners(companionSpellID, companionType, tooltip)
+	local know = {}				-- list of alts who know this pet
+	local couldLearn = {}		-- list of alts who could learn it
+
+	for characterName, character in pairs(DataStore:GetCharacters()) do
+		if DataStore:IsPetKnown(character, companionType, companionSpellID) then
+			table.insert(know, characterName)
+		else
+			table.insert(couldLearn, characterName)
+		end
+	end
+
+	if #know > 0 then
+		tooltip:AddLine(TEAL .. L["Already known by "] ..": ".. WHITE.. table.concat(know, ", "), 1, 1, 1, 1);
+	end
+
+	if #couldLearn > 0 then
+		tooltip:AddLine(YELLOW .. L["Could be learned by "] ..": ".. WHITE.. table.concat(couldLearn, ", "), 1, 1, 1, 1);
+	end
+end
+--]]
