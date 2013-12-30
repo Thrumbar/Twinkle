@@ -42,7 +42,10 @@ local function ButtonUpdate(button, itemID, locations)
 	for charLocation, count in pairs(locations) do
 		totals = totals + count
 		local character, location = strsplit("|", charLocation)
-		locationsText = (locationsText and locationsText .. ', ' or '') .. ns.data.GetCharacterText(character)
+		local characterName = ns.data.GetCharacterText(character)
+		if not locationsText or not locationsText:find(characterName) then
+			locationsText = (locationsText and locationsText .. ', ' or '') .. characterName
+		end
 	end
 	button.info:SetText(locationsText)
 	SetItemButtonCount(button, totals)
