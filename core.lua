@@ -94,7 +94,11 @@ end
 
 function ns.ShowTooltip(self, anchor)
 	if not self.tiptext and not self.link then return end
-	GameTooltip:SetOwner(anchor or self, "ANCHOR_RIGHT")
+	if anchor and type(anchor) == 'table' then
+		GameTooltip:SetOwner(anchor, "ANCHOR_RIGHT")
+	else
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	end
 	GameTooltip:ClearLines()
 
 	if self.link then
