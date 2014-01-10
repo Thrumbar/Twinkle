@@ -23,15 +23,25 @@ core.lua
 
 # modules
 modules\data.lua
-modules\search.lua
-modules\tradeskill.lua
-modules\tooltip.lua
 modules\autocomplete.lua
 modules\calendar.lua
+modules\search.lua
+modules\tooltip.lua
+modules\tradeskill.lua
 
 # brokers
 brokers\general.lua
 brokers\currency.lua
+
+# tooltip
+tooltip\achievement.lua
+tooltip\currency.lua
+tooltip\glyph.lua
+tooltip\item.count.lua
+tooltip\item.source.lua
+tooltip\quest.lua
+tooltip\recipe.lua
+tooltip\social.lua
 
 # views
 views\default.lua

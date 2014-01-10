@@ -27,7 +27,7 @@ local function UpdateDatabase()
 	end--]]
 end
 
-local frame, eventHooks = CreateFrame("Frame", "MidgetEventHandler"), {}
+local frame, eventHooks = CreateFrame("Frame", addonName.."EventHandler"), {}
 local function eventHandler(frame, event, arg1, ...)
 	if event == 'ADDON_LOADED' and arg1 == addonName then
 		-- make sure we always init before any other module
@@ -74,7 +74,7 @@ function ns.Print(text, ...)
 	elseif ... then
 		text = join(", ", tostringall(text, ...))
 	end
-	DEFAULT_CHAT_FRAME:AddMessage("|cffE01B5DTwinkle|r "..text)
+	DEFAULT_CHAT_FRAME:AddMessage("|cffE01B5D"..addonName.."|r "..text)
 end
 
 function ns.Debug(...)
