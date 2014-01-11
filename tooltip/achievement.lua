@@ -1,6 +1,7 @@
 local addonName, ns, _ = ...
 
 local characters = ns.data.GetCharacters()
+local thisCharacter = ns.data.GetCurrentCharacter()
 
 -- ================================================
 --  Achievements
@@ -13,39 +14,21 @@ local function GetAchievementCompletionInfo(achievementID, onlyIncomplete)
 
 	local isShared
 	for _, characterKey in ipairs(characters) do
-		local started, completed = DataStore:GetAchievementInfo(characterKey, achievementID)
-		if not started then
-			-- might be account bound achievement
-			started = DataStore:GetAchievementInfo(characterKey, achievementID, true)
-			isShared = true
+		local progress, goal, isShared = DataStore:GetAchievementProgress(characterKey, achievementID)
+		if characterKey ~= thisCharacter or isShared then
+			if not progress or progress <= 0 then
+				-- ignore
+			elseif progress == goal then
+				if not onlyIncomplete then
+					-- data is pre-sorted
+					table.insert(achievementDone, ns.data.GetCharacterText(characterKey))
+				end
+			else
+				achievementInfo[characterKey] = goal == 0 and 0 or progress / goal
+			end
 		end
 
-		if completed then
-			if not onlyIncomplete then
-				-- data is pre-sorted
-				table.insert(achievementDone, ns.data.GetCharacterText(characterKey))
-			end
-		elseif started then
-			-- local isShared = nil
-			local achievementProgress = 0
-			local achievementGoal = 0
-
-			for index = 1, GetAchievementNumCriteria(achievementID) do
-				local _, _, _, _, requiredQuantity = GetAchievementCriteriaInfo(achievementID, index)
-				local critStarted, critCompleted, progress = DataStore:GetCriteriaInfo(characterKey, achievementID, index, isShared)
-				-- if not critStarted and not isShared then
-				-- 	critStarted, critCompleted, progress = DataStore:GetCriteriaInfo(characterKey, achievementID, index, true)
-				-- 	isShared = critStarted
-				-- end
-
-				achievementProgress = achievementProgress + (critCompleted and requiredQuantity or progress or 0)
-				achievementGoal     = achievementGoal + requiredQuantity
-			end
-
-			achievementInfo[characterKey] = achievementGoal == 0 and 0 or achievementProgress / achievementGoal
-		end
-
-		-- only check account achievements for one character
+		-- check account achievements for only one character
 		if isShared then break end
 	end
 	return achievementInfo, achievementDone, isShared

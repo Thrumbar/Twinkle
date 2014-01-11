@@ -15,16 +15,18 @@ local function GetOnQuestInfo(questID, onlyActive)
 	end
 
 	-- TODO: abstract to ns.data
-	for _, character in ipairs(characters) do
-		if character ~= thisCharacter then
-			local numActiveQuests = DataStore:GetQuestLogSize(character)
+	for _, characterKey in ipairs(characters) do
+		if characterKey ~= thisCharacter then
+			local numActiveQuests = DataStore:GetQuestLogSize(characterKey)
 			for i = 1, numActiveQuests do
-				local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(character, i)
+				local isHeader, questLink, _, _, _, completed = DataStore:GetQuestLogInfo(characterKey, i)
 				local qID = ns.GetLinkID(questLink)
+
 				if not isHeader and qID == questID and completed ~= 1 then
-					local progress = DataStore:GetQuestProgressPercentage(character, questID)
-					local text = string.format('%s (%d%%)', ns.data.GetCharacterText(character), progress*100)
+					local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
+					local text = string.format('%s (%d%%)', ns.data.GetCharacterText(characterKey), progress*100)
 					table.insert(questInfo, text)
+					break
 				end
 			end
 		end
