@@ -31,13 +31,16 @@ local function SortSuggestions(a, b)
 	end
 end
 
-local firstSuggestion, blizzSuggestion
+local firstSuggestion, blizzSuggestion, lastText
 local function AddHighlightedText(editBox, text)
 	-- local suggestion = blizzSuggestion and Ambiguate(blizzSuggestion.name, editBox.autoCompleteContext or "all")
-	if editBox:GetText() == text and firstSuggestion and not firstSuggestion:find('^'..text) then
+	if lastText and lastText == text then
+		firstSuggestion = nil
+	elseif editBox:GetText() == text and firstSuggestion and not firstSuggestion:find('^'..text) then
 		firstSuggestion = nil
 	end
 	if firstSuggestion then
+		lastText = text
 		editBox:SetText(firstSuggestion)
 		editBox:HighlightText(strlen(text), strlen(firstSuggestion))
 		editBox:SetCursorPosition(strlen(text))
