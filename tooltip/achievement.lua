@@ -14,7 +14,8 @@ local function GetAchievementCompletionInfo(achievementID, onlyIncomplete)
 
 	local isShared
 	for _, characterKey in ipairs(characters) do
-		local progress, goal, isShared = DataStore:GetAchievementProgress(characterKey, achievementID)
+		local progress, goal
+		progress, goal, isShared = DataStore:GetAchievementProgress(characterKey, achievementID)
 		if characterKey ~= thisCharacter or isShared then
 			if not progress or progress <= 0 then
 				-- ignore
