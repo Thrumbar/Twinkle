@@ -75,7 +75,7 @@ local function HandleTooltipItem(self)
 		-- recipe does not seem to create an item
 		craftedName = name:match('^[^:]+: (.+)$')
 		self.twinkleDone = true
-	elseif not self.twinkleDone then
+	elseif itemClass == RECIPE and not self.twinkleDone then
 		-- show info of crafted item
 		_, link = GetItemInfo(name)
 		if link then
