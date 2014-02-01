@@ -1,5 +1,5 @@
 local addonName, ns, _ = ...
-
+-- FIXME: Several glyphs have the save name but are for different classes (e.g. Stampede)
 local characters = ns.data.GetCharacters()
 
 -- ================================================

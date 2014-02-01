@@ -7,6 +7,7 @@ local addonName, ns, _ = ...
 -- ================================================
 -- Do stuffs!
 -- ================================================
+local LPT = LibStub("LibPeriodicTable-3.1", true)
 local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = GetAuctionItemClasses()
 local PROFESSION_MIN_SKILL = '^' .. ns.GlobalStringToPattern(_G["ITEM_MIN_SKILL"]) .. '$'
 
@@ -114,16 +115,48 @@ local function HandleTooltipItem(self)
 end
 
 local function HandleTooltipSpell(self)
-	local name, spellID = self:GetSpell()
+	local spellName, _, spellID = self:GetSpell()
 	local title = _G[self:GetName().."TextLeft1"]:GetText()
-	if title ~= name then
-		local profession = title:match("(.-): "..name)
-		if profession then
-			ns.AddCraftInfo(self, profession, name)
-		end
-	end
 
-	self:Show()
+	if spellID and title ~= spellName then
+		local craftedItem, profession
+		-- check LPT first, it's more accurate and has more info
+		if LPT then
+			craftedItem, profession = LPT:ItemInSet(-1*spellID, 'Tradeskill.RecipeLinks')
+			craftedItem = craftedItem and tonumber(craftedItem)
+			profession  = profession  and string.match(profession, 'Tradeskill%.RecipeLinks%.([^.]+)')
+			profession  = profession  and ns.GetProfessionName(profession)
+		end
+
+		-- try without LPT
+		if not profession then
+			profession = title:match("(.-): "..spellName)
+			if not profession then return end
+			local _, itemLink = GetItemInfo(spellName)
+			craftedItem = itemLink and ( ns.GetLinkID(itemLink) )
+		end
+
+		if profession == ns.GetProfessionName('Inscription') then
+			-- spell might create a glyph. tell us who knows it
+			AddEmptyLine(self, true)
+			local isGlyph = ns.AddGlyphInfo(self, spellName)
+		end
+
+		if craftedItem then
+			AddEmptyLine(self, true)
+			local itemCountsOnSHIFT = nil -- TODO: config
+			if not itemCountsOnSHIFT or IsShiftKeyDown() then
+				ns.AddItemCounts(self, craftedItem)
+			else
+				self:AddLine(BATTLENET_FONT_COLOR_CODE..'<Hold down SHIFT for item counts>')
+			end
+			AddEmptyLine(self, true)
+		end
+
+		-- displayed spell is a craft we know
+		ns.AddCraftInfo(self, profession, spellName)
+		self:Show()
+	end
 end
 
 -- ================================================
@@ -159,7 +192,7 @@ ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 			self:Show()
 		end)
 
-		-- GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
+		GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
 		-- GameTooltip:HookScript("OnTooltipSetEquipmentSet", function(self) end) -- ??
 
 		hooksecurefunc(GameTooltip, "SetGlyphByID", function(self, glyphID)

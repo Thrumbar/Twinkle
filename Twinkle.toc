@@ -19,7 +19,7 @@ libs\LibQTip-1.0\LibQTip-1.0.lua
 #@end-no-lib-strip@
 
 core.lua
-# config.lua
+options.lua
 
 # modules
 modules\data.lua
