@@ -32,6 +32,8 @@ modules\tradeskill.lua
 # brokers
 brokers\general.lua
 brokers\currency.lua
+brokers\raid.lua
+brokers\weekly.lua
 
 # tooltip
 tooltip\achievement.lua

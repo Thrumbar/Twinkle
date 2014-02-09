@@ -312,12 +312,17 @@ end
 -- identifier may be currencyID or currencyName
 function data.GetCurrencyInfo(characterKey, identifier)
 	local compareName = type(identifier) == 'number' and GetCurrencyInfo(identifier) or identifier
+	local weekly = DataStore:GetCurrencyWeeklyAmount(characterKey, identifier)
+
 	for index = 1, data.GetNumCurrencies(characterKey) do
 		local isHeader, name, count, icon = data.GetCurrencyInfoByIndex(characterKey, index)
 		if name == compareName then
-			return isHeader, name, count, icon
+			return isHeader, name, count, icon, weekly
 		end
 	end
+
+	local name, _, texturePath = GetCurrencyInfo(identifier)
+	return nil, name, nil, texturePath, nil
 end
 
 -- ========================================

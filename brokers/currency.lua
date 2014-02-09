@@ -1,20 +1,16 @@
 local addonName, ns, _ = ...
+local moduleName = 'Currency'
 
--- GLOBALS: _G, NORMAL_FONT_COLOR, LibStub
--- GLOBALS: GetCurrencyInfo, ToggleCharacter
--- GLOBALS: wipe, unpack, select, pairs, ipairs, strsplit
+-- GLOBALS: _G, NORMAL_FONT_COLOR, LibStub, DataStore
+-- GLOBALS: GetCurrencyInfo, ToggleCharacter, AbbreviateLargeNumbers, RGBToColorCode
+-- GLOBALS: wipe, unpack, select, pairs, ipairs, strsplit, table, math, string
 
 --[[
   TODO list:
   	- [config] currency order
   	- [config] currencies to display in LDB
   	- [config] currencies to display in tooltip
-  	- [feature] colorize for current/max count
-  	- [feature] colorize for current/weekly count
-  	- [feature] add indicator for related (weekly) quests
-
 	[drag handle] [icon] currency name 		[x:ldb] [x:tooltip]
-
 --]]
 
 local LDB     = LibStub('LibDataBroker-1.1')
@@ -33,69 +29,105 @@ local showCurrency = {
 	777,	-- timeless
 }
 local showCurrencyInLDB = {
-	[396] = true,
-	[776] = true,
-	[777] = true,
+	396, -- valor
+	776, -- warforged
+	777, -- timless
 }
-
-local function dummy()
-	-- do nothing
-end
+local associatedQuests = {
+	[738] = { 32719, 32718 }
+}
 
 -- ========================================================
 --  Gathering data
 -- ========================================================
-local function ShowCurrency(name)
-	local currencyName
-	for _, currencyID in ipairs(showCurrency) do
-		currencyName = GetCurrencyInfo(currencyID)
-		if name == currencyName then
-			return currencyID
-		end
+local function GetGeneralCurrencyInfo(currencyID)
+	local name, _, texture, _, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID)
+	if currencyID == 395 or currencyID == 396 or currencyID == 392 or currencyID == 390 then
+		weeklyMax = weeklyMax and math.floor(weeklyMax / 100)
+		totalMax  = totalMax  and math.floor(totalMax / 100)
 	end
+
+	return name, texture, totalMax, weeklyMax, associatedQuests[currencyID]
 end
 
 local currencyReturns = {}
 local function GetCurrencyHeaders()
 	wipe(currencyReturns)
-	local name, texture
 	for i, currencyID in ipairs(showCurrency) do
-		name, _, texture = GetCurrencyInfo(currencyID)
+		local name, texture, _, weeklyMax = GetGeneralCurrencyInfo(currencyID)
 		table.insert(currencyReturns, texture and '|T'..texture..':0|t' or name)
+		table.insert(currencyReturns, weeklyMax > 0 and '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t' or '')
 	end
 	return unpack(currencyReturns)
 end
 
-local function GetCurrencyCounts(characterKey)
-	wipe(currencyReturns)
-	for _, currencyID in pairs(showCurrency) do
-		local isHeader, name, count, icon = ns.data.GetCurrencyInfo(characterKey or thisCharacter, currencyID)
-		table.insert(currencyReturns, count or 0)
-	end
-	return currencyReturns
+-- ========================================================
+--  Display data
+-- ========================================================
+local function GetPercentageColourGradient(percent)
+	percent = percent > 1 and percent or percent * 100
+    local _, x = math.modf(percent * 0.02)
+    return (percent <= 50) and 1 or (percent >= 100) and 0 or (1 - x),
+           (percent >= 50) and 1 or (percent <= 0) and 0 or x,
+           0
 end
 
---[[
-local function GetCharacterCurrencyInfo(character, currency)
-	local name, currentAmount, _, weeklyAmount, weeklyMax, totalMax = GetCurrencyInfo(currency)
-	if character ~= thisCharacter then
-		currentAmount = 0
-		weeklyAmount = DataStore:GetCurrencyWeeklyAmount(character, currency)
-		if IsAddOnLoaded('DataStore_Currencies') then
-			_, _, currentAmount = DataStore:GetCurrencyInfoByName(character, name)
+local function PrettyPrint(characterKey, currencyID, total, weekly)
+	local name, texturePath, totalMax, weeklyMax, quests = GetGeneralCurrencyInfo(currencyID)
+
+	total = total or 0
+	local totalText = AbbreviateLargeNumbers(total)
+	if totalMax > 0 then
+		totalText = RGBToColorCode( GetPercentageColourGradient(1 - (total / totalMax)) ) .. totalText .. '|r'
+	end
+
+	weekly = weekly or 0
+	local weeklyText = AbbreviateLargeNumbers(weekly)
+	if weeklyMax == 0 then
+		weeklyText = ''
+	else
+		weeklyText = RGBToColorCode( GetPercentageColourGradient(1 - (weekly / weeklyMax)) ) .. weeklyText .. '|r'
+	end
+
+	if quests then
+		local isDone = false
+		for _, questID in pairs(quests) do
+			if DataStore:IsWeeklyQuestCompletedBy(characterKey, questID) then
+				isDone = true
+				break
+			end
+		end
+		if isDone then
+			if weeklyMax > 0 or totalMax > 0 then
+				totalText = (totalText ~= '' and totalText .. ' ' or '') .. '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t'
+			else
+				totalText = _G.GRAY_FONT_COLOR_CODE .. totalText .. '|r'
+			end
 		end
 	end
-	currentAmount = currentAmount or 0
-	weeklyAmount  = weeklyAmount or 0
 
-	if totalMax%100 == 99 then -- valor and justice caps are weird
-		totalMax  = math.floor(totalMax/100)
-		weeklyMax = math.floor(weeklyMax/100)
-	end
-
-	return currentAmount, totalMax, weeklyAmount, weeklyMax
+	return totalText, weeklyText
 end
---]]
+
+local function GetCurrencyCounts(characterKey, prettyPrint)
+	wipe(currencyReturns)
+	local hasData
+	for index, currencyID in ipairs(showCurrency) do
+		local _, name, total, _, weekly = ns.data.GetCurrencyInfo(characterKey, currencyID)
+		if (total and total > 0) or (weekly and weekly > 0) then
+			hasData = true
+		end
+		if prettyPrint then
+			local prettyTotal, prettyWeekly = PrettyPrint(characterKey, currencyID, total, weekly)
+			table.insert(currencyReturns, prettyTotal)
+			table.insert(currencyReturns, prettyWeekly)
+		else
+			table.insert(currencyReturns, total or 0)
+			table.insert(currencyReturns, weekly or 0)
+		end
+	end
+	return hasData and currencyReturns or nil
+end
 
 -- ========================================================
 --  LDB Display & Sorting
@@ -105,11 +137,17 @@ local OnLDBEnter = function() end
 
 local sortCurrencyIndex, sortCurrencyReverse
 local function SortByCharacter(a, b)
-	return ns.data.GetName(a) < ns.data.GetName(b)
+	if sortCurrencyReverse then
+		return ns.data.GetName(a) > ns.data.GetName(b)
+	else
+		return ns.data.GetName(a) < ns.data.GetName(b)
+	end
 end
 local function SortByCurrency(a, b)
-	local countA = GetCurrencyCounts(a)[sortCurrencyIndex]
-	local countB = GetCurrencyCounts(b)[sortCurrencyIndex]
+	local countA = GetCurrencyCounts(a)
+	      countA = countA and countA[sortCurrencyIndex] or 0
+	local countB = GetCurrencyCounts(b)
+	      countB = countB and countB[sortCurrencyIndex] or 0
 	if sortCurrencyReverse then
 		return countA > countB
 	else
@@ -132,14 +170,13 @@ local function SortCurrencyList(self, sortType, btn, up)
 end
 
 local tooltip
--- local function OnLDBEnter(self)
--- override predeclared function
+local function NOOP() end -- does nothing
 OnLDBEnter = function(self)
-	local numColumns = #showCurrency + 1
-	if LibStub('LibQTip-1.0'):IsAcquired('TwinkleCurrency') then
+	local numColumns = (#showCurrency * 2) + 1
+	if LibStub('LibQTip-1.0'):IsAcquired(addonName..moduleName) then
 		tooltip:Clear()
 	else
-		tooltip = LibQTip:Acquire(addonName..'Currency', numColumns, 'LEFT', strsplit(',', string.rep('RIGHT,', numColumns-1)))
+		tooltip = LibQTip:Acquire(addonName..moduleName, numColumns, 'LEFT', strsplit(',', string.rep('RIGHT,', numColumns-1)))
 		tooltip:SmartAnchorTo(self)
 		tooltip:SetAutoHideDelay(0.25, self)
 		tooltip:GetFont():SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
@@ -147,17 +184,17 @@ OnLDBEnter = function(self)
 
 	local lineNum
 	lineNum = tooltip:AddHeader()
-			  tooltip:SetCell(lineNum, 1, addonName .. 'Currency', 'CENTER', numColumns)
-	tooltip:AddSeparator(2)
+			  tooltip:SetCell(lineNum, 1, addonName .. ': ' .. _G.CURRENCY, 'LEFT', numColumns)
+	-- tooltip:AddSeparator(2)
 
 	lineNum = tooltip:AddLine(_G.CHARACTER, GetCurrencyHeaders())
 	for column = 1, numColumns do
 		-- make list sortable
 		tooltip:SetCellScript(lineNum, column, 'OnMouseUp', SortCurrencyList, column-1)
-		if column > 1 then
+		if column%2 == 0 then
 			-- show tooltip for currency headers
 			local cell = tooltip.lines[lineNum].cells[column]
-			      cell.link = 'currency:'..showCurrency[column-1]
+			      cell.link = 'currency:'..showCurrency[column/2]
 			tooltip:SetCellScript(lineNum, column, 'OnEnter', ns.ShowTooltip, tooltip)
 			tooltip:SetCellScript(lineNum, column, 'OnLeave', ns.HideTooltip, tooltip)
 		end
@@ -165,16 +202,10 @@ OnLDBEnter = function(self)
 	tooltip:AddSeparator(2)
 
 	for _, characterKey in ipairs(characters) do
-		local data = GetCurrencyCounts(characterKey)
-		local hasData = nil
-		for i, count in ipairs(data) do
-			hasData = hasData or count > 0
-			data[i] = AbbreviateLargeNumbers(count)
-		end
-
-		if hasData then
+		local data = GetCurrencyCounts(characterKey, true)
+		if data then
 			lineNum = tooltip:AddLine( ns.data.GetCharacterText(characterKey),  unpack(data))
-			tooltip:SetLineScript(lineNum, 'OnEnter', dummy)
+			tooltip:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
 		end
 	end
 
@@ -182,23 +213,36 @@ OnLDBEnter = function(self)
 end
 
 local function Update(self)
-	local currencies = GetCurrencyCounts(nil)
-	for i = #currencies, 1, -1 do
-		if currencies[i] == '' or not showCurrencyInLDB[ showCurrency[i] ] then
-			table.remove(currencies, i)
-		else
-			local _, _, icon = GetCurrencyInfo( showCurrency[i] )
-			currencies[i] = string.format('%1$s |T%2$s:0|t', currencies[i], icon)
+	local currencies = GetCurrencyCounts(thisCharacter, true)
+	local currenciesString
+	if currencies then
+		for _, currencyID in ipairs(showCurrencyInLDB) do
+			local currencyIndex
+			-- get corresponding index in data
+			for index, currency in ipairs(showCurrency) do
+				if currency == currencyID then
+					currencyIndex = index
+					break
+				end
+			end
+
+			-- append to displayed text
+			local index = currencyIndex * 2 - 1
+			local _, _, texturePath = GetCurrencyInfo(currencyID)
+			currenciesString = (currenciesString and currenciesString .. ' ' or '')
+				.. string.format('%2$s%3$s |T%1$s:0|t', texturePath,
+					currencies[index],
+					currencies[index+1] ~= '' and ' ('..currencies[index+1]..')' or '')
 		end
 	end
 
-	local ldb = LDB:GetDataObjectByName(addonName..'Currency')
+	local ldb = LDB:GetDataObjectByName(addonName..moduleName)
 	if ldb then
-		ldb.text = table.concat(currencies, ' ')
+		ldb.text = currenciesString
 	end
 
 	-- update tooltip, if shown
-	if LibQTip:IsAcquired(addonName..'Currency') then
+	if LibQTip:IsAcquired(addonName..moduleName) then
 		OnLDBEnter(self)
 	end
 end
@@ -212,7 +256,7 @@ end
 -- ========================================================
 ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 	if arg1 == addonName then
-		local plugin = LDB:NewDataObject(addonName..'Currency', {
+		LDB:NewDataObject(addonName..moduleName, {
 			type	= 'data source',
 			label	= _G.CURRENCY,
 			-- text 	= CURRENCY,
@@ -225,20 +269,10 @@ ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 
 		-- fill character list
 		characters = ns.data.GetCharacters(characters)
-
-		-- fill currencies list
-		for _, characterKey in ipairs(characters) do
-			for index = 1, ns.data.GetNumCurrencies(characterKey) or 0 do
-				local isHeader, name = ns.data.GetCurrencyInfoByIndex(characterKey, index)
-				if not isHeader and not ns.Find(currencies, name) then
-					-- TODO: would be more useful to have currencyID instead ...
-					table.insert(currencies, name)
-				end
-			end
-		end
+		Update()
 
 		ns.UnregisterEvent('ADDON_LOADED', 'currencies')
 	end
-end, 'currencies', true)
+end, 'currencies')
 
 ns.RegisterEvent('CURRENCY_DISPLAY_UPDATE', Update, 'currencies_update')
