@@ -19,8 +19,9 @@ local function AddEmptyLine(tooltip, slim, force)
 		tooltip:AddLine(' ')
 		numLines = numLines + 1
 	end
-	if slim then
-		_G[tooltip:GetName()..'TextLeft'..numLines]:SetText(nil)
+	local left = _G[tooltip:GetName()..'TextLeft'..numLines]
+	if slim and left then
+		left:SetText(nil)
 	end
 end
 ns.AddEmptyLine = AddEmptyLine
@@ -159,40 +160,48 @@ local function HandleTooltipSpell(self)
 	end
 end
 
+local function HandleTooltipHyperlink(self, hyperlink)
+	local id, linkType = ns.GetLinkID(hyperlink)
+	-- print('SetHyperlink', hyperlink, linkType, id)
+	if linkType == "quest" then
+		-- would use OnTooltipSetQuest but doesn't supply id
+		local linesAdded = nil
+		AddEmptyLine(self, true)
+
+		linesAdded = ns.AddOnQuestInfo(self, id)
+		if linesAdded then AddEmptyLine(self, true) end
+	elseif linkType == 'achievement' then
+		-- TODO: FIXME: conflicts with TipTacItemRef
+		ns.AddAchievementInfo(self, id)
+	else
+		-- print('SetHyperlink', hyperlink)
+	end
+	self:Show()
+end
+
 -- ================================================
 --  Events
 -- ================================================
 ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
 	if arg1 == addonName then
-		GameTooltip:HookScript("OnTooltipCleared",    ClearTooltipItem)
-		ItemRefTooltip:HookScript("OnTooltipCleared", ClearTooltipItem)
+		GameTooltip:HookScript("OnTooltipCleared",       ClearTooltipItem)
+		ItemRefTooltip:HookScript("OnTooltipCleared",    ClearTooltipItem)
 
-		GameTooltip:HookScript("OnTooltipSetItem",    HandleTooltipItem)
-		ItemRefTooltip:HookScript("OnTooltipSetItem", HandleTooltipItem)
+		GameTooltip:HookScript("OnTooltipSetItem",       HandleTooltipItem)
+		ItemRefTooltip:HookScript("OnTooltipSetItem",    HandleTooltipItem)
+		ShoppingTooltip1:HookScript("OnTooltipSetItem",  HandleTooltipItem)
+		ShoppingTooltip2:HookScript("OnTooltipSetItem",  HandleTooltipItem)
+		ShoppingTooltip3:HookScript("OnTooltipSetItem",  HandleTooltipItem)
 
-		GameTooltip:HookScript("OnTooltipSetUnit",    ns.AddSocialInfo)
-		ItemRefTooltip:HookScript("OnTooltipSetUnit", ns.AddSocialInfo)
+		GameTooltip:HookScript("OnTooltipSetUnit",       ns.AddSocialInfo)
+		ItemRefTooltip:HookScript("OnTooltipSetUnit",    ns.AddSocialInfo)
 
-		hooksecurefunc(GameTooltip, "SetHyperlink", function(self, hyperlink)
-			local id, linkType = ns.GetLinkID(hyperlink)
-			-- print('SetHyperlink', hyperlink, linkType, id)
-			if linkType == "quest" then
-				-- would use OnTooltipSetQuest but doesn't supply id
-				local linesAdded = nil
-				AddEmptyLine(self, true)
+		hooksecurefunc(GameTooltip, "SetHyperlink",      HandleTooltipHyperlink)
+		hooksecurefunc(ShoppingTooltip1, "SetHyperlink", HandleTooltipHyperlink)
+		hooksecurefunc(ShoppingTooltip2, "SetHyperlink", HandleTooltipHyperlink)
+		hooksecurefunc(ShoppingTooltip3, "SetHyperlink", HandleTooltipHyperlink)
 
-				linesAdded = ns.AddOnQuestInfo(self, id)
-				if linesAdded then AddEmptyLine(self, true) end
-			elseif linkType == 'achievement' then
-				-- TODO: FIXME: conflicts with TipTacItemRef
-				ns.AddAchievementInfo(self, id)
-			else
-				-- print('SetHyperlink', hyperlink)
-			end
-			self:Show()
-		end)
-
-		GameTooltip:HookScript("OnTooltipSetSpell", HandleTooltipSpell)
+		GameTooltip:HookScript("OnTooltipSetSpell",      HandleTooltipSpell)
 		-- GameTooltip:HookScript("OnTooltipSetEquipmentSet", function(self) end) -- ??
 
 		hooksecurefunc(GameTooltip, "SetGlyphByID", function(self, glyphID)
@@ -219,6 +228,9 @@ end, 'tooltip_init')
 
 
 --[[
+-- speciesId, petGUID = C_PetJournal.FindPetIDByName("petName")
+-- numCollected, limit = C_PetJournal.GetNumCollectedInfo(speciesId)
+
 local function AddPetOwners(companionSpellID, companionType, tooltip)
 	local know = {}				-- list of alts who know this pet
 	local couldLearn = {}		-- list of alts who could learn it
