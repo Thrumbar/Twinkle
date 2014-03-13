@@ -34,7 +34,7 @@ local showCurrencyInLDB = {
 	777, -- timless
 }
 local associatedQuests = {
-	[738] = { 32719, 32718 }
+	[738] = { 33133, 33134 }
 }
 
 -- ========================================================
@@ -276,3 +276,7 @@ ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 end, 'currencies')
 
 ns.RegisterEvent('CURRENCY_DISPLAY_UPDATE', Update, 'currencies_update')
+ns.RegisterEvent('PLAYER_MONEY', function()
+	Update()
+	ns.UnregisterEvent('PLAYER_MONEY', 'currencies_init')
+end, 'currencies_init')
