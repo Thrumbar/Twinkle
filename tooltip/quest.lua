@@ -24,8 +24,13 @@ local function GetOnQuestInfo(questID, onlyActive)
 
 				if not isHeader and qID == questID and completed ~= 1 then
 					local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
-					local text = string.format('%s (%d%%)', ns.data.GetCharacterText(characterKey), progress*100)
-					table.insert(questInfo, text)
+					local characterName = ns.data.GetCharacterText(characterKey)
+					if progress == 0 then
+						table.insert(questInfo, characterName)
+					else
+						local text = string.format('%s (%d%%)', characterName, progress*100)
+						table.insert(questInfo, text)
+					end
 					break
 				end
 			end
