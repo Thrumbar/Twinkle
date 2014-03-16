@@ -159,6 +159,23 @@ function ns.GetSelectedCharacter()
 	local frame = _G[addonName.."UI"]
 	return frame and frame.sidebar.scrollFrame.selection or ns.data.GetCurrentCharacter()
 end
+
+function ns.SetCharacterInfo(character, info)
+	local frame = _G[addonName.."UI"]
+	if not frame then return end
+
+	local scrollFrame = frame.sidebar.scrollFrame
+	local offset = FauxScrollFrame_GetOffset(scrollFrame)
+	for i = 1, #scrollFrame.buttons do
+		local index = i + offset
+		local button = scrollFrame.buttons[i]
+
+		if characters[index] and characters[index] == character then
+			button.info:SetText(info or '')
+		end
+	end
+end
+
 function ns.GetCurrentView()
 	local frame = _G[addonName.."UI"]
 	local panel = frame.content and frame.content.displayedPanel

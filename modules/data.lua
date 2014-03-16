@@ -311,8 +311,8 @@ end
 
 -- identifier may be currencyID or currencyName
 function data.GetCurrencyInfo(characterKey, identifier)
-	local compareName = type(identifier) == 'number' and GetCurrencyInfo(identifier) or identifier
 	local weekly = DataStore:GetCurrencyWeeklyAmount(characterKey, identifier)
+	local compareName = type(identifier) == 'number' and GetCurrencyInfo(identifier) or identifier
 
 	for index = 1, data.GetNumCurrencies(characterKey) do
 		local isHeader, name, count, icon = data.GetCurrencyInfoByIndex(characterKey, index)

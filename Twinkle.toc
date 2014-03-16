@@ -2,7 +2,7 @@
 ## Author: ckaotik
 ## Title: Twinkle
 ## Version: @project-version@
-## OptionalDeps: TipTac
+## OptionalDeps: TipTac, DataMore, DataStore
 # Dependencies:
 # SavedVariables: Twinkle_GlobalDB
 # SavedVariablesPerCharacter: Twinkle_LocalDB
@@ -18,7 +18,8 @@ libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\LibQTip-1.0\LibQTip-1.0.lua
 #@end-no-lib-strip@
 
-core.lua
+Twinkle.lua
+# core.lua
 options.lua
 
 # modules
@@ -26,6 +27,7 @@ modules\data.lua
 modules\autocomplete.lua
 modules\calendar.lua
 modules\search.lua
+modules\summary.lua
 modules\tooltip.lua
 modules\tradeskill.lua
 
@@ -48,8 +50,8 @@ tooltip\social.lua
 # views
 views\default.lua
 views\containers.lua
-views\search.lua
+#views\search.lua
 views\tasks.lua
-views\grids.lua
+#views\grids.lua
 
-modules\ui.lua
+#modules\ui.lua

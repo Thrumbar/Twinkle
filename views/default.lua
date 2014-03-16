@@ -1,5 +1,6 @@
 local addonName, ns, _ = ...
 local view = ns.CreateView("default")
+view.icon = "Interface\\Icons\\INV_Misc_GroupLooking"
 
 local AceTimer = LibStub("AceTimer-3.0")
 local MAX_PLAYER_LEVEL = 90
@@ -28,11 +29,12 @@ local function UpdateFlowContainer(container)
 end
 
 function view.Init()
-	local tab = ns.GetTab()
-	tab:GetNormalTexture():SetTexture("Interface\\Icons\\INV_Misc_GroupLooking")
-	tab.view = view
+	-- local tab = ns.GetTab()
+	-- tab:GetNormalTexture():SetTexture("Interface\\Icons\\INV_Misc_GroupLooking")
+	-- tab.view = view
 
-	local panel = CreateFrame("Frame", addonName.."PanelDefault")
+	-- local panel = CreateFrame("Frame", addonName.."PanelDefault")
+	local panel = view.panel
 
 	local portrait = CreateFrame("Frame", "$parentPortrait", panel)
 		  portrait:SetPoint("TOPLEFT", 5, -5)

@@ -1,5 +1,6 @@
 local addonName, ns, _ = ...
 local view = ns.CreateView("search")
+view.icon = "Interface\\MINIMAP\\TRACKING\\None"
 
 local AceTimer = LibStub("AceTimer-3.0")
 
@@ -52,7 +53,8 @@ local function ButtonUpdate(button, itemID, locations)
 end
 
 local function ListUpdate(self)
-	local searchResults = ns.search.GetResults()
+	-- local searchResults = ns.search.GetResults()
+	local searchResults = ns:GetModule('search').GetResults()
 	local buttonIndex, numButtons, offset = 1, #self.buttons, FauxScrollFrame_GetOffset(self)
 
 	local index = 0
@@ -82,11 +84,12 @@ local function ItemButtonClick(self, btn, up)
 end
 
 function view.Init()
-	local tab = ns.GetTab()
-	tab:GetNormalTexture():SetTexture("Interface\\MINIMAP\\TRACKING\\None")
-	tab.view = view
+	-- local tab = ns.GetTab()
+	-- tab:GetNormalTexture():SetTexture("Interface\\MINIMAP\\TRACKING\\None")
+	-- tab.view = view
 
-	local panel = CreateFrame("Frame", addonName.."PanelSearch")
+	-- local panel = CreateFrame("Frame", addonName.."PanelSearch")
+	local panel = view.panel
 
 	local sorters = {"Name", "Quality", "Level", "Type", "Owner"}
 	local sortButtons = {}

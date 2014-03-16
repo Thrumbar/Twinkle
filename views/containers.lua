@@ -1,5 +1,6 @@
 local addonName, ns, _ = ...
 local view = ns.CreateView("containers")
+view.icon = "Interface\\Buttons\\Button-Backpack-Up"
 
 local AceTimer = LibStub("AceTimer-3.0")
 
@@ -24,7 +25,7 @@ local function ItemLinksAreEqual(link1, link2)
 end
 
 local function DataUpdate(characterKey)
-	local filter = addonName.."PanelContainersFilter"
+	local filter = view.panel:GetName().."Filter"
 
 	local showBags, showBank, showVoid = _G[filter.."Bags"]:GetChecked(), _G[filter.."Bank"]:GetChecked(), _G[filter.."VoidStorage"]:GetChecked()
 
@@ -241,10 +242,12 @@ local function SortOnClick(self, btn)
 end
 
 function view.Init()
-	local panel = CreateFrame("Frame", addonName.."PanelContainers")
-	local tab = ns.GetTab()
-	tab:GetNormalTexture():SetTexture("Interface\\Buttons\\Button-Backpack-Up")
-	tab.view = view
+	-- local panel = CreateFrame("Frame", addonName.."PanelContainers")
+	-- local tab = ns.GetTab()
+	-- tab:GetNormalTexture():SetTexture("Interface\\Buttons\\Button-Backpack-Up")
+	-- tab.view = view
+
+	local panel = view.panel
 
 	-- TODO: show slot count (13/97) on icons
 	local filters = {
@@ -255,11 +258,12 @@ function view.Init()
 		IsAddOnLoaded('DataStore_Mails')      and {"Mail", "Interface\\MINIMAP\\TRACKING\\Mailbox"},
 	}
 	local filterButtons = {}
+	local function OnFilterButtonClick() view.Update() end
 	for i, data in ipairs(filters) do
 		local filter = CreateFrame("CheckButton", "$parentFilter"..data[1], panel, "PopupButtonTemplate", i) -- SimplePopupButtonTemplate
 			  filter:SetNormalTexture(data[2])
 			  filter:SetChecked(true)
-			  filter:SetScript("OnClick", view.Update)
+			  filter:SetScript("OnClick", OnFilterButtonClick)
 			  filter:SetScript("OnEnter", ns.ShowTooltip)
 			  filter:SetScript("OnLeave", ns.HideTooltip)
 			  filter.tiptext = data[1]
@@ -384,13 +388,9 @@ function view.Update()
 	assert(panel, "Can't update panel before it's created")
 	local character = ns.GetSelectedCharacter()
 
-	local currentSearch = _G[addonName.."UI"].search.searchString
-	if currentSearch and currentSearch ~= "" and currentSearch ~= SEARCH then
-		view.Search(currentSearch, character)
-	else
-		DataUpdate(character)
-		table.sort(view.itemsTable, DataSort)
-	end
+	DataUpdate(character)
+	table.sort(view.itemsTable, DataSort)
+
 	panel.scrollFrame:SetVerticalScroll(0)
 	ListUpdate(panel.scrollFrame)
 end
@@ -398,7 +398,7 @@ end
 local ItemSearch = LibStub('LibItemSearch-1.2')
 function view.Search(what, onWhom)
 	local hasMatch = 0
-	if what and what ~= "" and what ~= SEARCH then
+	if what and what ~= '' and what ~= _G.SEARCH then
 		DataUpdate(onWhom)
 		for i = #view.itemsTable, 1, -1 do
 			local _, link = GetItemInfo(view.itemsTable[i][1])
@@ -411,11 +411,11 @@ function view.Search(what, onWhom)
 			end
 		end
 		table.sort(view.itemsTable, DataSort)
-		if view.panel:IsVisible() then
-			ListUpdate(view.panel.scrollFrame)
-		end
-	else
-		hasMatch = true
+	end
+
+	local character = ns.GetSelectedCharacter()
+	if view.panel:IsVisible() and character == onWhom then
+		ListUpdate(view.panel.scrollFrame)
 	end
 
 	return hasMatch

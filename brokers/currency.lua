@@ -22,8 +22,8 @@ local currencies = {}
 local showCurrency = {
 	395,	-- justice
 	396,	-- valor
-	-- 392,	-- honor
-	-- 390,	-- conquest
+	392,	-- honor
+	390,	-- conquest
 	738,	-- lesser coin of fortune
 	776,	-- loot coin
 	777,	-- timeless
@@ -269,14 +269,14 @@ ns.RegisterEvent('ADDON_LOADED', function(frame, event, arg1)
 
 		-- fill character list
 		characters = ns.data.GetCharacters(characters)
-		Update()
+		-- Update() -- not needed here, since we need CURRENCY_DISPLAY_UPDATE first
 
 		ns.UnregisterEvent('ADDON_LOADED', 'currencies')
 	end
 end, 'currencies')
 
 ns.RegisterEvent('CURRENCY_DISPLAY_UPDATE', Update, 'currencies_update')
-ns.RegisterEvent('PLAYER_MONEY', function()
-	Update()
-	ns.UnregisterEvent('PLAYER_MONEY', 'currencies_init')
-end, 'currencies_init')
+-- ns.RegisterEvent('PLAYER_MONEY', function()
+-- 	Update()
+-- 	ns.UnregisterEvent('PLAYER_MONEY', 'currencies_init')
+-- end, 'currencies_init')
