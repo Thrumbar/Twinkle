@@ -1,5 +1,7 @@
 local addonName, addon, _ = ...
 
+-- GLOBALS: GetCoinTextureString, GetMoney
+
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('money')
 
@@ -30,10 +32,10 @@ function broker:UpdateTooltip()
 
 	local total
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
-		local amount = broker.data.GetMoney(characterKey)
+		local amount = addon.data.GetMoney(characterKey)
 		total = (total or 0) + amount
 
-		lineNum = self:AddLine( broker.data.GetCharacterText(characterKey),
+		lineNum = self:AddLine( addon.data.GetCharacterText(characterKey),
 			GetCoinTextureString(amount)
 		)
 	end
