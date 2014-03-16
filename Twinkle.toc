@@ -19,12 +19,12 @@ libs\LibQTip-1.0\LibQTip-1.0.lua
 #@end-no-lib-strip@
 
 Twinkle.lua
-# core.lua
 options.lua
 
 # modules
 modules\data.lua
 modules\autocomplete.lua
+modules\brokers.lua
 modules\calendar.lua
 modules\search.lua
 modules\summary.lua
@@ -32,8 +32,9 @@ modules\tooltip.lua
 modules\tradeskill.lua
 
 # brokers
-brokers\general.lua
+brokers\characters.lua
 brokers\currency.lua
+brokers\money.lua
 brokers\raid.lua
 brokers\weekly.lua
 

@@ -1,181 +1,133 @@
-local addonName, ns, _ = ...
-local search = {}
-ns.search = search
+local addonName, addon, _ = ...
 
--- GLOBALS: TwinkleUI, DataStore, NUM_BAG_SLOTS, SlashCmdList, _G, SEARCH
--- GLOBALS: OptionsList_ClearSelection, GetItemInfo
--- GLOBALS: string, table, pairs, ipairs, wipe, select, type, tonumber, print
+-- GLOBALS: _G
+-- GLOBALS: CreateFrame, PlaySound, EditBox_ClearFocus
+-- GLOBALS: hooksecurefunc, pairs, type
 
-local ItemSearch = LibStub('LibItemSearch-1.2')
+-- --------------------------------------------------------
+--  Search
+-- --------------------------------------------------------
+local search = addon:NewModule('search')
 
-local searchResults = {}
---[[ Table structure: TODO: itemID => counts, actual location (slot, row/col, ...), itemLink
-searchResults = {
-	<itemLink> = {
-		<<character>|<location>> = <count>,
-		... },
-	...
-} --]]
-local resultLocations = {
-	VOID_STORAGE,
-	MINIMAP_TRACKING_BANKER,
-	KEYRING,
-	INVTYPE_BAG,
-	INVENTORY_TOOLTIP, -- ITEMSLOTTEXT
-	MAIL_LABEL,
-	TRADE_SKILLS,
-}
+function search.OnEnable()
+	-- add search box to frame sidebar
+	local frame = addon.frame
+	local searchbox = CreateFrame('EditBox', '$parentSearchBox', frame.sidebar, 'SearchBoxTemplate')
+		searchbox:SetPoint('BOTTOM', 4, 2)
+		searchbox:SetSize(160, 20)
+		searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
+		searchbox:SetScript('OnEscapePressed', function(self)
+			PlaySound('igMainMenuOptionCheckBoxOff')
+			EditBox_ClearFocus(self)
+			self:SetText(_G.SEARCH)
+		end)
+		searchbox:SetScript('OnTextChanged', search.Update)
+		searchbox.clearFunc = search.Clear
+	frame.search = searchbox
 
--- used as fallback if no data returned
-local empty = {}
-local characters = ns.data.GetCharacters()
+	-- slightly reposition sidebar scrollFrame
+	frame.sidebar.scrollFrame:SetPoint('BOTTOMRIGHT', searchbox, 'TOPRIGHT', -22, 0)
 
-function search.Update(self)
-	local oldText, text = self.searchString, self:GetText()
-	if not text or text == "" or text == SEARCH then
-		self.searchString = nil
-	else
-		self.searchString = string.lower(text)
+	-- make sure all views are always up to date & filtered properly
+	local function OnViewUpdate()
+		search.updating = true
+		search.Update(searchbox, true)
+		search.updating = nil
+	end
+	local views = addon:GetModule('views', true)
+	if views then
+		-- hook into existing views
+		for name, view in views:IterateModules() do
+			hooksecurefunc(view, 'Update', OnViewUpdate)
+		end
+		-- also, mind future views!
+		hooksecurefunc(views, 'NewModule', function(viewName)
+			hooksecurefunc(views:GetModule(viewName), 'Update', OnViewUpdate)
+		end)
+	end
+end
+
+function search.Clear(...)
+	local views = addon:GetModule('views', true)
+	if views then
+		for name, view in views:IterateModules() do
+			local icon = view.tab:GetNormalTexture()
+			icon:SetDesaturated(false)
+			icon:SetAlpha(1)
+		end
 	end
 
-	if not self.searchString or oldText == self.searchString then
-		search.Reset(self)
+	addon.UpdateCharacters()
+	if not search.updating then
+		addon.Update()
+	end
+end
+
+function search.Update(editBox, forced)
+	local oldText, newText = editBox.searchString, editBox:GetText()
+	if newText == oldText and not forced then
 		return
+	elseif newText == '' or newText == _G.SEARCH then
+		editBox:clearFunc()
+		return
+	else
+		editBox.searchString = newText
 	end
 
-	local view = ns.GetCurrentView()
-	if view and view.name ~= "search" and view.Search then
-		view.Search(self.searchString, ns.GetSelectedCharacter())
-	else
-		local scrollFrame = _G[addonName.."UI"].sidebar.scrollFrame
-		OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)
-		ns.DisplayPanel("search")
+	local views = addon:GetModule('views', true)
+	if views then
+		-- desaturate all tabs, so we can highlight them later
+		for name, view in views:IterateModules() do
+			local icon = view.tab:GetNormalTexture()
+			icon:SetDesaturated(true)
+			icon:SetAlpha(0.5)
+		end
 
-		wipe(searchResults)
-		for i, characterKey in ipairs(characters) do
-			local numMatches = search.Search(self.searchString, characterKey)
-
-			local button = TwinkleUI.sidebar.scrollFrame.buttons[i]
-			if button then
-				if numMatches > 0 then
-					button:SetAlpha(1)
-					button.info:SetFormattedText("(%d)", numMatches)
-				else
-					button:SetAlpha(0.4)
-					button.info:SetText("")
+		-- TODO: FIXME: this will not return results for characters outside our scroll range
+		local scrollFrame = addon.frame.sidebar.scrollFrame
+		for index, button in pairs(scrollFrame.buttons) do
+			local numResults = 0
+			-- ask views for their search results
+			for name, view in views:IterateModules() do
+				if view.Search then
+					local numMatches = view.Search(editBox.searchString, button.element)
+					if numMatches and type(numMatches) == 'number' then
+						numResults = numResults + numMatches
+						local icon = view.tab:GetNormalTexture()
+						icon:SetDesaturated(false)
+						icon:SetAlpha(1)
+					end
 				end
 			end
-		end
 
-		if view and view.Update then
-			view.Update()
-		end
-	end
-end
-
-function search.GetResults()
-	return searchResults
-end
-
-function search.Reset(self)
-	if self.searchString then
-		ns.UpdateSidebar()
-		return
-	end
-
-	local view = ns.GetCurrentView()
-	if view and view.name ~= "search" and view.Search then
-		ns.Update()
-	else
-		ns.DisplayPanel("default")
-	end
-end
-
-function search.Search(searchString, characterKey)
-	local location, numMatches = nil, 0
-	local itemLink, itemID, spellID, count, _
-	local containers = DataStore:GetContainers(characterKey)
-	for containerName, container in pairs(containers or empty) do
-		location = (containerName == "VoidStorage" and 1) or (containerName == "Bag100" and 2) or (containerName == "Bag-2" and 3)
-		if not location then
-			local bagIndex = tonumber(containerName:match("%d+") or "")
-			location = (bagIndex and bagIndex <= NUM_BAG_SLOTS and 4) or 3
-		end
-
-		location = string.format("%s|%s", characterKey, resultLocations[location])
-
-		for slot = 1, container.size do
-			itemID, itemLink, count = DataStore:GetSlotInfo(container, slot)
-			itemLink = itemLink or (itemID and select(2, GetItemInfo(itemID)))
-			count = count or 1
-			if itemID and ItemSearch:Matches(itemLink, searchString) then
-				if not searchResults[itemID] then
-					searchResults[itemID] = {}
-				elseif searchResults[itemID][location] then
-					count = searchResults[itemID][location] + count
-				end
-				searchResults[itemID][location] = count
-				numMatches = numMatches + 1
+			if numResults > 0 then
+				button.info:SetFormattedText('(%d)', numResults)
+			else
+				button.info:SetText('')
 			end
 		end
 	end
+end
 
-	location = string.format("%s|%s", characterKey, resultLocations[5])
-	local inventory = DataStore:GetInventory(characterKey)
-	for _, item in pairs(inventory or empty) do
-		itemLink = (item and type(item) == "string") and item or (item and select(2, GetItemInfo(item)))
-		itemID = ns.GetLinkID(itemLink)
-		count = 1
-		if itemID and ItemSearch:Matches(itemLink, searchString) then
+--[[
+location = string.format("%s|%s", characterKey, resultLocations[7])
+for professionName, profession in pairs(DataStore:GetProfessions(characterKey) or empty) do
+	for index = 1, DataStore:GetNumCraftLines(profession) do
+		_, _, spellID = DataStore:GetCraftLineInfo(profession, index)
+		itemID = spellID and DataStore:GetCraftInfo(spellID)
+		itemLink = itemID and select(2, GetItemInfo(itemID))
+
+		if itemLink and ItemSearch:Matches(itemLink, searchString) then
+			spellID = -1 * (ns.GetLinkID( GetSpellLink(spellID) )
+
 			if not searchResults[itemID] then
 				searchResults[itemID] = {}
 			elseif searchResults[itemID][location] then
-				count = searchResults[itemID][location] + count
+				spellID = searchResults[characterKey][itemID][location] .. ","..spellID
 			end
-			searchResults[itemID][location] = count
+			searchResults[itemID][location] = spellID
 			numMatches = numMatches + 1
 		end
 	end
-
-	location = string.format("%s|%s", characterKey, resultLocations[6])
-	local mails = DataStore:GetNumMails(characterKey)
-	for i = 1, mails or 0 do
-		_, _, itemLink = DataStore:GetMailInfo(characterKey, i)
-		itemID = ns.GetLinkID(itemLink)
-		count = 1
-		if itemID and ItemSearch:Matches(itemLink, searchString) then
-			if not searchResults[itemID] then
-				searchResults[itemID] = {}
-			elseif searchResults[itemID][location] then
-				count = searchResults[itemID][location] + count
-			end
-			searchResults[itemID][location] = count
-			numMatches = numMatches + 1
-		end
-	end
-
-	--[[
-	location = string.format("%s|%s", characterKey, resultLocations[7])
-	for professionName, profession in pairs(DataStore:GetProfessions(characterKey) or empty) do
-		for index = 1, DataStore:GetNumCraftLines(profession) do
-			_, _, spellID = DataStore:GetCraftLineInfo(profession, index)
-			itemID = spellID and DataStore:GetCraftInfo(spellID)
-			itemLink = itemID and select(2, GetItemInfo(itemID))
-
-			if itemLink and ItemSearch:Matches(itemLink, searchString) then
-				spellID = -1 * (ns.GetLinkID( GetSpellLink(spellID) )
-
-				if not searchResults[itemID] then
-					searchResults[itemID] = {}
-				elseif searchResults[itemID][location] then
-					spellID = searchResults[characterKey][itemID][location] .. ","..spellID
-				end
-				searchResults[itemID][location] = spellID
-				numMatches = numMatches + 1
-			end
-		end
-	end
-	--]]
-
-	return numMatches
 end
+--]]
