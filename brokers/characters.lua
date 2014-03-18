@@ -62,6 +62,9 @@ local function SetItemLevelQualities()
 end
 
 local function ColorByItemLevel(itemLevel)
+	if #itemLevelQualities < 1 then
+		SetItemLevelQualities()
+	end
 	local qualityIndex = 0
 	for index, qualityLevel in ipairs(itemLevelQualities) do
 		if itemLevel >= qualityLevel then
@@ -75,8 +78,8 @@ local function ColorByItemLevel(itemLevel)
 end
 
 function broker:OnEnable()
-	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update)
-	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update)
+	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update, self)
+	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
 
 	SetItemLevelQualities()
 	self:Update()

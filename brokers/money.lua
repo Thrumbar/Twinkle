@@ -8,7 +8,7 @@ local broker = brokers:NewModule('money')
 -- GLOBALS: _G, ipairs, string, ToggleCharacter
 
 function broker:OnEnable()
-	self:RegisterEvent('PLAYER_MONEY', self.Update)
+	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
 	self:Update()
 end
 function broker:OnDisable()

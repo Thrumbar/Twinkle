@@ -131,7 +131,7 @@ local function GetCurrencyCounts(characterKey, prettyPrint)
 end
 
 function broker:OnEnable()
-	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', self.Update)
+	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', self.Update, self)
 	characters = brokers:GetCharacters()
 	self:Update()
 end
