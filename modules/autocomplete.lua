@@ -1,8 +1,11 @@
-local addonName, ns, _ = ...
+local addonName, addon, _ = ...
 
 -- GLOBALS: _G, AUTOCOMPLETE_MAX_BUTTONS, AUTOCOMPLETE_SIMPLE_REGEX, AUTOCOMPLETE_SIMPLE_FORMAT_REGEX, AutoCompleteBox, LE_AUTOCOMPLETE_PRIORITY_GUILD
 -- GLOBALS: SendMailNameEditBox, GetAutoCompleteResults, AutoComplete_UpdateResults, Ambiguate, RGBTableToColorCode, GetNumGuildMembers, GetGuildRosterInfo, GetNumClasses, GetClassInfo
 -- GLOBALS: pairs, string, table, tContains, hooksecurefunc, strlen, unpack, tonumber
+
+local autocomplete = addon:NewModule('autocomplete')
+local floor = math.floor
 
 -- ================================================
 -- Autocomplete character names
@@ -24,7 +27,7 @@ local function GetGuildMemberClass(character)
 end
 
 local function SortSuggestions(a, b)
-	if math.floor(a.priority) == math.floor(b.priority) then
+	if floor(a.priority) == floor(b.priority) then
 		return a.name < b.name
 	else
 		return a.priority > b.priority
@@ -47,7 +50,7 @@ local function AddHighlightedText(editBox, text)
 	end
 end
 
-local characters, thisCharacter = ns.data.GetCharacters(), ns.data.GetCurrentCharacter(), nil
+local characters, thisCharacter
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	if not parent or not parent.autoCompleteParams or text == '' then return end
 	-- possible flags can be found here: http://wow.go-hero.net/framexml/16650/AutoComplete.lua
@@ -59,7 +62,7 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 		-- add suitable alts to autocomplete
 		for _, characterKey in pairs(characters) do
 			if characterKey ~= thisCharacter then
-				local characterName, characterFullName = ns.data.GetName(characterKey), ns.data.GetFullName(characterKey)
+				local characterName, characterFullName = addon.data.GetName(characterKey), addon.data.GetFullName(characterKey)
 				if characterName:lower():find('^'..text:lower()) then
 					local index
 					-- check if this character is already on our list
@@ -70,7 +73,7 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 						end
 					end
 
-					local _, _, classID = ns.data.GetClass(characterKey)
+					local _, _, classID = addon.data.GetClass(characterKey)
 					if not index then
 						index = #newResults + 1
 						newResults[index] = {}
@@ -118,32 +121,31 @@ end
 -- Battlenet-Battleneticon, Battlenet-WoWicon
 local alt   = '\124TInterface\\COMMON\\ReputationStar:10:10:0:0:32:32:0:16:0:16\124t'
 local guild = ''
-ns.RegisterEvent('ADDON_LOADED', function(self, event, arg1)
-	if arg1 == addonName then
-		local your_character = string.gsub(_G.UNIT_YOU_SOURCE, _G.CHARACTER, '%%s')
-		for index = 1, GetNumClasses() do
-			local priority
-			local className, classTag, classID = GetClassInfo(index)
+function autocomplete:OnEnable()
+	characters = addon.data.GetCharacters()
+	thisCharacter = addon.data.GetCurrentCharacter()
 
-			-- class coloring for alts
-			priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ALTS, classID))
-			_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
-				key  = alt .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
-				text = string.format(your_character, className),
-			}
+	local your_character = string.gsub(_G.UNIT_YOU_SOURCE, _G.CHARACTER, '%%s')
+	for index = 1, GetNumClasses() do
+		local priority
+		local className, classTag, classID = GetClassInfo(index)
 
-			-- class coloring for guild members
-			priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_GUILD, classID))
-			_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
-				key  = guild .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
-				text = _G.AUTOCOMPLETE_COLOR_KEYS[LE_AUTOCOMPLETE_PRIORITY_GUILD].text,
-			}
-		end
-		hooksecurefunc('AutoComplete_Update', AddAltsToAutoComplete)
+		-- class coloring for alts
+		priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ALTS, classID))
+		_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
+			key  = alt .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
+			text = string.format(your_character, className),
+		}
 
-		-- overwrite whatever completions blizzard has supplied before
-		hooksecurefunc("AutoCompleteEditBox_AddHighlightedText", AddHighlightedText)
-
-		ns.UnregisterEvent('ADDON_LOADED', 'autocomplete')
+		-- class coloring for guild members
+		priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_GUILD, classID))
+		_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
+			key  = guild .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
+			text = _G.AUTOCOMPLETE_COLOR_KEYS[LE_AUTOCOMPLETE_PRIORITY_GUILD].text,
+		}
 	end
-end, 'autocomplete')
+	hooksecurefunc('AutoComplete_Update', AddAltsToAutoComplete)
+
+	-- overwrite whatever completions blizzard has supplied before
+	hooksecurefunc("AutoCompleteEditBox_AddHighlightedText", AddHighlightedText)
+end

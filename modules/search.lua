@@ -4,9 +4,6 @@ local addonName, addon, _ = ...
 -- GLOBALS: CreateFrame, PlaySound, EditBox_ClearFocus
 -- GLOBALS: hooksecurefunc, pairs, type
 
--- --------------------------------------------------------
---  Search
--- --------------------------------------------------------
 local search = addon:NewModule('search')
 
 function search.OnEnable()
