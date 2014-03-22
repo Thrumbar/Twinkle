@@ -130,7 +130,7 @@ local function UpdateEventPicker()
 		      buttonIcon:SetTexture()
 		      buttonIcon:Show()
 		local buttonTitle = _G[buttonName..'Title']
-		      buttonTitle:SetFormattedText('%s', eventInfo.title) --, addon.data.GetCharacterText(eventInfo.character))
+		      buttonTitle:SetFormattedText('%s (%s)', eventInfo.title, addon.data.GetCharacterText(eventInfo.character))
 		local buttonTime = _G[buttonName..'Time']
 		      buttonTime:SetText(GameTime_GetFormattedTime(string.split(':', eventInfo.time), false))
 		      buttonTime:Show()
