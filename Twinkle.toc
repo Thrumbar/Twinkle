@@ -51,8 +51,4 @@ tooltip\social.lua
 # views
 views\default.lua
 views\containers.lua
-#views\search.lua
 views\tasks.lua
-#views\grids.lua
-
-#modules\ui.lua
