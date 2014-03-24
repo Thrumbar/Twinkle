@@ -206,7 +206,7 @@ local function NOOP() end -- do nothing
 
 function broker:UpdateTooltip()
 	local numColumns, lineNum = (#showCurrency * 2) + 1
-	self:SetColumnLayout(numColumns, 'LEFT', 'RIGHT')
+	self:SetColumnLayout(numColumns, 'LEFT', string.split(',', string.rep('RIGHT,', numColumns-1)))
 
 	lineNum = self:AddHeader()
 			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CURRENCY, 'LEFT', numColumns)
