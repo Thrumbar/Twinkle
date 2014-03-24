@@ -349,7 +349,8 @@ function view.Update()
 		xpText = '|TInterface\\COMMON\\ReputationStar:16:16:0:0:32:32:16:32:16:32|t ' .. ns.data.GetXPInfo(character)
 	else
 		xpText = ns.data.GetAverageItemLevel(character) .. -- " |TInterface\\GossipFrame\\TabardGossipIcon:0|t"
-			' |TInterface\\COMMON\\ReputationStar:16:16:0:1:32:32:0:16:0:16|t'
+			-- ' |TInterface\\COMMON\\ReputationStar:16:16:0:1:32:32:0:16:0:16|t'
+			' |TInterface\\GROUPFRAME\\UI-GROUP-MAINTANKICON:0|t'
 		-- '|TInterface\\PaperDollInfoFrame\\PaperDollSidebarTabs:20:20:0:1:64:256:1:34:120:155|t'
 	end
 	panel.xp:SetText(xpText)
