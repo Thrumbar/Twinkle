@@ -2,9 +2,9 @@
 ## Author: ckaotik
 ## Title: Twinkle
 ## Version: @project-version@
-## OptionalDeps: TipTac, DataMore, DataStore
 # Dependencies:
-# SavedVariables: Twinkle_GlobalDB
+## OptionalDeps: TipTac, DataMore, DataStore
+## SavedVariables: Twinkle_GlobalDB
 # SavedVariablesPerCharacter: Twinkle_LocalDB
 
 #@no-lib-strip@
@@ -50,5 +50,6 @@ tooltip\social.lua
 
 # views
 views\default.lua
+views\equipment.lua
 views\containers.lua
 views\tasks.lua

@@ -140,13 +140,13 @@ end
 local optionsTable = {
 	type = 'group',
 	args = {
-		[addonName..'_LocalDB'] = {
+		--[[[addonName..'_LocalDB'] = {
 			type = 'group',
 			inline = true,
 			name = 'Individual Settings',
 			order = 1,
 			args = {},
-		},
+		},--]]
 		[addonName..'_GlobalDB'] = {
 			type = 'group',
 			inline = true,

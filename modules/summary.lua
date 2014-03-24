@@ -18,7 +18,7 @@ function summary.OnEnable()
 
 	button:SetText('Summary')
 	button:SetScript('OnClick', function(self, btn, up)
-		summary.isShown = not summary.isShown
+		summary.show = not summary.show
 		summary.Update()
 	end)
 	frame.summary = button
@@ -137,7 +137,7 @@ function summary.Update()
 	local views = addon:GetModule('views')
 	local view  = views.GetActiveView()
 
-	if summary.isShown then
+	if summary.show then
 		view.panel:Hide()
 		summary.panel:Show()
 
