@@ -25,9 +25,6 @@ local CALENDAR_FULLDATE_MONTH_NAMES = {
 	_G.FULLDATE_MONTH_DECEMBER,
 }
 
-local thisCharacter = addon.data.GetCurrentCharacter()
-local additionalEvents = {}
-
 local statusInfo = {
 	["UNKNOWN"] = {
 		name    = _G.UNKNOWN,
@@ -250,6 +247,8 @@ local function EventSort(a, b)
 end
 
 local characters = {} -- filled on load
+local thisCharacter   -- filled on load
+-- TODO: resolve dependency on DataStore_Agenda - move to data.lua
 local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, contextEventIndex)
 	if not IsAddOnLoaded('DataStore_Agenda') then return end
 	local month, year = CalendarGetMonth(monthOffset)
@@ -303,6 +302,7 @@ function calendar:OnEnable()
 
 	-- fill characters table
 	addon.data.GetCharacters(characters)
+	thisCharacter = addon.data.GetCurrentCharacter()
 
 	hooksecurefunc('CalendarFrame_UpdateDayEvents', UpdateDayEvents)
 	hooksecurefunc('CalendarDayButton_OnEnter', DayOnEnter)

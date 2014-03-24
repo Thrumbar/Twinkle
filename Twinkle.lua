@@ -174,7 +174,7 @@ function addon.OnInitialize()
 end
 
 function addon.OnEnable()
-	-- TODO? register events
+	-- TODO: register events
 	addon.UpdateCharacters()
 	addon.Update()
 end
