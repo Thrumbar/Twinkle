@@ -1,8 +1,8 @@
-local addonName, ns, _ = ...
-local view = ns.CreateView("containers")
-view.icon = "Interface\\Buttons\\Button-Backpack-Up"
-
-local AceTimer = LibStub("AceTimer-3.0")
+local addonName, addon, _ = ...
+local views = addon:GetModule('views')
+local view = views:NewModule('containers', 'AceTimer-3.0')
+      view.icon = 'Interface\\Buttons\\Button-Backpack-Up'
+      view.title = 'Item List'
 
 -- GLOBALS: _G, DataStore, ITEM_QUALITY_COLORS, NUM_BANKBAGSLOTS, NUM_BAG_SLOTS, SEARCH
 -- GLOBALS: CreateFrame, IsAddOnLoaded, GetItemInfo, FauxScrollFrame_GetOffset, FauxScrollFrame_Update, FauxScrollFrame_OnVerticalScroll, SetItemButtonTexture, SecondsToTimeAbbrev, HandleModifiedItemClick
@@ -68,11 +68,11 @@ local function DataUpdate(characterKey)
 	local button = _G[filter.."Equipment"]
 	if button and button:GetChecked() then
 		for slotID = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
-			local item = ns.data.GetInventoryItemLink(characterKey, slotID, true)
+			local item = addon.data.GetInventoryItemLink(characterKey, slotID, true)
 			if item then
 				local itemID, itemLink
 				if type(item) == "string" then
-					itemID = ns.GetLinkID(item)
+					itemID = addon.GetLinkID(item)
 					itemLink = item
 				else
 					itemID = item
@@ -105,7 +105,7 @@ local function DataUpdate(characterKey)
 		for i = 1, DataStore:GetNumMails(characterKey) do
 			local _, count, link, _, _, returned = DataStore:GetMailInfo(characterKey, i)
 			if link then
-				local itemID = ns.GetLinkID(link)
+				local itemID = addon.GetLinkID(link)
 				local _, baseLink = GetItemInfo(itemID)
 				local _, expiresIn = DataStore:GetMailExpiry(characterKey, i)
 				         expiresIn = math.floor(expiresIn)
@@ -146,7 +146,7 @@ local function ListUpdate(self)
 			local name, link, quality, iLevel, reqLevel, class, subclass, _, _, texture, _ = GetItemInfo(itemID)
 
 			-- delay if we don't have data
-			if not name then AceTimer:ScheduleTimer(ListUpdate, 0.1, self); return end
+			if not name then view:ScheduleTimer(ListUpdate, 0.1, self); return end
 
 			item.icon:SetTexture(texture)
 			item.item.link = itemLink or link
@@ -226,9 +226,10 @@ local function SortOnClick(self, btn)
 	primarySort   = reverse and -1*primarySort or newSort
 
 	local index, sorters = 1, addonName..'UIPanelContainersSorter'
-	local sorter = _G[sorters..index]
-	while sorter do
-		local arrow = _G[sorters..index..'Arrow']
+	while true do
+		local sorter = _G[sorters..index]
+		if not sorter then break end
+		local arrow  = _G[sorters..index..'Arrow']
 		if sorter == self then
 			arrow:Show()
 			arrow:SetTexCoord(0, 0.5625, primarySort > 0 and 1 or 0, primarySort > 0 and 0 or 1)
@@ -236,20 +237,14 @@ local function SortOnClick(self, btn)
 			arrow:Hide()
 		end
 		index = index + 1
-		sorter = _G[sorters..index]
 	end
 
 	table.sort(view.itemsTable, DataSort)
 	ListUpdate(view.panel.scrollFrame)
 end
 
-function view.Init()
-	-- local panel = CreateFrame("Frame", addonName.."PanelContainers")
-	-- local tab = ns.GetTab()
-	-- tab:GetNormalTexture():SetTexture("Interface\\Buttons\\Button-Backpack-Up")
-	-- tab.view = view
-
-	local panel = view.panel
+function view.OnEnable(self)
+	local panel = self.panel
 
 	-- TODO: show slot count (13/97) on icons
 	local filters = {
@@ -260,14 +255,14 @@ function view.Init()
 		IsAddOnLoaded('DataStore_Mails')      and {"Mail", "Interface\\MINIMAP\\TRACKING\\Mailbox"},
 	}
 	local filterButtons = {}
-	local function OnFilterButtonClick() view.Update() end
+	local function OnFilterButtonClick() self.Update() end
 	for i, data in ipairs(filters) do
 		local filter = CreateFrame("CheckButton", "$parentFilter"..data[1], panel, "PopupButtonTemplate", i) -- SimplePopupButtonTemplate
 			  filter:SetNormalTexture(data[2])
 			  filter:SetChecked(true)
 			  filter:SetScript("OnClick", OnFilterButtonClick)
-			  filter:SetScript("OnEnter", ns.ShowTooltip)
-			  filter:SetScript("OnLeave", ns.HideTooltip)
+			  filter:SetScript("OnEnter", addon.ShowTooltip)
+			  filter:SetScript("OnLeave", addon.HideTooltip)
 			  filter.tiptext = data[1]
 
 		if i == 1 then
@@ -287,6 +282,11 @@ function view.Init()
 			  sorter:SetSize(sorter:GetTextWidth() + 34, 19)
 			  sorter:SetScript("OnClick", SortOnClick)
 		_G[sorter:GetName().."Arrow"]:Hide()
+
+		if name == 'Name' then
+			-- make this column wider
+			sorter:SetWidth(185)
+		end
 
 		if i == 1 then
 			sorter:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 10, -80)
@@ -345,8 +345,8 @@ function view.Init()
 		local item = CreateFrame("Button", nil, row)
 		      item:SetSize(26, 26)
 		      item:SetPoint("LEFT", 2, 0)
-		      item:SetScript("OnEnter", ns.ShowTooltip)
-		      item:SetScript("OnLeave", ns.HideTooltip)
+		      item:SetScript("OnEnter", addon.ShowTooltip)
+		      item:SetScript("OnLeave", addon.HideTooltip)
 		      item:SetScript("OnClick", ItemButtonClick)
 		row.item = item
 		local icon = item:CreateTexture(nil, "BORDER")
@@ -380,15 +380,12 @@ function view.Init()
 		table.insert(list.buttons, row)
 	end
 	panel.scrollFrame = list
-
-	view.panel = panel
-	return panel
 end
 
 function view.Update()
 	local panel = view.panel
 	assert(panel, "Can't update panel before it's created")
-	local character = ns.GetSelectedCharacter()
+	local character = addon.GetSelectedCharacter()
 
 	DataUpdate(character)
 	table.sort(view.itemsTable, DataSort)
@@ -415,7 +412,7 @@ function view.Search(what, onWhom)
 		table.sort(view.itemsTable, DataSort)
 	end
 
-	local character = ns.GetSelectedCharacter()
+	local character = addon.GetSelectedCharacter()
 	if view.panel:IsVisible() and character == onWhom then
 		ListUpdate(view.panel.scrollFrame)
 	end
