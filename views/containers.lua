@@ -183,7 +183,7 @@ local function ListUpdate(self)
 end
 
 local function DataSort(a, b)
-	-- FIXME: item level of upgraded items
+	-- TODO: FIXME: item level of upgraded items
 	local namea, _, qualitya, iLevela, _, classa, subclassa = GetItemInfo(a[1])
 	local nameb, _, qualityb, iLevelb, _, classb, subclassb = GetItemInfo(b[1])
 
@@ -225,16 +225,18 @@ local function SortOnClick(self, btn)
 	secondarySort = reverse and  secondarySort or primarySort
 	primarySort   = reverse and -1*primarySort or newSort
 
-	local sorter, index = _G[addonName.."PanelContainersSorter1"], 1
+	local index, sorters = 1, addonName..'UIPanelContainersSorter'
+	local sorter = _G[sorters..index]
 	while sorter do
+		local arrow = _G[sorters..index..'Arrow']
 		if sorter == self then
-			_G[sorter:GetName().."Arrow"]:Show()
-			_G[sorter:GetName().."Arrow"]:SetTexCoord(0, 0.5625, primarySort > 0 and 1 or 0, primarySort > 0 and 0 or 1)
+			arrow:Show()
+			arrow:SetTexCoord(0, 0.5625, primarySort > 0 and 1 or 0, primarySort > 0 and 0 or 1)
 		else
-			_G[sorter:GetName().."Arrow"]:Hide()
+			arrow:Hide()
 		end
 		index = index + 1
-		sorter = _G[addonName.."PanelContainersSorter"..index]
+		sorter = _G[sorters..index]
 	end
 
 	table.sort(view.itemsTable, DataSort)
