@@ -1,12 +1,15 @@
 local addonName, addon, _ = ...
+
+-- GLOBALS: _G, DataStore, ITEM_QUALITY_COLORS, NUM_BANKBAGSLOTS, NUM_BAG_SLOTS, SEARCH
+-- GLOBALS: CreateFrame, IsAddOnLoaded, GetItemInfo, FauxScrollFrame_GetOffset, FauxScrollFrame_Update, FauxScrollFrame_OnVerticalScroll, SetItemButtonTexture, SecondsToTimeAbbrev, HandleModifiedItemClick
+-- GLOBALS: table, wipe, pairs, ipairs, assert, math, tonumber, select, unpack, string, type
+
 local views = addon:GetModule('views')
 local view = views:NewModule('containers', 'AceTimer-3.0')
       view.icon = 'Interface\\Buttons\\Button-Backpack-Up'
       view.title = 'Item List'
 
--- GLOBALS: _G, DataStore, ITEM_QUALITY_COLORS, NUM_BANKBAGSLOTS, NUM_BAG_SLOTS, SEARCH
--- GLOBALS: CreateFrame, IsAddOnLoaded, GetItemInfo, FauxScrollFrame_GetOffset, FauxScrollFrame_Update, FauxScrollFrame_OnVerticalScroll, SetItemButtonTexture, SecondsToTimeAbbrev, HandleModifiedItemClick
--- GLOBALS: table, wipe, pairs, ipairs, assert, math, tonumber, select, unpack, string, type
+local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 
 view.itemsTable = {}
 local primarySort, secondarySort
@@ -145,6 +148,10 @@ local function ListUpdate(self)
 			local itemID, itemCount, itemLink, timeLeft = unpack(view.itemsTable[index])
 			local name, link, quality, iLevel, reqLevel, class, subclass, _, _, texture, _ = GetItemInfo(itemID)
 
+			if itemLink then
+				iLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink)
+			end
+
 			-- delay if we don't have data
 			if not name then view:ScheduleTimer(ListUpdate, 0.1, self); return end
 
@@ -183,9 +190,11 @@ local function ListUpdate(self)
 end
 
 local function DataSort(a, b)
-	-- TODO: FIXME: item level of upgraded items
 	local namea, _, qualitya, iLevela, _, classa, subclassa = GetItemInfo(a[1])
+	if a[3] then iLevela = LibItemUpgrade:GetUpgradedItemLevel(a[3]) end
 	local nameb, _, qualityb, iLevelb, _, classb, subclassb = GetItemInfo(b[1])
+	if b[3] then iLevelb = LibItemUpgrade:GetUpgradedItemLevel(b[3]) end
+
 
 	local reverse, s, sortA, sortB
 	if primarySort then
