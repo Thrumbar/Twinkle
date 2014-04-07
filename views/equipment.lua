@@ -106,12 +106,13 @@ local function SetSlotItem(slotID, itemLink)
 		slotButton.link = itemLink
 
 		-- item level & quality
-		local _, _, quality, itemLevel = GetItemInfo(itemLink)
+		local _, _, quality, iLvl = GetItemInfo(itemLink)
 		if not quality then
 			equipment:ScheduleTimer(SetSlotItem, 0.1, slotID, itemLink)
 			return
 		end
 		local qualityColor = _G.ITEM_QUALITY_COLORS[quality]
+		local itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink) or iLvl
 		slotButton.level:SetText(itemLevel)
 		slotButton.level:SetTextColor(qualityColor.r, qualityColor.g, qualityColor.b)
 
