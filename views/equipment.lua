@@ -230,6 +230,62 @@ function equipment.OnEnable(self)
 		end
 	end
 
+	-- equipment set list
+	panel.setButtons = {}
+	for i = 1, _G.MAX_EQUIPMENT_SETS_PER_PLAYER + 1 do
+		local button = CreateFrame('Button', nil, panel, nil, i)
+		button:SetSize(160, 36)
+		panel.setButtons[i] = button
+
+		local icon = button:CreateTexture(nil, 'OVERLAY')
+		icon:SetSize(30, 30)
+		icon:SetPoint('LEFT', 2, 0)
+		button.icon = icon
+
+		local name = button:CreateFontString(nil, nil, 'GameFontNormal')
+		name:SetPoint('TOPLEFT', icon, 'TOPRIGHT', 4, -5)
+		name:SetJustifyH('LEFT')
+		name:SetSize(110, 12)
+		button.name = name
+
+		button:SetNormalTexture('Interface\\ClassTrainerFrame\\TrainerTextures')
+		button:GetNormalTexture():SetTexCoord(0.00195313, 0.57421875, 0.65820313, 0.75000000)
+		button:SetHighlightTexture('Interface\\ClassTrainerFrame\\TrainerTextures')
+		button:GetHighlightTexture():SetTexCoord(0.00195313, 0.57421875, 0.75390625, 0.84570313)
+
+		button:SetScript('OnEnter', addon.ShowTooltip)
+		button:SetScript('OnLeave', addon.HideTooltip)
+		button:SetScript('OnClick', function(self, btn, up)
+			if self.selected then
+				self.selectedTex:Hide()
+			else
+				self.selectedTex:Show()
+			end
+			self.selected = not self.selected
+		end)
+
+		local selectedTex = button:CreateTexture(nil, 'OVERLAY', nil, 1)
+		selectedTex:SetAllPoints()
+		selectedTex:SetTexture('Interface\\ClassTrainerFrame\\TrainerTextures')
+		selectedTex:SetTexCoord(0.00195313, 0.57421875, 0.84960938, 0.94140625)
+		button.selected = false
+		button.selectedTex = selectedTex
+
+		-- local bgTex = button:CreateTexture(nil, 'BACKGROUND', nil, nil)
+		-- bgTex:SetBlendMode('ADD')
+		-- bgTex:SetTexture(0.55, 0.55, 0.55, 1)
+		-- bgTex:SetPoint('TOPLEFT', 2, -2)
+		-- bgTex:SetPoint('BOTTOMRIGHT', -2, 2)
+
+		if i == 1 then
+			button:SetPoint('TOPRIGHT', -10, -10)
+			button.name:SetText('Equipped')
+			-- button.icon:SetTexture()
+		else
+			button:SetPoint('TOPRIGHT', panel.setButtons[i - 1], 'BOTTOMRIGHT', 0, -4)
+		end
+	end
+
 	-- we need access to gem info
 	LoadAddOn('Blizzard_ItemSocketingUI')
 end
@@ -240,6 +296,28 @@ end
 
 function equipment.Update()
 	local characterKey = addon.GetSelectedCharacter()
+
+	local equipmentSets = DataStore:GetEquipmentSetNames(characterKey)
+	local buttons = equipment.panel.setButtons
+
+	-- FIXME: we display current equipment by default
+	buttons[1].selected = true
+	buttons[1].selectedTex:Show()
+
+	for index = 2, #buttons do
+		local button, setName = buttons[index], equipmentSets and equipmentSets[index]
+		if setName then
+			local name, icon, items = DataStore:GetEquipmentSet(characterKey, setName)
+			button.name:SetText(name)
+			button.icon:SetTexture(icon)
+			button.set = setName
+			button:Show()
+		else
+			button:Hide()
+		end
+	end
+
+	-- TODO: display equipment as selected above
 	for slotID = _G.INVSLOT_FIRST_EQUIPPED, _G.INVSLOT_LAST_EQUIPPED do
 		local itemLink = addon.data.GetInventoryItemLink(characterKey, slotID)
 		SetSlotItem(slotID, itemLink)
