@@ -13,7 +13,7 @@ function broker:OnDisable()
 	-- self:UnregisterEvent('EVENT_NAME')
 end
 
-function broker:OnClick(self, btn, down)
+function broker:OnClick(btn, down)
 	-- do something, like show a UI
 end
 

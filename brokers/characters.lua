@@ -89,7 +89,7 @@ function broker:OnDisable()
 	self:UnregisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
 end
 
-function broker:OnClick(self, btn, down)
+function broker:OnClick(btn, down)
 	ToggleCharacter("TokenFrame")
 end
 

@@ -32,10 +32,12 @@ modules\tooltip.lua
 modules\tradeskill.lua
 
 # brokers
+brokers\auctions.lua
 brokers\characters.lua
 brokers\currency.lua
 brokers\money.lua
 brokers\raid.lua
+brokers\talents.lua
 brokers\weekly.lua
 
 # tooltip

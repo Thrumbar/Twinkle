@@ -38,7 +38,7 @@ local showCurrency = {
 local showCurrencyInLDB = {
 	396, -- valor
 	776, -- warforged
-	777, -- timless
+	777, -- timeless
 }
 local associatedQuests = {
 	[738] = { 33133, 33134 }
@@ -139,7 +139,7 @@ function broker:OnDisable()
 	self:UnregisterEvent('CURRENCY_DISPLAY_UPDATE')
 end
 
-function broker:OnClick(self, btn, down)
+function broker:OnClick(btn, down)
 	ToggleCharacter('TokenFrame')
 end
 
