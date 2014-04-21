@@ -161,10 +161,45 @@ local function SetSlotItem(slotID, itemLink)
 	end
 end
 
+local function SetGearSet(setName)
+	local characterKey = addon.GetSelectedCharacter()
+	local items = setName and DataStore:GetEquipmentSetItems(characterKey, setName)
+
+	for slotID = _G.INVSLOT_FIRST_EQUIPPED, _G.INVSLOT_LAST_EQUIPPED do
+		if not items then
+			local itemLink = addon.data.GetInventoryItemLink(characterKey, slotID)
+			SetSlotItem(slotID, itemLink)
+		else
+			SetSlotItem(slotID, items[slotID])
+		end
+	end
+end
+
+local function SelectGearSet(self, btn, up)
+	local panel = equipment.panel
+	for index, button in pairs(panel.setButtons) do
+		if button == self then
+			button.selected = true
+			button.selectedTex:Show()
+		else
+			button.selected = false
+			button.selectedTex:Hide()
+		end
+	end
+
+	SetGearSet(self.set)
+end
+
 -- TODO: have DataMore store equipment sets & display those
 -- TODO: display more item info: enchant, reforge
 function equipment.OnEnable(self)
 	local panel = self.panel
+
+	local bg = panel:CreateTexture(nil, 'BACKGROUND')
+		  bg:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
+		  bg:SetTexCoord(0, 0.76, 0, 0.86)
+		  bg:SetPoint('TOPLEFT', '$parent', 'TOPRIGHT', -175, 0)
+		  bg:SetPoint('BOTTOMRIGHT')
 
 	for index, slotName in ipairs(slotInfo) do
 		local slotID, texture = GetInventorySlotInfo(slotName)
@@ -255,19 +290,13 @@ function equipment.OnEnable(self)
 
 		button:SetScript('OnEnter', addon.ShowTooltip)
 		button:SetScript('OnLeave', addon.HideTooltip)
-		button:SetScript('OnClick', function(self, btn, up)
-			if self.selected then
-				self.selectedTex:Hide()
-			else
-				self.selectedTex:Show()
-			end
-			self.selected = not self.selected
-		end)
+		button:SetScript('OnClick', SelectGearSet)
 
 		local selectedTex = button:CreateTexture(nil, 'OVERLAY', nil, 1)
 		selectedTex:SetAllPoints()
 		selectedTex:SetTexture('Interface\\ClassTrainerFrame\\TrainerTextures')
 		selectedTex:SetTexCoord(0.00195313, 0.57421875, 0.84960938, 0.94140625)
+		selectedTex:Hide()
 		button.selected = false
 		button.selectedTex = selectedTex
 
@@ -278,11 +307,13 @@ function equipment.OnEnable(self)
 		-- bgTex:SetPoint('BOTTOMRIGHT', -2, 2)
 
 		if i == 1 then
-			button:SetPoint('TOPRIGHT', -10, -10)
+			button:SetPoint('TOPRIGHT', -8, -10)
 			button.name:SetText('Equipped')
-			-- button.icon:SetTexture()
+			button.icon:SetTexture('Interface\\GUILDFRAME\\GuildLogo-NoLogo')
+			button.selected = true
+			button.selectedTex:Show()
 		else
-			button:SetPoint('TOPRIGHT', panel.setButtons[i - 1], 'BOTTOMRIGHT', 0, -4)
+			button:SetPoint('TOPRIGHT', panel.setButtons[i - 1], 'BOTTOMRIGHT', 0, -2)
 		end
 	end
 
@@ -300,12 +331,8 @@ function equipment.Update()
 	local equipmentSets = DataStore:GetEquipmentSetNames(characterKey)
 	local buttons = equipment.panel.setButtons
 
-	-- FIXME: we display current equipment by default
-	buttons[1].selected = true
-	buttons[1].selectedTex:Show()
-
 	for index = 2, #buttons do
-		local button, setName = buttons[index], equipmentSets and equipmentSets[index]
+		local button, setName = buttons[index], equipmentSets and equipmentSets[index - 1]
 		if setName then
 			local name, icon, items = DataStore:GetEquipmentSet(characterKey, setName)
 			button.name:SetText(name)
@@ -317,9 +344,6 @@ function equipment.Update()
 		end
 	end
 
-	-- TODO: display equipment as selected above
-	for slotID = _G.INVSLOT_FIRST_EQUIPPED, _G.INVSLOT_LAST_EQUIPPED do
-		local itemLink = addon.data.GetInventoryItemLink(characterKey, slotID)
-		SetSlotItem(slotID, itemLink)
-	end
+	-- we display current equipment by default
+	SelectGearSet(buttons[1])
 end
