@@ -4,7 +4,6 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('auctions')
-local thisCharacter = DataStore:GetCharacter()
 
 local lists = {'Auctions', 'Bids'}
 local function GetAuctionStatus(characterKey)
@@ -72,22 +71,24 @@ end
 function broker:OnEnable()
 	self:RegisterEvent('AUCTION_HOUSE_CLOSED', self.Update, self)
 	self:RegisterEvent('AUCTION_HOUSE_SHOW', self.Update, self)
-	self:RegisterEvent('MAIL_CLOSED', self.Update, self)
-	self:RegisterEvent('MAIL_SHOW', self.Update, self)
+	self:RegisterEvent('MAIL_INBOX_UPDATE', self.Update, self)
+	self:RegisterEvent('MAIL_CLOSED', self.Update, self) -- DataStore does not update nicely
+	-- self:RegisterEvent('MAIL_SHOW', self.Update, self)
 	self:Update()
 end
 function broker:OnDisable()
 	self:UnregisterEvent('AUCTION_HOUSE_CLOSED')
 	self:UnregisterEvent('AUCTION_HOUSE_SHOW')
+	self:UnregisterEvent('MAIL_INBOX_UPDATE')
 	self:UnregisterEvent('MAIL_CLOSED')
-	self:UnregisterEvent('MAIL_SHOW')
+	-- self:UnregisterEvent('MAIL_SHOW')
 end
 
 function broker:OnClick(btn, down)
 end
 
 function broker:UpdateLDB()
-	local statusText, icon = GetAuctionStatusText(thisCharacter)
+	local statusText, icon = GetAuctionStatusText(brokers:GetCharacter())
 	self.text = statusText or '' -- 'No mail or auctions'
 	self.icon = icon or 'Interface\\RAIDFRAME\\ReadyCheck-Ready'
 end
