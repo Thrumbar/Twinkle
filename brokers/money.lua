@@ -18,7 +18,20 @@ local function GetPrettyAmount(amount)
 	return prettyAmount
 end
 
+local backlog = {}
 function broker:OnEnable()
+	--[[-- TODO: track money changed: this session, today, this week, this month
+	local now, money = GetTime(), GetMoney()
+	if not Twinkle_GlobalDB then
+		Twinkle_GlobalDB = {}
+	end
+	if not Twinkle_GlobalDB.money then
+		Twinkle_GlobalDB.money = {
+			today = GetMoney()
+		}
+	end
+	--]]
+
 	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
 	self:Update()
 end
@@ -41,6 +54,7 @@ function broker:UpdateTooltip()
 	lineNum = self:AddHeader()
 			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.MONEY, 'LEFT', numColumns)
 
+	-- TODO: sort by amount, desc
 	local total
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local amount = addon.data.GetMoney(characterKey)

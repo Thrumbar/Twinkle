@@ -2,6 +2,7 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('characters')
+local characters
 
 -- GLOBALS: _G, ipairs, string, ToggleCharacter
 
@@ -37,6 +38,7 @@ local function GetDifficultyItemLevels(instanceID)
 	-- EncounterJournal_LootUpdate()
 	difficulty = GetLootItemLevel(difficulty)
 	heroicDifficulty = GetLootItemLevel(heroicDifficulty)
+	print('instance', instanceID, difficulty, heroicDifficulty)
 	return difficulty, heroicDifficulty
 end
 
@@ -62,9 +64,8 @@ local function SetItemLevelQualities()
 end
 
 local function ColorByItemLevel(itemLevel)
-	if #itemLevelQualities < 1 then
-		SetItemLevelQualities()
-	end
+	if #itemLevelQualities < 1 then return itemLevel end
+
 	local qualityIndex = 0
 	for index, qualityLevel in ipairs(itemLevelQualities) do
 		if itemLevel >= qualityLevel then
@@ -81,6 +82,7 @@ function broker:OnEnable()
 	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update, self)
 	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
 
+	characters = brokers:GetCharacters()
 	SetItemLevelQualities()
 	self:Update()
 end
@@ -90,7 +92,7 @@ function broker:OnDisable()
 end
 
 function broker:OnClick(btn, down)
-	ToggleCharacter("TokenFrame")
+	ToggleCharacter('TokenFrame')
 end
 
 function broker:UpdateLDB()
@@ -106,6 +108,33 @@ function broker:UpdateLDB()
 	)
 end
 
+local sortBy, sortReverse
+local function Sort(a, b)
+	local aValue, bValue
+	if sortBy == 1 then
+		aValue, bValue = addon.data.GetLevel(a), addon.data.GetLevel(b)
+	elseif sortBy == 2 then
+		aValue, bValue = addon.data.GetName(a), addon.data.GetName(b)
+	else
+		aValue, bValue = addon.data.GetAverageItemLevel(a), addon.data.GetAverageItemLevel(b)
+	end
+	if sortReverse then
+		return aValue > bValue
+	else
+		return aValue < bValue
+	end
+end
+local function SortCharacterList(self, sortType, btn, up)
+	if sortBy == sortType then
+		sortReverse = not sortReverse
+	else
+		sortBy = sortType
+		sortReverse = false
+	end
+	table.sort(characters, Sort)
+	broker:Update()
+end
+
 function broker:UpdateTooltip()
 	local numColumns, lineNum = 3
 	self:SetColumnLayout(numColumns, 'LEFT', 'LEFT', 'RIGHT')
@@ -115,8 +144,15 @@ function broker:UpdateTooltip()
 	lineNum = self:AddHeader()
 			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CHARACTER, 'LEFT', numColumns)
 
+	-- sorting
+	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, 'iLevel')
+	for column = 1, numColumns do
+		self:SetCellScript(lineNum, column, 'OnMouseUp', SortCharacterList, column)
+	end
+	self:AddSeparator(2)
+
 	-- data lines
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
+	for _, characterKey in ipairs(characters) do
 		lineNum = self:AddLine(
 			addon.data.GetLevel(characterKey),
 			addon.data.GetCharacterText(characterKey),
