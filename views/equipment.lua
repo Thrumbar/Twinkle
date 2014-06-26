@@ -195,6 +195,8 @@ end
 function equipment.OnEnable(self)
 	local panel = self.panel
 
+	-- full width: ACHIEVEMENTFRAME/UI-ACHIEVEMENT-PARCHMENT
+	-- ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal-Desaturated
 	local bg = panel:CreateTexture(nil, 'BACKGROUND')
 		  bg:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
 		  bg:SetTexCoord(0, 0.76, 0, 0.86)

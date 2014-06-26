@@ -177,6 +177,7 @@ function broker:UpdateTooltip()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CALENDAR_REPEAT_WEEKLY, 'LEFT', numColumns)
 
 	self:AddHeader(getColumnHeaders('lfr'))
+	self:AddSeparator(2)
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local data = GetCharacterLFRLockouts(characterKey, true)
 		if data then
@@ -187,6 +188,7 @@ function broker:UpdateTooltip()
 
 	self:AddLine(' ')
 	self:AddHeader(getColumnHeaders('boss'))
+	self:AddSeparator(2)
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local data = GetCharacterBossLockouts(characterKey, true)
 		if data then
@@ -197,6 +199,7 @@ function broker:UpdateTooltip()
 
 	self:AddLine(' ')
 	self:AddHeader(getColumnHeaders('weekly'))
+	self:AddSeparator(2)
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local data = GetCharacterWeeklyLockouts(characterKey, true)
 		if data then

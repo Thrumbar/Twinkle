@@ -172,10 +172,11 @@ local function ListUpdate(self)
 				item.level:SetFormattedText("%4d", iLevel or 0)
 			end
 
-			-- item.name:SetTextColor(ITEM_QUALITY_COLORS[quality].r, ITEM_QUALITY_COLORS[quality].g, ITEM_QUALITY_COLORS[quality].b)
+			local r, g, b = GetItemQualityColor(quality)
+			-- item.name:SetTextColor(r, g, b)
 			if quality and quality ~= 1 then
 				item.backdrop:Show()
-				item.backdrop:SetVertexColor(ITEM_QUALITY_COLORS[quality].r, ITEM_QUALITY_COLORS[quality].g, ITEM_QUALITY_COLORS[quality].b, 0.5)
+				item.backdrop:SetVertexColor(r, g, b, 0.5)
 			else
 				item.backdrop:Hide()
 			end
@@ -343,6 +344,7 @@ function view.OnEnable(self)
 			row:SetPoint("TOPLEFT", list.buttons[i-1], "BOTTOMLEFT", 0, 0)
 		end
 
+		-- ACHIEVEMENTFRAME\\UI-Achievement-HorizontalShadow
 		local backdrop = row:CreateTexture(nil, "BACKGROUND")
 		      backdrop:SetTexture("Interface\\HelpFrame\\HelpFrameButton-Highlight")
 		      backdrop:SetTexCoord(0, 1, 0, 0.578125)
