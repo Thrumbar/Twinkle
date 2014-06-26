@@ -195,13 +195,22 @@ end
 function equipment.OnEnable(self)
 	local panel = self.panel
 
-	-- full width: ACHIEVEMENTFRAME/UI-ACHIEVEMENT-PARCHMENT
-	-- ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal-Desaturated
-	local bg = panel:CreateTexture(nil, 'BACKGROUND')
-		  bg:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
-		  bg:SetTexCoord(0, 0.76, 0, 0.86)
-		  bg:SetPoint('TOPLEFT', '$parent', 'TOPRIGHT', -175, 0)
-		  bg:SetPoint('BOTTOMRIGHT')
+	local panelLeft = panel:CreateTexture(nil, 'BACKGROUND')
+	      panelLeft:SetTexture('Interface\\ACHIEVEMENTFRAME\\UI-ACHIEVEMENT-PARCHMENT')
+	      panelLeft:SetTexCoord(0.5, 1, 0, 1)
+	      panelLeft:SetPoint('TOPLEFT')
+		  panelLeft:SetPoint('BOTTOMRIGHT', '$parent', 'BOTTOMRIGHT', -175, 0)
+	local panelRight = panel:CreateTexture(nil, 'BACKGROUND')
+	      panelRight:SetTexture('Interface\\ACHIEVEMENTFRAME\\UI-ACHIEVEMENT-PARCHMENT')
+	      panelRight:SetTexCoord(0, 0.5, 0, 1)
+	      panelRight:SetPoint('TOPLEFT', '$parent', 'TOPRIGHT', -175, 0)
+		  panelRight:SetPoint('BOTTOMRIGHT')
+	local separator = panel:CreateTexture(nil, 'BORDER')
+	      separator:SetTexture('Interface\\Common\\bluemenu-vert')
+	      separator:SetTexCoord(0.00781250, 0.04687500, 0, 1)
+	      separator:SetVertTile(true)
+	      separator:SetPoint('TOPLEFT', panelLeft, 'TOPRIGHT', -5, 0)
+	      separator:SetPoint('BOTTOMRIGHT', panelLeft, 'BOTTOMRIGHT')
 
 	for index, slotName in ipairs(slotInfo) do
 		local slotID, texture = GetInventorySlotInfo(slotName)
