@@ -135,14 +135,17 @@ function data.GetXPInfo(characterKey)
 end
 function data.GetLocation(characterKey)
 	if IsAddOnLoaded("DataStore_Characters") then
-		return (DataStore:GetLocation(characterKey)), DataStore:IsResting(characterKey)
+		local location = DataStore:GetLocation(characterKey)
+		local isResting = DataStore:IsResting(characterKey)
+		return location or '', isResting
 	else
 		return ''
 	end
 end
 function data.GetAuctionState(characterKey)
 	if IsAddOnLoaded("DataStore_Auctions") then
-		return DataStore:GetNumAuctions(characterKey), DataStore:GetNumBids(characterKey)
+		local auctions, bids = DataStore:GetNumAuctions(characterKey), DataStore:GetNumBids(characterKey)
+		return auctions or 0, bids or 0
 	else
 		return 0, 0
 	end
@@ -154,7 +157,7 @@ function data.GetAuctionInfo(characterKey, list, index)
 end
 function data.GetNumMails(characterKey)
 	if IsAddOnLoaded("DataStore_Mails") then
-		return DataStore:GetNumMails(characterKey)
+		return DataStore:GetNumMails(characterKey) or 0
 	else
 		return 0
 	end
@@ -173,6 +176,17 @@ function data.GetGuildInfo(characterKey)
 	else
 		return '', '', -1
 	end
+end
+function data.GetNumUnspentTalents(characterKey)
+	local primary, secondary
+	if IsAddOnLoaded("DataStore_Talents") then
+		primary, secondary = DataStore:GetNumUnspentTalents(characterKey, 1), DataStore:GetNumUnspentTalents(characterKey, 2)
+	end
+	if characterKey == thisCharacter then
+		local active = GetActiveSpecGroup()
+		if active == 1 then primary = GetNumUnspentTalents() else secondary = GetNumUnspentTalents() end
+	end
+	return primary or 0, secondary or 0
 end
 -- ========================================
 --  Containers & Inventory

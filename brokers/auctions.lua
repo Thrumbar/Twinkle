@@ -6,15 +6,16 @@ local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('auctions')
 
 local lists = {'Auctions', 'Bids'}
-local function GetAuctionStatus(characterKey)
+local function GetAuctionState(characterKey)
 	local lastVisit = DataStore:GetAuctionHouseLastVisit(characterKey) or 0
 	local now = GetTime()
 
 	local numBids, numAuctions, expired
 	local numGoblinBids, numGoblinAuctions, goblinExpired
 	for _, list in pairs(lists) do
-		local numEntries = list == 'Auctions' and DataStore:GetNumAuctions(characterKey) or DataStore:GetNumBids(characterKey)
-		for i = 1, numEntries do
+		local _auctions, _bids = addon.data.GetAuctionState(characterKey)
+		local numEntries = list == 'Auctions' and _auctions or _bids
+		for i = 1, numEntries or 0 do
 			local isGoblin, itemID, count, name, bidPrice, buyPrice, timeLeft = DataStore:GetAuctionHouseItemInfo(characterKey, list, i)
 			if lastVisit + timeLeft < now then
 				-- entry is expired
@@ -38,7 +39,7 @@ end
 local function GetAuctionStatusText(characterKey)
 	local numMails = DataStore:GetNumMails(characterKey) or 0 -- GetInboxNumItems()
 	local auctionsFaction, bidsFaction, factionExpired,
-	      auctionsGoblin, bidsGoblin, goblinExpired = GetAuctionStatus(characterKey)
+	      auctionsGoblin, bidsGoblin, goblinExpired = GetAuctionState(characterKey)
 
     local icon
 	if (DataStore:GetNumExpiredMails(characterKey, 7) or 0) > 0 then	-- mails that last <7 days count as expired
