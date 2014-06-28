@@ -1,9 +1,10 @@
-local addonName, ns, _ = ...
-local data = {}
-ns.data = data
+local addonName, addon, _ = ...
+
+local data = addon:NewModule('data', 'AceEvent-3.0')
+addon.data = data
 
 local thisCharacter = DataStore:GetCharacter()
-local realmCharacters  = DataStore:GetCharacters()
+local realmCharacters = DataStore:GetCharacters()
 
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
@@ -19,7 +20,7 @@ function data.GetCurrentCharacter()
 end
 
 function data.IsCharacter(key)
-	if ns.Find(realmCharacters, key) then
+	if addon.Find(realmCharacters, key) then
 		return true
 	end
 end
@@ -249,15 +250,15 @@ local function ClearCache(key)
 end
 
 --[[-- gets handled by BAG_UPDATE_DELAYED handler
-ns.RegisterEvent("CHAT_MSG_LOOT", function(self, event, message)
-	local id, linkType = ns.GetLinkID(message)
+data:RegisterEvent("CHAT_MSG_LOOT", function(self, event, message)
+	local id, linkType = addon.GetLinkID(message)
 	if id and linkType == "item" then
 		ClearCacheItemCount(id, thisCharacter)
 	end
-end, "updateitemcounts") --]]
-ns.RegisterEvent("BAG_UPDATE_DELAYED", function(self, event)
+end) --]]
+data:RegisterEvent("BAG_UPDATE_DELAYED", function(self, event)
 	ClearCache(thisCharacter)
-end, "clearitemcounts")
+end)
 
 function data.GetItemCounts(key, itemID, uncached)
 	if uncached then

@@ -10,6 +10,9 @@
 #@no-lib-strip@
 # libraries
 libs\LibStub\LibStub.lua
+libs\AceAddon-3.0\AceAddon-3.0.lua
+libs\AceEvent-3.0\AceEvent-3.0.lua
+libs\AceConfig-3.0\AceConfig-3.0.lua
 libs\CustomSearch-1.0\CustomSearch-1.0.lua
 libs\LibItemSearch-1.2\LibItemSearch-1.2.lua
 libs\LibItemUpgradeInfo-1.0\Core.lua

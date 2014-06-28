@@ -288,17 +288,21 @@ local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, cont
 	end
 end
 
-function calendar:OnEnable()
+function calendar:OnInitialize()
 	if not IsAddOnLoaded('Blizzard_Calendar') then
-		-- delay loading until calendar is ready
-		calendar:RegisterEvent('ADDON_LOADED', function(event, arg1)
+		-- registering ADDON_LOADED in OnEnable fails, so we need to do so here
+		self:RegisterEvent('ADDON_LOADED', function(event, arg1)
 			if arg1 == 'Blizzard_Calendar' then
-				calendar:UnregisterEvent('ADDON_LOADED')
-				calendar:OnEnable()
+				self:UnregisterEvent('ADDON_LOADED')
+				self:OnEnable()
 			end
 		end)
 		return
 	end
+end
+function calendar:OnEnable()
+	-- delay loading until calendar is ready
+	if not IsAddOnLoaded('Blizzard_Calendar') then return end
 
 	-- fill characters table
 	addon.data.GetCharacters(characters)
@@ -318,5 +322,5 @@ function calendar:OnEnable()
 	end)
 end
 function calendar:OnDisable()
-	calendar:UnregisterEvent('ADDON_LOADED')
+	self:UnregisterEvent('ADDON_LOADED')
 end
