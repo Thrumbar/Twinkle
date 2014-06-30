@@ -69,7 +69,7 @@ function data.GetCharacterFactionIcon(characterKey)
 	return text or ''
 end
 function data.GetRace(characterKey)
-	if IsAddOnLoaded("DataStore_Characters") then
+	if IsAddOnLoaded('DataStore_Characters') then
 		local locale, english = DataStore:GetCharacterRace(characterKey)
 		return locale, english
 	else
@@ -87,8 +87,8 @@ local function GetClassID(class)
 end
 function data.GetClass(characterKey)
 	if characterKey == thisCharacter then
-		return UnitClass("player")
-	elseif IsAddOnLoaded("DataStore_Characters") then
+		return UnitClass('player')
+	elseif IsAddOnLoaded('DataStore_Characters') then
 		local locale, english = DataStore:GetCharacterClass(characterKey)
 		local classID = GetClassID(english)
 		return locale, english, classID
@@ -97,14 +97,14 @@ function data.GetClass(characterKey)
 	end
 end
 function data.GetLevel(characterKey)
-	if IsAddOnLoaded("DataStore_Characters") then
+	if IsAddOnLoaded('DataStore_Characters') then
 		return DataStore:GetCharacterLevel(characterKey)
 	else
 		return 0
 	end
 end
 function data.GetMoney(characterKey)
-	if IsAddOnLoaded("DataStore_Characters") then
+	if IsAddOnLoaded('DataStore_Characters') then
 		return DataStore:GetMoney(characterKey)
 	elseif characterKey == data.GetCurrentCharacter() then
 		return GetMoney()
@@ -113,29 +113,29 @@ function data.GetMoney(characterKey)
 	end
 end
 function data.GetAverageItemLevel(characterKey)
-	if IsAddOnLoaded("DataStore_Inventory") then
+	if IsAddOnLoaded('DataStore_Inventory') then
 		return math.floor(DataStore:GetAverageItemLevel(characterKey) + 0.5)
 	else
 		return 0
 	end
 end
 function data.GetXPInfo(characterKey)
-	if IsAddOnLoaded("DataStore_Characters") then
+	if IsAddOnLoaded('DataStore_Characters') then
 		-- GetXP, GetXPMax, GetRestXP
 		local currentXP = DataStore:GetXPRate(characterKey)
 		local restedXP = DataStore:GetRestXPRate(characterKey)
 
 		if restedXP and restedXP > 0 then
-			return string.format("%d%% (+%d%%)", currentXP, restedXP*1.5)
+			return string.format('%d%% (+%d%%)', currentXP, restedXP*1.5)
 		else
-			return string.format("%d%%", currentXP)
+			return string.format('%d%%', currentXP)
 		end
 	else
 		return ''
 	end
 end
 function data.GetLocation(characterKey)
-	if IsAddOnLoaded("DataStore_Characters") then
+	if IsAddOnLoaded('DataStore_Characters') then
 		local location = DataStore:GetLocation(characterKey)
 		local isResting = DataStore:IsResting(characterKey)
 		return location or '', isResting
@@ -144,7 +144,7 @@ function data.GetLocation(characterKey)
 	end
 end
 function data.GetAuctionState(characterKey)
-	if IsAddOnLoaded("DataStore_Auctions") then
+	if IsAddOnLoaded('DataStore_Auctions') then
 		local auctions, bids = DataStore:GetNumAuctions(characterKey), DataStore:GetNumBids(characterKey)
 		return auctions or 0, bids or 0
 	else
@@ -152,26 +152,26 @@ function data.GetAuctionState(characterKey)
 	end
 end
 function data.GetAuctionInfo(characterKey, list, index)
-	if IsAddOnLoaded("DataStore_Auctions") then
+	if IsAddOnLoaded('DataStore_Auctions') then
 		return DataStore:GetAuctionHouseItemInfo(characterKey, list, index)
 	end
 end
 function data.GetNumMails(characterKey)
-	if IsAddOnLoaded("DataStore_Mails") then
+	if IsAddOnLoaded('DataStore_Mails') then
 		return DataStore:GetNumMails(characterKey) or 0
 	else
 		return 0
 	end
 end
 function data.GetMailInfo(characterKey, index)
-	if IsAddOnLoaded("DataStore_Mails") then
+	if IsAddOnLoaded('DataStore_Mails') then
 		local _, expires = DataStore:GetMailExpiry(characterKey, index)
 		local sender = DataStore:GetMailSender(characterKey, index)
 		return sender, expires, DataStore:GetMailInfo(characterKey, index)
 	end
 end
 function data.GetGuildInfo(characterKey)
-	if IsAddOnLoaded("DataStore_Characters") then
+	if IsAddOnLoaded('DataStore_Characters') then
 		local guildName, guildRank, rankID = DataStore:GetGuildInfo(characterKey)
 		return guildName, guildRank, rankID
 	else
@@ -180,7 +180,7 @@ function data.GetGuildInfo(characterKey)
 end
 function data.GetNumUnspentTalents(characterKey)
 	local primary, secondary
-	if IsAddOnLoaded("DataStore_Talents") then
+	if IsAddOnLoaded('DataStore_Talents') then
 		primary, secondary = DataStore:GetNumUnspentTalents(characterKey, 1), DataStore:GetNumUnspentTalents(characterKey, 2)
 	end
 	if characterKey == thisCharacter then
@@ -250,13 +250,13 @@ local function ClearCache(key)
 end
 
 --[[-- gets handled by BAG_UPDATE_DELAYED handler
-data:RegisterEvent("CHAT_MSG_LOOT", function(self, event, message)
+data:RegisterEvent('CHAT_MSG_LOOT', function(self, event, message)
 	local id, linkType = addon.GetLinkID(message)
-	if id and linkType == "item" then
+	if id and linkType == 'item' then
 		ClearCacheItemCount(id, thisCharacter)
 	end
 end) --]]
-data:RegisterEvent("BAG_UPDATE_DELAYED", function(self, event)
+data:RegisterEvent('BAG_UPDATE_DELAYED', function(self, event)
 	ClearCache(thisCharacter)
 end)
 
@@ -282,11 +282,11 @@ function data.GetGuildsItemCounts(itemID, uncached)
 end
 function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	if characterKey == thisCharacter then
-		return GetInventoryItemLink("player", slotID)
-	elseif IsAddOnLoaded("DataStore_Inventory") then
+		return GetInventoryItemLink('player', slotID)
+	elseif IsAddOnLoaded('DataStore_Inventory') then
 		-- FIXME: DataStore doesn't save upgraded items
 		local item = DataStore:GetInventoryItem(characterKey, slotID)
-		if not rawOnly and type(item) == "number" then
+		if not rawOnly and type(item) == 'number' then
 			_, item = GetItemInfo(item)
 		end
 		return item
@@ -295,7 +295,7 @@ end
 
 --[[
 function data.GetContainerSlotInfo(characterKey, bag, slot)
-	if IsAddOnLoaded("DataStore_Containers") then
+	if IsAddOnLoaded('DataStore_Containers') then
 		local container = DataStore:GetContainerInfo(characterKey, bag)
 		return DataStore_Containers:GetSlotInfo(container, slot)
 	else
@@ -319,7 +319,7 @@ function data.GetCurrencyInfoByIndex(characterKey, index)
 	if characterKey == thisCharacter then
 		local name, isHeader, _, _, _, count, icon = GetCurrencyListInfo(index)
 		return isHeader, name, count, icon
-	elseif IsAddOnLoaded("DataStore_Currencies") then
+	elseif IsAddOnLoaded('DataStore_Currencies') then
 		return DataStore:GetCurrencyInfo(characterKey, index)
 	end
 end
@@ -347,10 +347,10 @@ function data.GetRandomLFGState(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	if IsAddOnLoaded("Broker_DataStore") then
+	if IsAddOnLoaded('DataMore') then
 		for dungeonID, status, resetTime, numDefeated in DataStore:GetLFGs(characterKey) do
 			local dungeon, typeID = GetLFGDungeonInfo(dungeonID)
-			if typeID == TYPEID_RANDOM_DUNGEON and type(status) == "boolean" then
+			if typeID == TYPEID_RANDOM_DUNGEON and type(status) == 'boolean' then
 				table.insert(useTable, {
 					id = dungeonID,
 					name = dungeon,
@@ -366,10 +366,10 @@ function data.GetLFRState(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	if IsAddOnLoaded("Broker_DataStore") then
+	if IsAddOnLoaded('DataMore') then
 		for dungeonID, status, resetTime, numDefeated in DataStore:GetLFGs(characterKey) do
 			local dungeon, typeID, subTypeID = GetLFGDungeonInfo(dungeonID)
-			if typeID == TYPEID_DUNGEON and subTypeID == LFG_SUBTYPEID_RAID and type(status) == "boolean" then
+			if typeID == TYPEID_DUNGEON and subTypeID == LFG_SUBTYPEID_RAID and type(status) == 'boolean' then
 				table.insert(useTable, {
 					id = dungeonID,
 					name = dungeon,
@@ -386,7 +386,7 @@ function data.GetDailyQuests(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	if IsAddOnLoaded("DataStore_Quests") then
+	if IsAddOnLoaded('DataStore_Quests') then
 		for i = 1, DataStore:GetDailiesHistorySize(characterKey) do
 			local _, title = DataStore:GetDailiesHistoryInfo(characterKey, i)
 			table.insert(useTable, title)
