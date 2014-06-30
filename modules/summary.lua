@@ -103,9 +103,13 @@ end
 
 -- TODO: how can views supply header labels and table data???
 function summary.UpdateHeaders(scrollFrame)
+	local views = addon:GetModule('views')
+	local view  = views.GetActiveView()
+
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
 	for column, header in ipairs(scrollFrame.table.headers) do
-		header:SetText('Column '..(column + offset))
+		local label = view.SummaryColumn and view:SummaryColumn(column + offset) or 'Column '..(column + offset)
+		header:SetText(label)
 	end
 end
 
@@ -143,9 +147,10 @@ function summary.Update()
 
 		if true or view.Summary then
 			local scrollFrame = summary.panel.scrollFrame
+			local offset = FauxScrollFrame_GetOffset(scrollFrame)
 			summary.UpdateTable(scrollFrame)
 			-- TODO: Summary(characterKey) should return data for one row in our table
-			-- view.Summary()
+			-- view.Summary(characterKey, offset)
 		end
 	else
 		summary.panel:Hide()
