@@ -363,7 +363,7 @@ function views.Update()
 
 	-- tell view to update, too
 	currentView:Enable() -- TODO: in case it didn't init before, should not init twice
-	currentView.Update()
+	currentView:Update()
 end
 
 -- --------------------------------------------------------

@@ -1,6 +1,13 @@
-local addonName, ns, _ = ...
-local view = ns.CreateView("tasks")
-view.icon = 'Interface\\Icons\\INV_Enchant_FormulaSuperior_01'
+local addonName, addon, _ = ...
+
+-- GLOBALS: _G
+-- GLOBALS:
+-- GLOBALS:
+
+local views = addon:GetModule('views')
+local tasks = views:NewModule('tasks')
+      tasks.icon = 'Interface\\Icons\\INV_Enchant_FormulaSuperior_01'
+      tasks.title = 'Task List'
 
 --[[
 -- Possible tasks:
@@ -21,23 +28,32 @@ view.icon = 'Interface\\Icons\\INV_Enchant_FormulaSuperior_01'
 	- complete achievements
 --]]
 
-function view.Init()
-	-- local tab = ns.GetTab()
-	-- tab:GetNormalTexture():SetTexture('Interface\\Icons\\INV_Enchant_FormulaSuperior_01')
-	-- tab.view = view
+function tasks:OnEnable()
+	local panel = self.panel
 
-	-- local panel = CreateFrame('Frame') --, addonName.."PanelGrids") --]]
-	local panel = view.panel
-
-	-- TODO: init
-
-	view.panel = panel
-	return panel
+	local panelLeft = panel:CreateTexture(nil, 'BACKGROUND')
+	      panelLeft:SetTexture('Interface\\ACHIEVEMENTFRAME\\UI-ACHIEVEMENT-PARCHMENT')
+	      panelLeft:SetTexCoord(0.5, 1, 0, 1)
+	      panelLeft:SetPoint('TOPLEFT')
+		  panelLeft:SetPoint('BOTTOMRIGHT', '$parent', 'BOTTOMRIGHT', -175, 0)
+	local panelRight = panel:CreateTexture(nil, 'BACKGROUND')
+	      panelRight:SetTexture('Interface\\ACHIEVEMENTFRAME\\UI-ACHIEVEMENT-PARCHMENT')
+	      panelRight:SetTexCoord(0, 0.5, 0, 1)
+	      panelRight:SetPoint('TOPLEFT', '$parent', 'TOPRIGHT', -175, 0)
+		  panelRight:SetPoint('BOTTOMRIGHT')
+	local separator = panel:CreateTexture(nil, 'BORDER')
+	      separator:SetTexture('Interface\\Common\\bluemenu-vert')
+	      separator:SetTexCoord(0.00781250, 0.04687500, 0, 1)
+	      separator:SetVertTile(true)
+	      separator:SetPoint('TOPLEFT', panelLeft, 'TOPRIGHT', -5, 0)
+	      separator:SetPoint('BOTTOMRIGHT', panelLeft, 'BOTTOMRIGHT')
 end
 
-function view.Update()
-	local panel = view.panel
-	assert(panel, "Can't update panel before it's created")
+function tasks:OnDisable()
+	--
+end
 
-	local character = ns.GetSelectedCharacter()
+function tasks:Update()
+	local characterKey = addon.GetSelectedCharacter()
+	local equipmentSets = DataStore:GetEquipmentSetNames(characterKey)
 end
