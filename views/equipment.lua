@@ -51,10 +51,32 @@ local gemColorNames = {
 	['EMPTY_SOCKET_NO_COLOR']	= 'Prismatic',
 }
 
+local function HideTooltip(self, btn, up)
+	local tooltip = self:GetParent()
+	tooltip:Hide()
+	tooltip.link = nil
+end
+
 local function OnItemClick(self, btn, up)
-	if IsModifiedClick() and self.link then
-		HandleModifiedItemClick(self.link)
+	if self.link and IsModifiedClick() and HandleModifiedItemClick(self.link) then
+		return
 	end
+
+	local tooltip = self:GetParent().tooltip
+	if not self.link or tooltip.link == self.link then
+		tooltip:Hide()
+		tooltip.link = nil
+		return
+	end
+
+	tooltip:SetOwner(self, 'ANCHOR_NONE')
+	tooltip:SetPoint('CENTER', self:GetParent(), 'CENTER')
+	tooltip:SetBackdropColor(GameTooltip:GetBackdropColor())
+	tooltip:SetBackdropBorderColor(GameTooltip:GetBackdropBorderColor())
+	tooltip:ClearLines()
+	tooltip:SetHyperlink(self.link)
+	tooltip.link = self.link
+	tooltip:Show()
 end
 
 local function SetSocketInfo(socket, socketColor, socketGem)
@@ -327,6 +349,15 @@ function equipment.OnEnable(self)
 			button:SetPoint('TOPRIGHT', panel.setButtons[i - 1], 'BOTTOMRIGHT', 0, -2)
 		end
 	end
+
+	-- TODO: decide whether to use this or ItemRefTooltip
+	local tooltip = CreateFrame('GameTooltip', '$parentDetailsTooltip', panel, 'GameTooltipTemplate')
+	      tooltip:SetFrameStrata('HIGH')
+	      tooltip:SetBackdrop(GameTooltip:GetBackdrop())
+	local close = CreateFrame('Button', '$parentCloseButton', tooltip, 'UIPanelCloseButtonNoScripts')
+	      close:SetPoint('TOPRIGHT')
+	      close:SetScript('OnClick', HideTooltip)
+	panel.tooltip = tooltip
 
 	-- we need access to gem info
 	LoadAddOn('Blizzard_ItemSocketingUI')
