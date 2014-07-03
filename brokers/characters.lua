@@ -1,16 +1,18 @@
 local addonName, addon, _ = ...
 
+-- GLOBALS: _G, DataStore, ToggleCharacter, UnitClass, UnitLevel, EJ_SetDifficulty, EJ_GetNumLoot, EJ_GetLootInfoByIndex, EJ_GetInstanceByIndex, EJ_IsValidInstanceDifficulty, EncounterJournal_DisplayInstance, GetDifficultyInfo, GetSpecialization, GetSpecializationInfo, GetItemInfo, RGBTableToColorCode, GetQuestDifficultyColor, GetLootSpecialization, GetSpecializationInfoByID
+-- GLOBALS: ipairs, string, table, math
+
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('characters')
 local characters
 
--- GLOBALS: _G, ipairs, string, ToggleCharacter
+local function UpdateItemLevelQualities() end
 
 -- iterate through loot to find dropped itemLevel
 local function GetLootItemLevel(difficulty)
 	if difficulty then
 		EJ_SetDifficulty(difficulty)
-		EncounterJournal_LootUpdate() -- TODO: is this useful?
 	end
 	for index = 1, EJ_GetNumLoot() do
 		local _, _, itemClass, itemSubClass, itemID, itemLink, encounterID = EJ_GetLootInfoByIndex(index)
@@ -43,7 +45,7 @@ local function GetDifficultyItemLevels(instanceID)
 	end
 end
 
-local itemLevelQualities = {}
+local itemLevelQualities, checkList = {}, {}
 local function SetItemLevelQualities()
 	local index = 1
 	local instances = {}
@@ -53,15 +55,43 @@ local function SetItemLevelQualities()
 		index = index + 1
 	end
 
+	local needsUpdate
 	for i, instanceID in ipairs(instances) do
 		local normal, heroic = GetDifficultyItemLevels(instanceID)
+		if not normal and not heroic and not checkList[instanceID] then
+			checkList[instanceID] = true
+			needsUpdate = true
+		else
+			checkList[instanceID] = nil
+		end
 		table.insert(itemLevelQualities, normal)
 		table.insert(itemLevelQualities, heroic)
 	end
+	if needsUpdate then
+		broker:RegisterEvent('EJ_LOOT_DATA_RECIEVED', UpdateItemLevelQualities)
+	else
+		broker:UnregisterEvent('EJ_LOOT_DATA_RECIEVED')
+	end
+
+	-- remove duplicates
+	local lastLevel = math.huge
 	table.sort(itemLevelQualities)
+	for i = #itemLevelQualities, 1, -1 do
+		if itemLevelQualities[i] >= lastLevel - 10 then
+			table.remove(itemLevelQualities, i)
+		else
+			lastLevel = itemLevelQualities[i]
+		end
+	end
+
 	while #itemLevelQualities > 5 do
 		table.remove(itemLevelQualities, 1)
 	end
+end
+
+function UpdateItemLevelQualities()
+	SetItemLevelQualities()
+	broker:Update()
 end
 
 local function ColorByItemLevel(itemLevel)
@@ -84,13 +114,6 @@ function broker:OnEnable()
 	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
 	self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', self.Update, self)
 	self:RegisterEvent('PLAYER_TALENT_UPDATE', self.Update, self)
-
-	-- when starting the game, EJ does not have data
-	self:RegisterEvent('EJ_LOOT_DATA_RECIEVED', function()
-		SetItemLevelQualities()
-		self:Update()
-		self:UnregisterEvent('EJ_LOOT_DATA_RECIEVED')
-	end, self)
 
 	-- create our own characters table, so sorting doesn't influence other brokers
 	characters = addon.data.GetCharacters()
@@ -128,6 +151,7 @@ function broker:UpdateLDB()
 
 	local lootSpecID = GetLootSpecialization()
 	if lootSpecID ~= 0 then
+		local role
 		_, name, _, icon, _, role = GetSpecializationInfoByID(lootSpecID)
 	end
 
