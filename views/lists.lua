@@ -5,7 +5,7 @@ local addonName, addon, _ = ...
 -- GLOBALS: ipairs, tonumber
 
 local views = addon:GetModule('views')
-local lists = views:NewModule('lists')
+local lists = views:NewModule('lists', 'AceEvent-3.0')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = 'Lists'
 
@@ -15,9 +15,11 @@ local shortTags = {
 	[_G.DAILY] = '•',
 	[_G.ELITE] = '+',
 	[_G.PLAYER_V_PLAYER] = 'PvP',
-	[_G.CALENDAR_TYPE_DUNGEON] = 'D',
 	[_G.GROUP] = 'G',
-	[_G.RAID] = 'R',
+	[_G.GUILD_CHALLENGE_TYPE1] = 'D',
+	[_G.GUILD_CHALLENGE_TYPE2] = 'R',
+	[_G.GUILD_CHALLENGE_TYPE4] = 'SC',
+	[_G.GUILD_CHALLENGE_TYPE3] = 'RBG',
 	-- [_G.REPEATABLE] = '∞',
 	-- [_G.ITEM_QUALITY5_DESC] = 'L',
 }
@@ -27,6 +29,7 @@ lists.providers = {
 	[<identifier>] = {
 		label = 'My Provider',
 		icon = 'Interface\\Icons\\Achievement_Quests_Completed_06',
+		events = {'SOME_EVENT', 'SOME_OTHER_EVENT'}, -- events that cause the list to update
 
 		GetNumRows = function(characterKey)
 			return <number of results>
@@ -44,23 +47,26 @@ lists.providers = {
 	['quests'] = {
 		label = 'Quests',
 		icon  = 'Interface\\Icons\\Achievement_Quests_Completed_06',
+		events = {'QUEST_LOG_UPDATE'},
+
 		GetNumRows = function(characterKey) return DataStore:GetQuestLogSize(characterKey) end,
 		GetRowInfo = function(characterKey, index)
-			local _, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
+			local isHeader, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
 			local questID, questLevel = questLink:match("quest:(%d+):(-?%d+)")
 			      questID, questLevel = tonumber(questID), tonumber(questLevel)
 			local title = questLink:gsub('[%[%]]', ''):gsub('\124c........', ''):gsub('\124r', '')
 
 			local tags = ''
+			if isComplete == 1 then tags = tags .. shortTags[_G.COMPLETE] end
 			if questTag and questTag ~= '' then
 				if questTag == _G.ITEM_QUALITY5_DESC then
 					title = RGBToColorCode(GetItemQualityColor(5)) .. title .. '|r'
+				elseif questTag == _G.GROUP then
+					tags = tags .. '['..((groupSize and groupSize > 0) and groupSize or 5)..']'
 				else
-					tags = tags .. '['..shortTags[questTag]..']'
+					tags = tags .. '['..(shortTags[questTag] or questTag)..']'
 				end
 			end
-			if groupSize and groupSize > 0 then tags = tags .. '['..shortTags[_G.GROUP]..groupSize..']' end
-			if isComplete == 1 then             tags = tags .. '['..shortTags[_G.COMPLETE]..']' end
 
 			local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
 			if isComplete ~= 1 and progress > 0 then
@@ -69,7 +75,7 @@ lists.providers = {
 			local color  = questLevel and GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
 			local prefix = questLevel and RGBTableToColorCode(color) .. questLevel .. '|r' or ''
 
-			return not questID, title, questID and questLink or nil, prefix, tags
+			return isHeader, title, not isHeader and questLink or nil, prefix, tags
 		end,
 		GetItemInfo = function(characterKey, index, itemIndex)
 			local icon, link, tooltipText, count
@@ -186,7 +192,17 @@ local function UpdateList()
 end
 
 function lists:OnEnable()
-	self.provider = self.providers['quests']
+	for key, provider in pairs(self.providers) do
+		if not self.provider then
+			self.provider = provider
+		end
+		if provider.events then
+			for _, event in pairs(provider.events) do
+				self:RegisterEvent(event, UpdateList)
+			end
+		end
+	end
+
 	local panel = self.panel
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
@@ -212,7 +228,7 @@ function lists:OnEnable()
 		scrollFrame[index] = row
 
 		if index == 1 then
-			row:SetPoint('TOPLEFT', scrollFrame, 'TOPLEFT', 10, 0)
+			row:SetPoint('TOPLEFT', scrollFrame, 'TOPLEFT', 10, -4)
 		else
 			row:SetPoint('TOPLEFT', scrollFrame[index - 1], 'BOTTOMLEFT')
 		end
