@@ -11,6 +11,7 @@ local broker = brokers:NewModule('talents')
 local thisCharacter = DataStore:GetCharacter()
 
 local function CheckTalents(characterKey)
+	-- GetSpecializationNameForSpecID(specializationID)
 	local _, class = DataStore:GetCharacterClass(characterKey)
 	local currentSpec = DataStore:GetActiveTalents(characterKey)
 	if not class or not currentSpec then return end

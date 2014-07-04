@@ -77,6 +77,7 @@ function addon.OnInitialize()
 
 	-- initialize main frame
 	local frame = CreateFrame('Frame', addonName..'UI', _G.UIParent, 'PortraitFrameTemplate')
+	frame:SetFrameLevel(17)
 	frame:Hide()
 	addon.frame = frame
 

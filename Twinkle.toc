@@ -57,5 +57,6 @@ tooltip\social.lua
 views\default.lua
 views\equipment.lua
 views\containers.lua
+views\lists.lua
 views\quests.lua
 # views\tasks.lua
