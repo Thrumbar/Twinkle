@@ -59,10 +59,13 @@ function data.GetCharacterFactionIcon(characterKey)
 	if IsAddOnLoaded('DataStore_Characters') then
 		local faction = DataStore:GetCharacterFaction(characterKey)
 		if faction == 'Horde' then
+			-- Interface\\PVPFrame\\PVPCurrency-Honor-Horde'
 			text = '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t'
 		elseif faction == 'Alliance' then
+			-- Interface\\PVPFrame\\PVPCurrency-Honor-Alliance'
 			text = '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t'
 		else
+			-- Interface\\ICONS\\FactionChange
 			text = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t'
 		end
 	end

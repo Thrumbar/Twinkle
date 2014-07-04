@@ -31,15 +31,15 @@ end
 
 local function UpdateList()
 	local self = lists
-	local characterKey = addon.GetSelectedCharacter()
-	local numRows = self.provider.GetNumRows(characterKey)
+	local characterKey = addon:GetSelectedCharacter()
+	local numRows = self.provider:GetNumRows(characterKey)
 
 	local scrollFrame = self.panel.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
 	for i, button in ipairs(scrollFrame) do
 		local index = i + offset
 		if index <= numRows then
-			local isHeader, title, link, prefix, suffix = self.provider.GetRowInfo(characterKey, index)
+			local isHeader, title, link, prefix, suffix = self.provider:GetRowInfo(characterKey, index)
 			local isCollapsed = false -- TODO: store
 
 			button:SetText(title)
@@ -60,7 +60,7 @@ local function UpdateList()
 
 			-- we can display associated icons, e.g. quest rewards or crafting reagents
 			for itemIndex, itemButton in ipairs(button) do
-				local icon, link, tiptext = self.provider.GetItemInfo(characterKey, index, itemIndex)
+				local icon, link, tiptext = self.provider:GetItemInfo(characterKey, index, itemIndex)
 				if icon then
 					itemButton.icon:SetTexture(icon)
 					itemButton.link = link
@@ -89,11 +89,52 @@ local function UpdateList()
 	-- scrollFrame:SetPoint('BOTTOMRIGHT', -10+(needsScrollBar and -14 or 0), 2)
 end
 
-function lists:OnEnable()
-	for name, subModule in self:IterateModules() do
-		self.provider = subModule
-		break
+function lists:SelectDataSource(button, btn, up)
+	for index, sourceButton in ipairs(self.panel) do
+		if sourceButton == button then
+			self.provider = self:GetModule(sourceButton.module)
+			sourceButton:SetChecked(true)
+		else
+			sourceButton:SetChecked(false)
+		end
 	end
+	UpdateList()
+end
+local function CreateDataSourceButton(subModule, index)
+	local name, title, icon = subModule:GetName(), subModule.title, subModule.icon
+	local button = CreateFrame('CheckButton', '$parent'..name, lists.panel, 'PopupButtonTemplate', index)
+	      button:SetNormalTexture(icon)
+	      button:SetScale(0.75)
+	      button.tiptext = title
+	      button.module = name
+	      button:SetScript('OnClick', function(...) lists:SelectDataSource(...) end)
+	      button:SetScript('OnEnter', addon.ShowTooltip)
+	      button:SetScript('OnLeave', addon.HideTooltip)
+	return button
+end
+function lists:UpdateDataSources()
+	local panel = self.panel
+
+	local index = 0
+	for name, subModule in self:IterateModules() do
+		self.provider = self.provider or subModule
+
+		-- init data selector
+		index = index + 1
+		local button = _G[panel:GetName()..subModule:GetName()] or CreateDataSourceButton(subModule, index)
+		      button:ClearAllPoints()
+		      button:SetChecked(self.provider == subModule)
+		panel[index] = button
+		if index == 1 then
+			button:SetPoint('TOPLEFT', 10, -12)
+		else
+			button:SetPoint('TOPLEFT', panel[index - 1], 'TOPRIGHT', 12, 0)
+		end
+	end
+end
+
+function lists:OnEnable()
+	self:UpdateDataSources()
 
 	local panel = self.panel
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
@@ -160,7 +201,7 @@ function lists:OnEnable()
 
 		for i = 1, 5 do
 			local item = CreateFrame('Button', '$parentItem'..i, row, nil, i)
-			      item:SetSize(14, 14)
+			      item:SetSize(16, 16)
 			local tex = item:CreateTexture(nil, 'BACKGROUND')
 			      tex:SetAllPoints()
 			item.icon = tex
@@ -187,19 +228,11 @@ function lists:Update()
 	UpdateList()
 end
 
-local ItemSearch = LibStub('LibItemSearch-1.2')
+-- local ItemSearch = LibStub('LibItemSearch-1.2')
 function lists:Search(what, onWhom)
-	-- TODO: relay to provider
 	local hasMatch = 0
-	if what and what ~= '' and what ~= _G.SEARCH then
-		-- find results
-		-- hasMatch = hasMatch + 1
-	end
-
-	local character = addon.GetSelectedCharacter()
-	if self.panel:IsVisible() and character == onWhom then
-		-- this panel is active, display filtered results
-		-- ListUpdate(self.panel.scrollFrame)
+	if self.provider and self.provider.Search then
+		hasMatch = self.provider:Search(what, onWhom)
 	end
 
 	return hasMatch

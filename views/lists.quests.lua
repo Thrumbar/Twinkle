@@ -1,13 +1,13 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
--- GLOBALS: CreateFrame, RGBToColorCode, RGBTableToColorCode, GetItemInfo, GetSpellInfo, GetSpellLink, GetCoinTextureString
--- GLOBALS: ipairs, tonumber
+-- GLOBALS: _G, DataStore, QuestLogFrame, QuestLog_SetSelection
+-- GLOBALS: CreateFrame, RGBToColorCode, RGBTableToColorCode, GetItemInfo, GetSpellInfo, GetSpellLink, GetCoinTextureString, GetRelativeDifficultyColor, GetItemQualityColor, GetQuestLogIndexByID
+-- GLOBALS: ipairs, tonumber, math
 
 local views  = addon:GetModule('views')
 local lists  = views:GetModule('lists')
 local quests = lists:NewModule('quests', 'AceEvent-3.0')
-      quests.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
+      quests.icon = 'Interface\\LFGFrame\\LFGIcon-Quest' -- grids: Ability_Ensnare
       quests.title = 'Quests'
 
 local shortTags = {
@@ -32,11 +32,11 @@ function quests:OnDisable()
 	self:UnregisterEvent('QUEST_LOG_UPDATE')
 end
 
-function quests.GetNumRows(characterKey)
+function quests:GetNumRows(characterKey)
 	return DataStore:GetQuestLogSize(characterKey)
 end
 
-function quests.GetRowInfo(characterKey, index)
+function quests:GetRowInfo(characterKey, index)
 	local isHeader, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
 	local questID, questLevel = questLink:match("quest:(%d+):(-?%d+)")
 	      questID, questLevel = tonumber(questID), tonumber(questLevel)
@@ -64,7 +64,7 @@ function quests.GetRowInfo(characterKey, index)
 	return isHeader, title, not isHeader and questLink or nil, prefix, tags
 end
 
-function quests.GetItemInfo(characterKey, index, itemIndex)
+function quests:GetItemInfo(characterKey, index, itemIndex)
 	local icon, link, tooltipText, count
 	local numRewards = DataStore:GetQuestLogNumRewards(characterKey, index)
 	local _, _, _, _, money = DataStore:GetQuestLogInfo(characterKey, index)
@@ -87,7 +87,7 @@ function quests.GetItemInfo(characterKey, index, itemIndex)
 	return icon, link, tooltipText, count
 end
 
-function quests.OnClickRow(self, btn, up)
+function quests:OnClickRow(btn, up)
 	if not self.link then return end
 	local questID, linkType = addon.GetLinkID(self.link)
 	local questIndex = GetQuestLogIndexByID(questID)
@@ -96,3 +96,24 @@ function quests.OnClickRow(self, btn, up)
 		QuestLog_SetSelection(QuestLogFrame.selectedIndex == questIndex and 0 or questIndex)
 	end
 end
+
+--[[ local ItemSearch = LibStub('LibItemSearch-1.2')
+function quests:Search(what, onWhom)
+	-- TODO: relay to provider
+	local hasMatch = 0
+	if what and what ~= '' and what ~= _G.SEARCH then
+		-- find results
+		-- if ItemSearch:Matches(link, what) then
+		-- 	hasMatch = hasMatch + 1
+		-- end
+	end
+
+	local character = addon.GetSelectedCharacter()
+	if self.panel:IsVisible() and character == onWhom then
+		-- this panel is active, display filtered results
+		-- ListUpdate(self.panel.scrollFrame)
+	end
+
+	return hasMatch
+end
+--]]
