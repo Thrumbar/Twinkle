@@ -1,115 +1,13 @@
 local addonName, addon, _ = ...
 
 -- GLOBALS: _G, DataStore
--- GLOBALS: CreateFrame, RGBTableToColorCode, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_OnVerticalScroll, GetItemInfo, GetSpellInfo, GetSpellLink, GetCoinTextureString
--- GLOBALS: ipairs, tonumber
+-- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_OnVerticalScroll
+-- GLOBALS: ipairs
 
 local views = addon:GetModule('views')
 local lists = views:NewModule('lists', 'AceEvent-3.0')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = 'Lists'
-
-local shortTags = {
-	[_G.FAILED] = '|TInterface\\RAIDFRAME\\ReadyCheck-NotReady:0|t',
-	[_G.COMPLETE] = '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t',
-	[_G.DAILY] = '•',
-	[_G.ELITE] = '+',
-	[_G.PLAYER_V_PLAYER] = 'PvP',
-	[_G.GROUP] = 'G',
-	[_G.GUILD_CHALLENGE_TYPE1] = 'D',
-	[_G.GUILD_CHALLENGE_TYPE2] = 'R',
-	[_G.GUILD_CHALLENGE_TYPE4] = 'SC',
-	[_G.GUILD_CHALLENGE_TYPE3] = 'RBG',
-	-- [_G.REPEATABLE] = '∞',
-	-- [_G.ITEM_QUALITY5_DESC] = 'L',
-}
--- register your provider via table.insert(addon:GetModule('lists').providers, myProvider)
-lists.providers = {
-	--[[
-	[<identifier>] = {
-		label = 'My Provider',
-		icon = 'Interface\\Icons\\Achievement_Quests_Completed_06',
-		events = {'SOME_EVENT', 'SOME_OTHER_EVENT'}, -- events that cause the list to update
-
-		GetNumRows = function(characterKey)
-			return <number of results>
-		end,
-		GetRowInfo = function(characterKey, index)
-			return <is header>, <title>, <link (displayed on hover/SHIFT-click)>, <short prefix, optional>, <short suffix, optional>
-		end,
-		GetItemInfo = function(characterKey, index, itemIndex)
-			return <icon>, <link (displayed on hover/SHIFT-click)>, <tooltip text (used when no link is found)>, <count>
-		end,
-		OnClickRow = function(self, btn, up) ... end, -- optional, self = row, including self.link + self.tiptext
-		OnClickItem = function(self, btn, up) ... end, -- optional, self = item button, including self.link + self.tiptext
-	},
-	--]]
-	['quests'] = {
-		label = 'Quests',
-		icon  = 'Interface\\Icons\\Achievement_Quests_Completed_06',
-		events = {'QUEST_LOG_UPDATE'},
-
-		GetNumRows = function(characterKey) return DataStore:GetQuestLogSize(characterKey) end,
-		GetRowInfo = function(characterKey, index)
-			local isHeader, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
-			local questID, questLevel = questLink:match("quest:(%d+):(-?%d+)")
-			      questID, questLevel = tonumber(questID), tonumber(questLevel)
-			local title = questLink:gsub('[%[%]]', ''):gsub('\124c........', ''):gsub('\124r', '')
-
-			local tags = ''
-			if isComplete == 1 then tags = tags .. shortTags[_G.COMPLETE] end
-			if questTag and questTag ~= '' then
-				if questTag == _G.ITEM_QUALITY5_DESC then
-					title = RGBToColorCode(GetItemQualityColor(5)) .. title .. '|r'
-				elseif questTag == _G.GROUP then
-					tags = tags .. '['..((groupSize and groupSize > 0) and groupSize or 5)..']'
-				else
-					tags = tags .. '['..(shortTags[questTag] or questTag)..']'
-				end
-			end
-
-			local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
-			if isComplete ~= 1 and progress > 0 then
-				title = title .. ' ('..math.floor(progress*100)..'%)'
-			end
-			local color  = questLevel and GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
-			local prefix = questLevel and RGBTableToColorCode(color) .. questLevel .. '|r' or ''
-
-			return isHeader, title, not isHeader and questLink or nil, prefix, tags
-		end,
-		GetItemInfo = function(characterKey, index, itemIndex)
-			local icon, link, tooltipText, count
-			local numRewards = DataStore:GetQuestLogNumRewards(characterKey, index)
-			local _, _, _, _, money = DataStore:GetQuestLogInfo(characterKey, index)
-			local rewardsMoney = money and money > 0
-
-			local rewardIndex = itemIndex - (rewardsMoney and 1 or 0)
-			if itemIndex == 1 and rewardsMoney then
-				icon, link, tooltipText = 'Interface\\MONEYFRAME\\UI-GoldIcon', nil, GetCoinTextureString(money)..' '
-			elseif rewardIndex <= numRewards then
-				local rewardType, rewardID
-				      rewardType, rewardID, count = DataStore:GetQuestLogRewardInfo(characterKey, index, rewardIndex)
-				if rewardType == 's' then
-					_, _, icon = GetSpellInfo(rewardID)
-					link = GetSpellLink(rewardID)
-				else
-					_, link, _, _, _, _, _, _, _, icon = GetItemInfo(rewardID)
-				end
-			end
-
-			return icon, link, tooltipText, count
-		end,
-		OnClickRow = function(self, btn, up)
-			if not self.link then return end
-			local questID, linkType = addon.GetLinkID(self.link)
-			local questIndex = GetQuestLogIndexByID(questID)
-			if linkType == 'quest' and questIndex then
-				-- ShowUIPanel(QuestLogDetailFrame)
-				QuestLog_SetSelection(QuestLogFrame.selectedIndex == questIndex and 0 or questIndex)
-			end
-		end,
-	},
-}
 
 local function OnRowClick(self, btn, up)
 	if not self.link then
@@ -134,13 +32,13 @@ end
 local function UpdateList()
 	local self = lists
 	local characterKey = addon.GetSelectedCharacter()
-	local scrollFrame = self.panel.scrollFrame
+	local numRows = self.provider.GetNumRows(characterKey)
 
+	local scrollFrame = self.panel.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
-	local numQuests = self.provider.GetNumRows(characterKey)
 	for i, button in ipairs(scrollFrame) do
 		local index = i + offset
-		if index <= numQuests then
+		if index <= numRows then
 			local isHeader, title, link, prefix, suffix = self.provider.GetRowInfo(characterKey, index)
 			local isCollapsed = false -- TODO: store
 
@@ -187,24 +85,17 @@ local function UpdateList()
 		end
 	end
 
-	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numQuests, #scrollFrame, 20)
+	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numRows, #scrollFrame, 20)
 	-- scrollFrame:SetPoint('BOTTOMRIGHT', -10+(needsScrollBar and -14 or 0), 2)
 end
 
 function lists:OnEnable()
-	for key, provider in pairs(self.providers) do
-		if not self.provider then
-			self.provider = provider
-		end
-		if provider.events then
-			for _, event in pairs(provider.events) do
-				self:RegisterEvent(event, UpdateList)
-			end
-		end
+	for name, subModule in self:IterateModules() do
+		self.provider = subModule
+		break
 	end
 
 	local panel = self.panel
-
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
 	      background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
 	      background:SetTexCoord(0, 0.76, 0, 0.86)
@@ -294,4 +185,22 @@ end
 
 function lists:Update()
 	UpdateList()
+end
+
+local ItemSearch = LibStub('LibItemSearch-1.2')
+function lists:Search(what, onWhom)
+	-- TODO: relay to provider
+	local hasMatch = 0
+	if what and what ~= '' and what ~= _G.SEARCH then
+		-- find results
+		-- hasMatch = hasMatch + 1
+	end
+
+	local character = addon.GetSelectedCharacter()
+	if self.panel:IsVisible() and character == onWhom then
+		-- this panel is active, display filtered results
+		-- ListUpdate(self.panel.scrollFrame)
+	end
+
+	return hasMatch
 end

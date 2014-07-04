@@ -6,20 +6,16 @@ local addonName, addon, _ = ...
 
 local search = addon:NewModule('search')
 
-function search.OnEnable()
+function search:OnEnable()
 	-- add search box to frame sidebar
 	local frame = addon.frame
 	local searchbox = CreateFrame('EditBox', '$parentSearchBox', frame.sidebar, 'SearchBoxTemplate')
-		searchbox:SetPoint('BOTTOM', 4, 2)
-		searchbox:SetSize(160, 20)
-		searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
-		searchbox:SetScript('OnEscapePressed', function(self)
-			PlaySound('igMainMenuOptionCheckBoxOff')
-			EditBox_ClearFocus(self)
-			self:SetText(_G.SEARCH)
-		end)
-		searchbox:SetScript('OnTextChanged', search.Update)
-		searchbox.clearFunc = search.Clear
+	      searchbox:SetPoint('BOTTOM', 4, 2)
+	      searchbox:SetSize(160, 20)
+	searchbox.clearFunc = function() self:Clear() end
+	searchbox:SetScript('OnTextChanged', function() self:Update() end)
+	searchbox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
+	searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
 	frame.search = searchbox
 
 	-- slightly reposition sidebar scrollFrame
@@ -28,7 +24,7 @@ function search.OnEnable()
 	-- make sure all views are always up to date & filtered properly
 	local function OnViewUpdate()
 		search.updating = true
-		search.Update(searchbox, true)
+		search:Update(true) -- forced update
 		search.updating = nil
 	end
 	local views = addon:GetModule('views', true)
@@ -44,7 +40,7 @@ function search.OnEnable()
 	end
 end
 
-function search.Clear(...)
+function search:Clear()
 	local views = addon:GetModule('views', true)
 	if views then
 		for name, view in views:IterateModules() do
@@ -54,13 +50,14 @@ function search.Clear(...)
 		end
 	end
 
-	addon.UpdateCharacters()
-	if not search.updating then
-		addon.Update()
+	addon:UpdateCharacters()
+	if not self.updating then
+		addon:Update()
 	end
 end
 
-function search.Update(editBox, forced)
+function search:Update(forced)
+	local editBox = addon.frame.search
 	local oldText, newText = editBox.searchString, editBox:GetText()
 	if newText == oldText and not forced then
 		return
@@ -87,8 +84,8 @@ function search.Update(editBox, forced)
 			-- ask views for their search results
 			for name, view in views:IterateModules() do
 				if view.Search then
-					local numMatches = view.Search(editBox.searchString, button.element)
-					if numMatches and type(numMatches) == 'number' then
+					local numMatches = view:Search(editBox.searchString, button.element)
+					if numMatches and type(numMatches) == 'number' and numMatches > 0 then
 						numResults = numResults + numMatches
 						local icon = view.tab:GetNormalTexture()
 						icon:SetDesaturated(false)

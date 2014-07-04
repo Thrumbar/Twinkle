@@ -137,23 +137,23 @@ function summary.UpdateRows(scrollFrame)
 	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numItems, numToDisplay, buttonSize)
 end
 
-function summary.Update()
+function summary:Update()
 	local views = addon:GetModule('views')
 	local view  = views.GetActiveView()
 
-	if summary.show then
+	if self.show then
 		view.panel:Hide()
-		summary.panel:Show()
+		self.panel:Show()
 
 		if true or view.Summary then
-			local scrollFrame = summary.panel.scrollFrame
+			local scrollFrame = self.panel.scrollFrame
 			local offset = FauxScrollFrame_GetOffset(scrollFrame)
-			summary.UpdateTable(scrollFrame)
+			self.UpdateTable(scrollFrame)
 			-- TODO: Summary(characterKey) should return data for one row in our table
 			-- view.Summary(characterKey, offset)
 		end
 	else
-		summary.panel:Hide()
+		self.panel:Hide()
 		view.panel:Show()
 	end
 end

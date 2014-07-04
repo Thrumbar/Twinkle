@@ -7,9 +7,10 @@ local addonName, addon, _ = ...
 local views = addon:GetModule('views')
 local view = views:NewModule('containers', 'AceTimer-3.0')
       view.icon = 'Interface\\Buttons\\Button-Backpack-Up'
-      view.title = 'Item List'
+      view.title = 'Items'
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
+local LOCATION, ITEMID, COUNT, ITEMLINK, EXPIRY = 0, 1, 2, 3, 4 -- indices in data table
 
 view.itemsTable = {}
 local primarySort, secondarySort
@@ -35,8 +36,8 @@ local function DataUpdate(characterKey)
 	wipe(view.itemsTable)
 	local containers = DataStore:GetContainers(characterKey)
 	for bag, data in pairs(containers) do
-		local bagIndex = tonumber(bag:match("Bag(%d+)") or "")
-		if (bag == "VoidStorage" and showVoid) or
+		local bagIndex = tonumber(bag:match('Bag(%d+)') or '')
+		if (bag == 'VoidStorage' and showVoid) or
 			(bagIndex and bagIndex <= NUM_BAG_SLOTS and showBags) or
 			(bagIndex and (bagIndex == 100 or (bagIndex > NUM_BAG_SLOTS and bagIndex < NUM_BANKBAGSLOTS)) and showBank) then
 			if bagIndex and bagIndex > NUM_BAG_SLOTS then
@@ -47,20 +48,21 @@ local function DataUpdate(characterKey)
 				if itemID then
 					local index
 					for i, listData in ipairs(view.itemsTable) do
-						if listData[1] and listData[1] == itemID and ItemLinksAreEqual(listData[3], data.links[i]) then
+						if listData[ITEMID] and listData[ITEMID] == itemID
+							and ItemLinksAreEqual(listData[ITEMLINK], data.links[i]) then
 							index = i
 							break
 						end
 					end
 
 					if index then
-						view.itemsTable[index][2] = (view.itemsTable[index][2] or 1) + (data.counts[slot] or 1)
+						view.itemsTable[index][COUNT] = (view.itemsTable[index][COUNT] or 1) + (data.counts[slot] or 1)
 					else
 						table.insert(view.itemsTable, {
-							itemID,
-							data.counts[slot],
-							data.links[slot],
-							[0] = tonumber(string.format("%d.%.2d", bagIndex or 100, slot)),
+							[ITEMID] = itemID,
+							[COUNT] = data.counts[slot],
+							[ITEMLINK] = data.links[slot],
+							[LOCATION] = tonumber(string.format("%d.%.2d", bagIndex or 100, slot)),
 						})
 					end
 				end
@@ -68,13 +70,13 @@ local function DataUpdate(characterKey)
 		end
 	end
 
-	local button = _G[filter.."Equipment"]
+	local button = _G[filter..'Equipment']
 	if button and button:GetChecked() then
 		for slotID = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
 			local item = addon.data.GetInventoryItemLink(characterKey, slotID, true)
 			if item then
 				local itemID, itemLink
-				if type(item) == "string" then
+				if type(item) == 'string' then
 					itemID = addon.GetLinkID(item)
 					itemLink = item
 				else
@@ -83,27 +85,27 @@ local function DataUpdate(characterKey)
 
 				local index
 				for i, data in ipairs(view.itemsTable) do
-					if data[1] and data[1] == itemID and ItemLinksAreEqual(data[3], itemLink) then
+					if data[ITEMID] and data[ITEMID] == itemID and ItemLinksAreEqual(data[ITEMLINK], itemLink) then
 						index = i
 						break
 					end
 				end
 
 				if index then
-					view.itemsTable[index][2] = (view.itemsTable[index][2] or 1) + 1
+					view.itemsTable[index][COUNT] = (view.itemsTable[index][COUNT] or 1) + 1
 				else
 					table.insert(view.itemsTable, {
-						itemID,
-						1,
-						itemLink,
-						[0] = tonumber(string.format("-2.%.4d", slotID)),
+						[ITEMID] = itemID,
+						[COUNT] = 1,
+						[ITEMLINK] = itemLink,
+						[LOCATION] = tonumber(string.format('-2.%.4d', slotID)),
 					})
 				end
 			end
 		end
 	end
 
-	local button = _G[filter.."Mail"]
+	local button = _G[filter..'Mail']
 	if button and button:GetChecked() then
 		for i = 1, DataStore:GetNumMails(characterKey) do
 			local _, count, link, _, _, returned = DataStore:GetMailInfo(characterKey, i)
@@ -116,21 +118,21 @@ local function DataUpdate(characterKey)
 				local index
 				for j, data in ipairs(view.itemsTable) do
 					-- don't merge mail with non-mail items, don't merge different timings
-					if data[1] == itemID and ItemLinksAreEqual(data[3], baseLink ~= link and link or nil) and data[4] == expiresIn then
+					if data[1] == itemID and ItemLinksAreEqual(data[ITEMLINK], baseLink ~= link and link or nil) and data[EXPIRY] == expiresIn then
 						index = j
 						break
 					end
 				end
 
 				if index then
-					view.itemsTable[index][2] = (view.itemsTable[index][2] or 1) + 1
+					view.itemsTable[index][COUNT] = (view.itemsTable[index][COUNT] or 1) + 1
 				else
 					table.insert(view.itemsTable, {
-						itemID,
-						count,
-						(baseLink ~= link and link or nil),
-						expiresIn,
-						[0] = tonumber(string.format("-1.%.4d", i)),
+						[ITEMID] = itemID,
+						[COUNT] = count,
+						[ITEMLINK] = (baseLink ~= link and link or nil),
+						[EXPIRY] = expiresIn,
+						[LOCATION] = tonumber(string.format('-1.%.4d', i)),
 					})
 				end
 			end
@@ -190,19 +192,27 @@ local function ListUpdate(self)
 	self:SetPoint("BOTTOMRIGHT", -10+(needsScrollBar and -18 or 0), 10)
 end
 
+-- TODO: FIXME: this is ugly as hell
 local function DataSort(a, b)
-	local namea, _, qualitya, iLevela, _, classa, subclassa = GetItemInfo(a[1])
-	if a[3] then iLevela = LibItemUpgrade:GetUpgradedItemLevel(a[3]) end
-	local nameb, _, qualityb, iLevelb, _, classb, subclassb = GetItemInfo(b[1])
-	if b[3] then iLevelb = LibItemUpgrade:GetUpgradedItemLevel(b[3]) end
+	local namea, _, qualitya, iLevela, _, classa, subclassa = GetItemInfo(a[ITEMID])
+	if a[ITEMLINK] then iLevela = LibItemUpgrade:GetUpgradedItemLevel(a[ITEMLINK]) end
+
+	local nameb, _, qualityb, iLevelb, _, classb, subclassb = GetItemInfo(b[ITEMID])
+	if b[ITEMLINK] then iLevelb = LibItemUpgrade:GetUpgradedItemLevel(b[ITEMLINK]) end
 
 
 	local reverse, s, sortA, sortB
 	if primarySort then
 		reverse = primarySort < 0
 		s = math.abs(primarySort)
-		sortA = (s == 1 and qualitya) or (s == 2 and namea) or (s == 3 and (a[2] or 1)) or (s == 4 and (a[4] or iLevela))
-		sortB = (s == 1 and qualityb) or (s == 2 and nameb) or (s == 3 and (b[2] or 1)) or (s == 4 and (b[4] or iLevelb))
+		sortA = (s == 1 and qualitya)
+			or (s == 2 and namea)
+			or (s == 3 and (a[COUNT] or 1))
+			or (s == 4 and (a[EXPIRY] or iLevela))
+		sortB = (s == 1 and qualityb)
+			or (s == 2 and nameb)
+			or (s == 3 and (b[COUNT] or 1))
+			or (s == 4 and (b[EXPIRY] or iLevelb))
 	end
 	if sortA and sortB and sortA ~= sortB then
 		if reverse then
@@ -215,8 +225,14 @@ local function DataSort(a, b)
 	if secondarySort then
 		reverse = secondarySort < 0
 		s = math.abs(secondarySort)
-		sortA = (s == 1 and qualitya) or (s == 2 and namea) or (s == 3 and (a[2] or 1)) or (s == 4 and (a[4] or iLevela))
-		sortB = (s == 1 and qualityb) or (s == 2 and nameb) or (s == 3 and (b[2] or 1)) or (s == 4 and (b[4] or iLevelb))
+		sortA = (s == 1 and qualitya)
+			or (s == 2 and namea)
+			or (s == 3 and (a[COUNT] or 1))
+			or (s == 4 and (a[EXPIRY] or iLevela))
+		sortB = (s == 1 and qualityb)
+			or (s == 2 and nameb)
+			or (s == 3 and (b[COUNT] or 1))
+			or (s == 4 and (b[EXPIRY] or iLevelb))
 	end
 	if sortA and sortB and sortA ~= sortB then
 		if reverse then
@@ -226,7 +242,7 @@ local function DataSort(a, b)
 		end
 	end
 
-	return tonumber(a[0]) < tonumber(b[0])
+	return tonumber(a[LOCATION]) < tonumber(b[LOCATION])
 end
 
 local function SortOnClick(self, btn)
@@ -253,16 +269,16 @@ local function SortOnClick(self, btn)
 	ListUpdate(view.panel.scrollFrame)
 end
 
-function view.OnEnable(self)
+function view:OnEnable()
 	local panel = self.panel
 
 	-- TODO: show slot count (13/97) on icons
 	local filters = {
-		IsAddOnLoaded('DataStore_Containers') and {"Bags", "Interface\\MINIMAP\\TRACKING\\Banker"},
-		IsAddOnLoaded('DataStore_Containers') and {"Bank", "INTERFACE\\ICONS\\achievement_guildperk_mobilebanking"},
-		IsAddOnLoaded('DataStore_Containers') and {"VoidStorage", "INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup"},
-		IsAddOnLoaded('DataStore_Inventory')  and {"Equipment", "Interface\\GUILDFRAME\\GuildLogo-NoLogo"},
-		IsAddOnLoaded('DataStore_Mails')      and {"Mail", "Interface\\MINIMAP\\TRACKING\\Mailbox"},
+		IsAddOnLoaded('DataStore_Containers') and {'Bags', 'Interface\\MINIMAP\\TRACKING\\Banker'},
+		IsAddOnLoaded('DataStore_Containers') and {'Bank', 'INTERFACE\\ICONS\\achievement_guildperk_mobilebanking'},
+		IsAddOnLoaded('DataStore_Containers') and {'VoidStorage', 'INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup'},
+		IsAddOnLoaded('DataStore_Inventory')  and {'Equipment', 'Interface\\GUILDFRAME\\GuildLogo-NoLogo'},
+		IsAddOnLoaded('DataStore_Mails')      and {'Mail', 'Interface\\MINIMAP\\TRACKING\\Mailbox'},
 	}
 	local filterButtons = {}
 	local function OnFilterButtonClick() self.Update() end
@@ -393,39 +409,38 @@ function view.OnEnable(self)
 	panel.scrollFrame = list
 end
 
-function view.Update()
-	local panel = view.panel
-	assert(panel, "Can't update panel before it's created")
+function view:Update()
+	local panel = self.panel
 	local character = addon.GetSelectedCharacter()
 
 	DataUpdate(character)
-	table.sort(view.itemsTable, DataSort)
+	table.sort(self.itemsTable, DataSort)
 
 	panel.scrollFrame:SetVerticalScroll(0)
 	ListUpdate(panel.scrollFrame)
 end
 
 local ItemSearch = LibStub('LibItemSearch-1.2')
-function view.Search(what, onWhom)
+function view:Search(what, onWhom)
 	local hasMatch = 0
 	if what and what ~= '' and what ~= _G.SEARCH then
 		DataUpdate(onWhom)
-		for i = #view.itemsTable, 1, -1 do
-			local _, link = GetItemInfo(view.itemsTable[i][1])
+		for i = #self.itemsTable, 1, -1 do
+			local _, link = GetItemInfo(self.itemsTable[i][ITEMID])
 			-- TODO: also search sender name etc
 			if not ItemSearch:Matches(link, what) then
-				wipe(view.itemsTable[i])
-				table.remove(view.itemsTable, i)
+				wipe(self.itemsTable[i])
+				table.remove(self.itemsTable, i)
 			else
 				hasMatch = hasMatch + 1
 			end
 		end
-		table.sort(view.itemsTable, DataSort)
+		table.sort(self.itemsTable, DataSort)
 	end
 
 	local character = addon.GetSelectedCharacter()
-	if view.panel:IsVisible() and character == onWhom then
-		ListUpdate(view.panel.scrollFrame)
+	if self.panel:IsVisible() and character == onWhom then
+		ListUpdate(self.panel.scrollFrame)
 	end
 
 	return hasMatch
