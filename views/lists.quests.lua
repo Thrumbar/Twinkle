@@ -61,7 +61,7 @@ function quests:GetRowInfo(characterKey, index)
 	local color  = questLevel and GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
 	local prefix = questLevel and RGBTableToColorCode(color) .. questLevel .. '|r' or ''
 
-	return isHeader, title, not isHeader and questLink or nil, prefix, tags
+	return isHeader, title, prefix, tags, not isHeader and questLink or nil
 end
 
 function quests:GetItemInfo(characterKey, index, itemIndex)

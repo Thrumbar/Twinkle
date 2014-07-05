@@ -17,66 +17,62 @@ function reputation:OnDisable()
 	-- self:UnregisterEvent('QUEST_LOG_UPDATE')
 end
 
+--[[
+local PublicMethods = {
+	-- general functions
+	GetFriendshipStanding = factions.GetFriendshipStanding,
+	GetReputationStanding = factions.GetReputationStanding,
+	-- character functions
+	GetNumFactions        = factions.GetNumFactions,
+	GetFactionInfoGuild   = factions.GetFactionInfoGuild,
+	GetFactionInfoByName  = factions.GetFactionInfoByName,
+	GetFactionInfoByID    = factions.GetFactionInfoByID,
+	GetFactionInfo        = factions.GetFactionInfo,
+}
+--]]
+
 function reputation:GetNumRows(characterKey)
-	local reputations = DataStore:GetReputations(characterKey)
-	return addon.Count(reputations)
+	-- local reputations = DataStore:GetReputations(characterKey)
+	-- return addon.Count(reputations)
+	return DataStore:GetNumFactions(characterKey)
 end
 
 function reputation:GetRowInfo(characterKey, index)
-	-- local min, max, current = DataStore:GetRawReputationInfo(characterKey, factionName)
+	local factionID, reputation, standingID, standingText, low, high = DataStore:GetFactionInfo(characterKey, index)
+	local title, description, _, _, _, _, _, _, isHeader, _, hasRep, _, isIndented = GetFactionInfoByID(factionID)
 
-	-- local isHeader, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
-	local isHeader, title, link, prefix, tags = false, 'Sample '..index
-	return isHeader, title, not isHeader and link or nil, prefix, tags
-end
-
-function reputation:GetItemInfo(characterKey, index, itemIndex)
-	local icon, link, tooltipText, count
-	--[[ local numRewards = DataStore:GetQuestLogNumRewards(characterKey, index)
-	local _, _, _, _, money = DataStore:GetQuestLogInfo(characterKey, index)
-	local rewardsMoney = money and money > 0
-
-	local rewardIndex = itemIndex - (rewardsMoney and 1 or 0)
-	if itemIndex == 1 and rewardsMoney then
-		icon, link, tooltipText = 'Interface\\MONEYFRAME\\UI-GoldIcon', nil, GetCoinTextureString(money)..' '
-	elseif rewardIndex <= numRewards then
-		local rewardType, rewardID
-		      rewardType, rewardID, count = DataStore:GetQuestLogRewardInfo(characterKey, index, rewardIndex)
-		if rewardType == 's' then
-			_, _, icon = GetSpellInfo(rewardID)
-			link = GetSpellLink(rewardID)
-		else
-			_, link, _, _, _, _, _, _, _, icon = GetItemInfo(rewardID)
-		end
-	end --]]
-
-	return icon, link, tooltipText, count
-end
-
---[[ function reputation:OnClickRow(btn, up)
-	if not self.link then return end
-	local questID, linkType = addon.GetLinkID(self.link)
-	local questIndex = GetQuestLogIndexByID(questID)
-	if linkType == 'quest' and questIndex then
-		-- ShowUIPanel(QuestLogDetailFrame)
-		QuestLog_SetSelection(QuestLogFrame.selectedIndex == questIndex and 0 or questIndex)
+	local info
+	if standingID then
+		info = string.format('%s/%s', AbbreviateLargeNumbers(reputation - low), AbbreviateLargeNumbers(high - low))
 	end
-end --]]
 
---[[
-commendations = {
-    -- itemid = factionid
-    [93220] = 1270, -- shado-pan
-    [92522] = 1337, -- klaxxi
-    [93230] = 1345, -- lorewalkers
-    [93226] = 1272, -- tillers
-    [93229] = 1271, -- cloud serpent
-    [93215] = 1269, -- golden lotus
-    [93224] = 1341, -- august celestials
-    [93225] = 1302, -- anglers
-    [95548] = 1388, -- sunreaver onslaught
-    [93232] = 1375, -- dominance offensive
-    [95545] = 1387, -- kirin tor offensive
-    [93231] = 1376, -- operation shieldwall
+	return isHeader, title, nil, info, nil, description
+end
+
+local commendations = {
+    [1270] = 93220, -- shado-pan
+    [1337] = 92522, -- klaxxi
+    [1345] = 93230, -- lorewalkers
+    [1272] = 93226, -- tillers
+    [1271] = 93229, -- cloud serpent
+    [1269] = 93215, -- golden lotus
+    [1341] = 93224, -- august celestials
+    [1302] = 93225, -- anglers
+    [1388] = 95548, -- sunreaver onslaught
+    [1375] = 93232, -- dominance offensive
+    [1387] = 95545, -- kirin tor offensive
+    [1376] = 93231, -- operation shieldwall
 }
---]]
+function reputation:GetItemInfo(characterKey, index, itemIndex)
+	local icon, link, tiptext
+	local factionID = DataStore:GetFactionInfo(characterKey, index)
+	local _, _, _, _, _, _, _, _, _, _, _, _, _, _, hasBonus = GetFactionInfoByID(factionID)
+
+	if itemIndex == 1 and factionID and commendations[factionID] then
+		_, link, _, _, _, _, _, _, _, icon = GetItemInfo(commendations[factionID])
+	elseif itemIndex == 2 and hasBonus then
+		icon = 'Interface\\RAIDFRAME\\ReadyCheck-Ready'
+		tiptext = _G.BONUS_REPUTATION_TOOLTIP
+	end
+	return icon, link, tiptext
+end

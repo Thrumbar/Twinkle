@@ -39,11 +39,12 @@ local function UpdateList()
 	for i, button in ipairs(scrollFrame) do
 		local index = i + offset
 		if index <= numRows then
-			local isHeader, title, link, prefix, suffix = self.provider:GetRowInfo(characterKey, index)
+			local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
 			local isCollapsed = false -- TODO: store
 
 			button:SetText(title)
 			button.link = link
+			button.tiptext = tiptext
 
 			if isHeader then
 				local texture = isCollapsed and 'UI-PlusButton-UP' or 'UI-MinusButton-UP'
@@ -78,6 +79,7 @@ local function UpdateList()
 			button.prefix:SetText('')
 			button.suffix:SetText('')
 			button.link = nil
+			button.tiptext = nil
 
 			for itemIndex, itemButton in ipairs(button) do
 				itemButton:Hide()

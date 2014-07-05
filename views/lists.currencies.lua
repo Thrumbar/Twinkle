@@ -51,10 +51,10 @@ function currencies:OnEnable()
 		local currencyName = GetCurrencyInfo(currencyID)
 		currencyIDs[currencyName] = currencyID
 	end
-	-- self:RegisterEvent('QUEST_LOG_UPDATE', lists.Update, self)
+	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', lists.Update)
 end
 function currencies:OnDisable()
-	-- self:UnregisterEvent('QUEST_LOG_UPDATE')
+	self:UnregisterEvent('CURRENCY_DISPLAY_UPDATE')
 end
 
 function currencies:GetNumRows(characterKey)
@@ -67,7 +67,7 @@ function currencies:GetRowInfo(characterKey, index)
 	local suffix = AbbreviateLargeNumbers(count)
 	local currencyID = not isHeader and currencyIDs[title]
 
-	return isHeader, title, currencyID and GetCurrencyLink(currencyID), prefix, suffix
+	return isHeader, title, prefix, suffix, currencyID and GetCurrencyLink(currencyID)
 end
 
 function currencies:GetItemInfo(characterKey, index, itemIndex)
