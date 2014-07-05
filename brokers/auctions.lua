@@ -106,7 +106,7 @@ function broker:UpdateTooltip()
 		local statusText, icon = GetAuctionStatusText(characterKey)
 		if statusText or icon then
 			lineNum = self:AddLine(
-				'|T'..icon..':0|t ' .. addon.data.GetCharacterText(characterKey),
+				'|T'..(icon or 'Interface\\RAIDFRAME\\ReadyCheck-Ready')..':0|t ' .. addon.data.GetCharacterText(characterKey),
 				statusText
 			)
 		end
