@@ -46,7 +46,7 @@ local function GetDifficultyItemLevels(instanceID)
 end
 
 local itemLevelQualities, checkList = {}, {}
-local function SetItemLevelQualities()
+local function UpdateItemLevelQualities()
 	local index = 1
 	local instances = {}
 	while EJ_GetInstanceByIndex(index, true) do
@@ -87,10 +87,7 @@ local function SetItemLevelQualities()
 	while #itemLevelQualities > 5 do
 		table.remove(itemLevelQualities, 1)
 	end
-end
 
-function UpdateItemLevelQualities()
-	SetItemLevelQualities()
 	broker:Update()
 end
 
@@ -99,7 +96,7 @@ local function ColorByItemLevel(itemLevel)
 
 	local qualityIndex = 0
 	for index, qualityLevel in ipairs(itemLevelQualities) do
-		if itemLevel >= qualityLevel then
+		if itemLevel >= qualityLevel - 4 then -- let's say 4 levels below what drops is okay
 			qualityIndex = index
 		else
 			break
@@ -108,6 +105,7 @@ local function ColorByItemLevel(itemLevel)
 	local color = _G.ITEM_QUALITY_COLORS[qualityIndex].hex
 	return color .. itemLevel .. '|r'
 end
+-- FOO, BAR = itemLevelQualities, ColorByItemLevel
 
 function broker:OnEnable()
 	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update, self)
@@ -117,8 +115,7 @@ function broker:OnEnable()
 
 	-- create our own characters table, so sorting doesn't influence other brokers
 	characters = addon.data.GetCharacters()
-	SetItemLevelQualities()
-	self:Update()
+	UpdateItemLevelQualities()
 end
 function broker:OnDisable()
 	self:UnregisterEvent('PLAYER_LEVEL_UP')

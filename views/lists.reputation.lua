@@ -1,52 +1,60 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore, QuestLogFrame, QuestLog_SetSelection
--- GLOBALS: CreateFrame, RGBToColorCode, RGBTableToColorCode, GetItemInfo, GetSpellInfo, GetSpellLink, GetCoinTextureString, GetRelativeDifficultyColor, GetItemQualityColor, GetQuestLogIndexByID
--- GLOBALS: ipairs, tonumber, math
+-- GLOBALS: _G, DataStore
+-- GLOBALS: AbbreviateLargeNumbers, GetFactionInfoByID, GetItemInfo
+-- GLOBALS: string
 
 local views  = addon:GetModule('views')
 local lists  = views:GetModule('lists')
 local reputation = lists:NewModule('reputation', 'AceEvent-3.0')
       reputation.icon = 'Interface\\Icons\\Achievement_Reputation_01'
-      reputation.title = 'Reputation'
+      reputation.title = 'Reputations'
+
+-- taken from wowpedia.org/reputation also see _G.FACTION_BAR_COLORS
+local standingColors = {
+	{ r = 0.80, g = 0.13, b = 0.13 },
+	{ r = 1.00, g = 0.00, b = 0.00 },
+	{ r = 0.93, g = 0.40, b = 0.13 },
+	{ r = 1.00, g = 1.00, b = 0.00 },
+	{ r = 0.00, g = 1.00, b = 0.00 },
+	{ r = 0.00, g = 1.00, b = 0.53 },
+	{ r = 0.00, g = 1.00, b = 0.80 },
+	{ r = 0.00, g = 1.00, b = 1.00 },
+}
 
 function reputation:OnEnable()
-	-- self:RegisterEvent('QUEST_LOG_UPDATE', lists.Update, self)
+	-- self:RegisterEvent('UNIT_FACTION', lists.Update, self)
 end
 function reputation:OnDisable()
-	-- self:UnregisterEvent('QUEST_LOG_UPDATE')
+	-- self:UnregisterEvent('UNIT_FACTION')
 end
 
---[[
-local PublicMethods = {
-	-- general functions
-	GetFriendshipStanding = factions.GetFriendshipStanding,
-	GetReputationStanding = factions.GetReputationStanding,
-	-- character functions
-	GetNumFactions        = factions.GetNumFactions,
-	GetFactionInfoGuild   = factions.GetFactionInfoGuild,
-	GetFactionInfoByName  = factions.GetFactionInfoByName,
-	GetFactionInfoByID    = factions.GetFactionInfoByID,
-	GetFactionInfo        = factions.GetFactionInfo,
-}
---]]
-
 function reputation:GetNumRows(characterKey)
-	-- local reputations = DataStore:GetReputations(characterKey)
-	-- return addon.Count(reputations)
-	return DataStore:GetNumFactions(characterKey)
+	return DataStore:GetNumFactions(characterKey) or 0
 end
 
 function reputation:GetRowInfo(characterKey, index)
 	local factionID, reputation, standingID, standingText, low, high = DataStore:GetFactionInfo(characterKey, index)
-	local title, description, _, _, _, _, _, _, isHeader, _, hasRep, _, isIndented = GetFactionInfoByID(factionID)
+	local title, description, _, _, _, _, _, _, isHeader, _, hasRep, _, isIndented, _, hasBonus = GetFactionInfoByID(factionID)
 
-	local info
-	if standingID then
-		info = string.format('%s/%s', AbbreviateLargeNumbers(reputation - low), AbbreviateLargeNumbers(high - low))
+	local color = standingID and standingColors[standingID]
+	if GetFriendshipReputation(factionID) then
+		color = standingColors[standingID + 1] -- standingColors[5]
 	end
 
-	return isHeader, title, nil, info, nil, description
+	local info
+	-- local prefix = hasBonus and '|TInterface\\COMMON\\ReputationStar:16:16:0:0:32:32:16:32:16:32|t' or nil
+	local tiptext = description
+	if standingID then
+		local lowBoundary, highBoundary = reputation - low, high - low
+		info = RGBTableToColorCode(color) .. (standingText or '?') .. '|r'
+		if reputation < high - 1 then
+			tiptext = string.format('%s|n%s%s: %s/%s|r', tiptext, RGBTableToColorCode(color),
+				standingText or '', AbbreviateLargeNumbers(lowBoundary), AbbreviateLargeNumbers(highBoundary))
+		end
+	end
+
+	return isHeader, title, nil, info, nil, tiptext
 end
 
 local commendations = {
