@@ -142,11 +142,12 @@ local function GetCharacterLFRLockouts(characterKey, hideEmpty)
 end
 local function GetCharacterBossLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.worldboss)
-	local showLine, questState = characterKey == brokers:GetCharacter(), nil
-	for index, questID in ipairs(worldBosses) do
-		questState = GetCharacterQuestState(characterKey, questID)
-		lockoutReturns.worldboss[index] = questState
-		showLine = showLine or questState or nil
+	local showLine, done = characterKey == brokers:GetCharacter(), nil
+	for index in ipairs(worldBosses) do
+		local expires = DataStore:IsWorldBossKilledBy(characterKey, index)
+		done = expires and expires > time() or false
+		lockoutReturns.worldboss[index] = done
+		showLine = showLine or done or nil
 	end
 	return (showLine or not hideEmpty) and lockoutReturns.worldboss or nil
 end
