@@ -6,7 +6,7 @@ local addonName, addon, _ = ...
 
 local views  = addon:GetModule('views')
 local lists  = views:GetModule('lists')
-local reputation = lists:NewModule('reputation', 'AceEvent-3.0')
+local reputation = lists:NewModule('Reputation', 'AceEvent-3.0')
       reputation.icon = 'Interface\\Icons\\Achievement_Reputation_01'
       reputation.title = 'Reputations'
 

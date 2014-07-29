@@ -6,7 +6,7 @@ local addonName, addon, _ = ...
 
 local views  = addon:GetModule('views')
 local lists  = views:GetModule('lists')
-local quests = lists:NewModule('quests', 'AceEvent-3.0')
+local quests = lists:NewModule('Quests', 'AceEvent-3.0')
       quests.icon = 'Interface\\LFGFrame\\LFGIcon-Quest' -- grids: Ability_Ensnare
       quests.title = 'Quests'
 

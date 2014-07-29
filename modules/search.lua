@@ -13,6 +13,7 @@ function search:OnEnable()
 	      searchbox:SetPoint('BOTTOM', 4, 2)
 	      searchbox:SetSize(160, 20)
 	searchbox.clearFunc = function() self:Clear() end
+	-- TODO: add a slight delay when typing quickly
 	searchbox:SetScript('OnTextChanged', function() self:Update() end)
 	searchbox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
 	searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)

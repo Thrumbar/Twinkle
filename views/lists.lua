@@ -8,6 +8,7 @@ local views = addon:GetModule('views')
 local lists = views:NewModule('lists', 'AceEvent-3.0')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = 'Lists'
+local NUM_ITEMS_PER_ROW = 5
 
 local function OnRowClick(self, btn, up)
 	if not self.link then
@@ -29,61 +30,87 @@ local function OnButtonClick(self, btn, up)
 	end
 end
 
+local CustomSearch = LibStub('CustomSearch-1.0')
+local ItemSearch   = LibStub('LibItemSearch-1.2')
+local filters = {
+	text = {
+	  	tags = {'text'},
+		canSearch = function(self, operator, search)
+			return not operator and search
+		end,
+		match = function(self, text, _, search)
+			return CustomSearch:Find(search, text)
+		end
+	},
+}
+
 local function UpdateList()
 	local self = lists
 	local characterKey = addon:GetSelectedCharacter()
-	local numRows = self.provider:GetNumRows(characterKey)
+	local numRows = 0
 
 	local scrollFrame = self.panel.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
-	for i, button in ipairs(scrollFrame) do
-		local index = i + offset
-		if index <= numRows then
-			local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
-			local isCollapsed = false -- TODO: store
 
-			button:SetText(title)
-			button.link = link
-			button.tiptext = tiptext
+	local buttonIndex = 1
+	for index = 1, self.provider:GetNumRows(characterKey) do
+		-- TODO: fix search filtering, including search & collapse/expand
+		-- if not self.search or MatchesSearch(self.provider, characterKey, index, self.search) then
+		numRows = numRows + 1 -- this counts the number of rows remaining after filtering
+		if index >= offset+1 then
+			local button = scrollFrame[buttonIndex]
+			if button then
+				buttonIndex = buttonIndex + 1
 
-			if isHeader then
-				local texture = isCollapsed and 'UI-PlusButton-UP' or 'UI-MinusButton-UP'
-				button:SetNormalTexture('Interface\\Buttons\\'..texture)
-				button:SetHighlightTexture('Interface\\Buttons\\UI-PlusButton-Hilight')
-				button.prefix:SetText('')
-				button.suffix:SetText('')
-			else
-				button:SetNormalTexture('')
-				button:SetHighlightTexture('')
-				button.prefix:SetText(prefix or '')
-				button.suffix:SetText(suffix or '')
-			end
+				local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
+				local isCollapsed = false -- TODO: store as setting
 
-			-- we can display associated icons, e.g. quest rewards or crafting reagents
-			for itemIndex, itemButton in ipairs(button) do
-				local icon, link, tiptext = self.provider:GetItemInfo(characterKey, index, itemIndex)
-				if icon then
-					itemButton.icon:SetTexture(icon)
-					itemButton.link = link
-					itemButton.tiptext = tiptext
-					itemButton:Show()
+				button:SetText(title)
+				button.link = link
+				button.tiptext = tiptext
+
+				if isHeader then
+					local texture = isCollapsed and 'UI-PlusButton-UP' or 'UI-MinusButton-UP'
+					button:SetNormalTexture('Interface\\Buttons\\'..texture)
+					button:SetHighlightTexture('Interface\\Buttons\\UI-PlusButton-Hilight')
+					button.prefix:SetText('')
+					button.suffix:SetText('')
 				else
-					itemButton:Hide()
+					button:SetNormalTexture('')
+					button:SetHighlightTexture('')
+					button.prefix:SetText(prefix or '')
+					button.suffix:SetText(suffix or '')
+				end
+
+				-- we can display associated icons, e.g. quest rewards or crafting reagents
+				for itemIndex, itemButton in ipairs(button) do
+					local icon, link, tiptext = self.provider:GetItemInfo(characterKey, index, itemIndex)
+					if icon then
+						itemButton.icon:SetTexture(icon)
+						itemButton.link = link
+						itemButton.tiptext = tiptext
+						itemButton:Show()
+					else
+						itemButton:Hide()
+					end
 				end
 			end
-		else
-			-- hide empty rows
-			button:SetNormalTexture('')
-			button:SetHighlightTexture('')
-			button:SetText('')
-			button.prefix:SetText('')
-			button.suffix:SetText('')
-			button.link = nil
-			button.tiptext = nil
+		end
+	end
 
-			for itemIndex, itemButton in ipairs(button) do
-				itemButton:Hide()
-			end
+	-- hide empty rows
+	for index = buttonIndex, #scrollFrame do
+		local button = scrollFrame[index]
+		button:SetNormalTexture('')
+		button:SetHighlightTexture('')
+		button:SetText('')
+		button.prefix:SetText('')
+		button.suffix:SetText('')
+		button.link = nil
+		button.tiptext = nil
+
+		for itemIndex, itemButton in ipairs(button) do
+			itemButton:Hide()
 		end
 	end
 
@@ -201,7 +228,7 @@ function lists:OnEnable()
 		      suffix:SetPoint('BOTTOMRIGHT', -80, 0)
 		row.suffix = suffix
 
-		for i = 1, 5 do
+		for i = 1, NUM_ITEMS_PER_ROW do
 			local item = CreateFrame('Button', '$parentItem'..i, row, nil, i)
 			      item:SetSize(16, 16)
 			local tex = item:CreateTexture(nil, 'BACKGROUND')
@@ -230,11 +257,52 @@ function lists:Update()
 	UpdateList()
 end
 
--- local ItemSearch = LibStub('LibItemSearch-1.2')
-function lists:Search(what, onWhom)
+local CustomSearch = LibStub('CustomSearch-1.0')
+local ItemSearch   = LibStub('LibItemSearch-1.2')
+local filters = {
+	text = {
+	  	tags = {'text'},
+		canSearch = function(self, operator, search)
+			return not operator and search
+		end,
+		match = function(self, text, _, search)
+			return CustomSearch:Find(search, text)
+		end
+	},
+}
+function lists:Search(search, characterKey)
 	local hasMatch = 0
-	if self.provider and self.provider.Search then
-		hasMatch = self.provider:Search(what, onWhom)
+
+	for name, subModule in self:IterateModules() do
+		-- TODO: let lists search their values, e.g. reputation standing, quest reward gold etc
+		local numMatches = 0
+		for index = 1, subModule:GetNumRows(characterKey) do
+			local _, title, prefix, suffix, hyperlink = subModule:GetRowInfo(characterKey, index)
+			local compareString = strjoin(' ', title or '', prefix or '', suffix or '')
+
+			if ItemSearch:Matches(hyperlink or '', search) or CustomSearch:Matches(compareString, search, filters) then
+				-- the row itself matches
+				numMatches = numMatches + 1
+			else
+				-- check if the row's items match
+				for itemIndex = 1, NUM_ITEMS_PER_ROW do
+					local itemName, itemLink, tiptext, count = subModule:GetItemInfo(characterKey, index, itemIndex)
+					if itemLink and ItemSearch:Matches(itemLink, search) then
+						numMatches = numMatches + 1
+					end
+				end
+			end
+		end
+		hasMatch = hasMatch + numMatches
+
+		if characterKey == addon:GetSelectedCharacter() then
+			-- FauxScrollFrame_SetOffset(self.panel.scrollFrame, 0)
+			-- numMatches = UpdateList()
+
+			-- desaturate when data source has no data
+			local button = _G[self.panel:GetName()..subModule:GetName()]
+			      button:GetNormalTexture():SetDesaturated(numMatches == 0)
+		end
 	end
 
 	return hasMatch
