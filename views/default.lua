@@ -19,15 +19,20 @@ local function UpdateFlowContainer(container)
 	FlowContainer_RemoveAllObjects(container)
 
 	for i, object in ipairs(container.contents) do
-		if object.update then
-			object:update(character)
+		if type(object) == 'string' then
+			if object == 'newline' then
+				FlowContainer_AddLineBreak(container)
+			end
+		else
+			if object.update then
+				object:update(character)
+			end
+			if object.span then
+				object:SetWidth(object.span * containerWidth - 10)
+			end
+			FlowContainer_AddObject(container, object)
+			-- FlowContainer_AddSpacer(container, 20)
 		end
-		if object.span then
-			object:SetWidth(object.span * containerWidth - 10)
-		end
-		FlowContainer_AddObject(container, object)
-		-- FlowContainer_AddLineBreak(container)
-		-- FlowContainer_AddSpacer(container, 20)
 	end
 
 	FlowContainer_ResumeUpdates(container)
@@ -279,6 +284,32 @@ function view:OnEnable()
 	end
 	dailies.trigger = dailiesFrame
 
+	local worldBosses = {
+		'Interface\\Icons\\inv_hand_1h_shaclaw',          -- WORLD_BOSS_SHA_OF_ANGER
+		'Interface\\Icons\\inv_mushanbeastmount',         -- WORLD_BOSS_GALLEON
+		'Interface\\Icons\\inv_pet_babycloudserpent',     -- WORLD_BOSS_NALAK
+		'Interface\\Icons\\inv_zandalaribabyraptorwhite', -- WORLD_BOSS_OONDASTA
+		'Interface\\Icons\\inv_pet_cranegod',             -- WORLD_BOSS_FOUR_CELESTIALS
+		'Interface\\Icons\\spell_fire_rune',              -- WORLD_BOSS_ORDOS
+	}
+	local worldBoss = contents:CreateFontString(nil, nil, 'GameFontNormal')
+	worldBoss:SetJustifyH('LEFT')
+	worldBoss.update = function(self, character)
+		local character = addon.GetSelectedCharacter()
+		local lockouts, numLockouts = '', 0
+		for bossID, icon in ipairs(worldBosses) do
+			local hasLockout = DataStore:IsWorldBossKilledBy(character, bossID)
+			if hasLockout then
+				numLockouts = numLockouts + 1
+				lockouts = lockouts .. '' .. '|TInterface\\PetBattles\\DeadPetIcon:0|t'
+			else
+				lockouts = lockouts .. '' .. '|T'..icon..':0|t'
+			end
+		end
+		self:SetText('|TInterface\\Scenarios\\ScenarioIcon-Boss:0|t '..lockouts or '')
+	end
+	table.insert(contents.contents, worldBoss)
+
 	local function SortByName(a, b) if a.name ~= b.name then return a.name < b.name else return a.id < b.id end end
 	local function SortByID(a, b) return a.id < b.id end
 
@@ -298,6 +329,7 @@ function view:OnEnable()
 		end
 		self:SetFormattedText('|TInterface\\Buttons\\UI-GroupLoot-Dice-Up:0|t %s', status or NONE)
 	end
+	table.insert(contents.contents, 'newline')
 	table.insert(contents.contents, lfgs)
 
 	local lfrs = contents:CreateFontString(nil, nil, 'GameFontNormal')
@@ -316,6 +348,7 @@ function view:OnEnable()
 		end
 		self:SetFormattedText('|TInterface\\LFGFRAME\\BattlenetWorking18:0:0:0:0:64:64:12:52:12:52|t %s', status or NONE)
 	end
+	table.insert(contents.contents, 'newline')
 	table.insert(contents.contents, lfrs)
 
 	-- TODO: world bosses, hearth location, raid ids
