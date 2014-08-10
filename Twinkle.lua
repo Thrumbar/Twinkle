@@ -21,6 +21,11 @@ function addon.ShowTooltip(self, anchor)
 		GameTooltip:SetHyperlink(self.link)
 	elseif type(self.tiptext) == "string" and self.tiptext ~= "" then
 		GameTooltip:SetText(self.tiptext, nil, nil, nil, nil, true)
+		local lineIndex = 2
+		while self['tiptext'..lineIndex] do
+			GameTooltip:AddLine(self['tiptext'..lineIndex], 1, 1, 1, nil, true)
+			lineIndex = lineIndex + 1
+		end
 	elseif type(self.tiptext) == "function" then
 		self.tiptext(self, GameTooltip)
 	end
