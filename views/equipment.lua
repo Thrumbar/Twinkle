@@ -40,6 +40,18 @@ local slotInfo = {
 	'SecondaryHandSlot', -- 17	_G.INVSLOT_OFFHAND
 }
 
+local enchantables = {
+	[ 3] = true, -- ShoulderSlot
+	[ 5] = true, -- ChestSlot
+	[ 7] = true, -- LegsSlot
+	[ 8] = true, -- FeetSlot
+	[ 9] = true, -- WristSlot
+	[10] = true, -- HandsSlot
+	[15] = true, -- BackSlot
+	[16] = true, -- MainHandSlot
+	[17] = true, -- SecondaryHandSlot
+}
+
 local gemColorNames = {
 	['EMPTY_SOCKET_RED']		= 'Red',
 	['EMPTY_SOCKET_BLUE']		= 'Blue',
@@ -122,6 +134,7 @@ local function SetSlotItem(slotID, itemLink)
 		slotButton.link = nil
 		slotButton.level:SetText('')
 		slotButton.upgrade:SetText('')
+		ActionButton_HideOverlayGlow(slotButton)
 	else
 		local itemIcon = GetItemIcon(itemLink)
 		slotButton.icon:SetTexture(itemIcon)
@@ -148,6 +161,15 @@ local function SetSlotItem(slotID, itemLink)
 				or (upgraded ~= maxUpgrade and _G.YELLOW_FONT_COLOR)
 				or _G.GREEN_FONT_COLOR
 			slotButton.upgrade:SetTextColor(color.r, color.g, color.b)
+		end
+
+		-- enchantments
+		-- TODO: this does not yet accomodate for enchanter's rings
+		local enchantID = enchantables[slotID] and itemLink:match('item:%d+:(%d+)')
+		if enchantID and enchantID == '0' then
+			ActionButton_ShowOverlayGlow(slotButton)
+		else
+			ActionButton_HideOverlayGlow(slotButton)
 		end
 
 		-- sockets
