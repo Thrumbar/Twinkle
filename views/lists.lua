@@ -30,20 +30,6 @@ local function OnButtonClick(self, btn, up)
 	end
 end
 
-local CustomSearch = LibStub('CustomSearch-1.0')
-local ItemSearch   = LibStub('LibItemSearch-1.2')
-local filters = {
-	text = {
-	  	tags = {'text'},
-		canSearch = function(self, operator, search)
-			return not operator and search
-		end,
-		match = function(self, text, _, search)
-			return CustomSearch:Find(search, text)
-		end
-	},
-}
-
 local function UpdateList()
 	local self = lists
 	local characterKey = addon:GetSelectedCharacter()
@@ -52,6 +38,7 @@ local function UpdateList()
 	local scrollFrame = self.panel.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
 
+	local searchString = addon:GetSearch()
 	local buttonIndex = 1
 	for index = 1, self.provider:GetNumRows(characterKey) do
 		-- TODO: fix search filtering, including search & collapse/expand
@@ -116,6 +103,20 @@ local function UpdateList()
 
 	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numRows, #scrollFrame, 20)
 	-- scrollFrame:SetPoint('BOTTOMRIGHT', -10+(needsScrollBar and -14 or 0), 2)
+	return numRows
+end
+
+local function CreateDataSourceButton(subModule, index)
+	local name, title, icon = subModule:GetName(), subModule.title, subModule.icon
+	local button = CreateFrame('CheckButton', '$parent'..name, lists.panel, 'PopupButtonTemplate', index)
+	      button:SetNormalTexture(icon)
+	      button:SetScale(0.75)
+	      button.tiptext = title
+	      button.module = name
+	      button:SetScript('OnClick', function(...) lists:SelectDataSource(...) end)
+	      button:SetScript('OnEnter', addon.ShowTooltip)
+	      button:SetScript('OnLeave', addon.HideTooltip)
+	return button
 end
 
 function lists:SelectDataSource(button, btn, up)
@@ -129,18 +130,7 @@ function lists:SelectDataSource(button, btn, up)
 	end
 	UpdateList()
 end
-local function CreateDataSourceButton(subModule, index)
-	local name, title, icon = subModule:GetName(), subModule.title, subModule.icon
-	local button = CreateFrame('CheckButton', '$parent'..name, lists.panel, 'PopupButtonTemplate', index)
-	      button:SetNormalTexture(icon)
-	      button:SetScale(0.75)
-	      button.tiptext = title
-	      button.module = name
-	      button:SetScript('OnClick', function(...) lists:SelectDataSource(...) end)
-	      button:SetScript('OnEnter', addon.ShowTooltip)
-	      button:SetScript('OnLeave', addon.HideTooltip)
-	return button
-end
+
 function lists:UpdateDataSources()
 	local panel = self.panel
 
@@ -254,7 +244,8 @@ function lists:OnDisable()
 end
 
 function lists:Update()
-	UpdateList()
+	local numRows = UpdateList()
+	return numRows
 end
 
 local CustomSearch = LibStub('CustomSearch-1.0')
@@ -274,21 +265,25 @@ function lists:Search(search, characterKey)
 	local hasMatch = 0
 
 	for name, subModule in self:IterateModules() do
-		-- TODO: let lists search their values, e.g. reputation standing, quest reward gold etc
 		local numMatches = 0
-		for index = 1, subModule:GetNumRows(characterKey) do
-			local _, title, prefix, suffix, hyperlink = subModule:GetRowInfo(characterKey, index)
-			local compareString = strjoin(' ', title or '', prefix or '', suffix or '')
+		if subModule.Search then
+			numMatches = subModule:Search(search, characterKey)
+		else
+			-- TODO: let lists search their values, e.g. reputation standing, quest reward gold etc
+			for index = 1, subModule:GetNumRows(characterKey) do
+				local _, title, prefix, suffix, hyperlink = subModule:GetRowInfo(characterKey, index)
+				local compareString = strjoin(' ', title or '', prefix or '', suffix or '')
 
-			if ItemSearch:Matches(hyperlink or '', search) or CustomSearch:Matches(compareString, search, filters) then
-				-- the row itself matches
-				numMatches = numMatches + 1
-			else
-				-- check if the row's items match
-				for itemIndex = 1, NUM_ITEMS_PER_ROW do
-					local itemName, itemLink, tiptext, count = subModule:GetItemInfo(characterKey, index, itemIndex)
-					if itemLink and ItemSearch:Matches(itemLink, search) then
-						numMatches = numMatches + 1
+				if ItemSearch:Matches(hyperlink or '', search) or CustomSearch:Matches(compareString, search, filters) then
+					-- the row itself matches
+					numMatches = numMatches + 1
+				else
+					-- check if the row's items match
+					for itemIndex = 1, NUM_ITEMS_PER_ROW do
+						local itemName, itemLink, tiptext, count = subModule:GetItemInfo(characterKey, index, itemIndex)
+						if itemLink and ItemSearch:Matches(itemLink, search) then
+							numMatches = numMatches + 1
+						end
 					end
 				end
 			end

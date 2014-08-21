@@ -4,7 +4,7 @@ local addonName, addon, _ = ...
 -- GLOBALS: CreateFrame, PlaySound, EditBox_ClearFocus
 -- GLOBALS: hooksecurefunc, pairs, type
 
-local search = addon:NewModule('search')
+local search = addon:NewModule('Search')
 
 function search:OnEnable()
 	-- add search box to frame sidebar
@@ -85,6 +85,7 @@ function search:Update(forced)
 			-- ask views for their search results
 			for name, view in views:IterateModules() do
 				if view.Search then
+					-- TODO: replace this with plain :Update() and let modules react to search?
 					local numMatches = view:Search(editBox.searchString, button.element)
 					if numMatches and type(numMatches) == 'number' and numMatches > 0 then
 						numResults = numResults + numMatches
@@ -102,6 +103,12 @@ function search:Update(forced)
 			end
 		end
 	end
+end
+
+-- extend the base addon
+function addon:GetSearch()
+	local editBox = addon.frame.search
+	return editBox and editBox.searchString
 end
 
 --[[
