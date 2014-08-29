@@ -80,7 +80,7 @@ function addon:OnInitialize()
 	-- self:SetDefaultModuleState(true)
 
 	-- initialize main frame
-	local frame = CreateFrame('Frame', addonName..'UI', _G.UIParent, 'PortraitFrameTemplate')
+	local frame = CreateFrame('Frame', addonName..'Frame', _G.UIParent, 'PortraitFrameTemplate')
 	frame:SetFrameLevel(17)
 	frame:Hide()
 	self.frame = frame
