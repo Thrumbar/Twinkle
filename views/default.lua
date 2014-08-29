@@ -54,6 +54,7 @@ function view:OnEnable()
 		  ringIcon:SetPoint('CENTER', ring, 'CENTER')
 		  ringIcon:SetSize(56, 56)
 		  portrait.icon = ringIcon
+	      portrait:SetScale(60/70)
 	panel.portrait = portrait
 
 	-- TODO: add smaller spec icons
@@ -79,23 +80,16 @@ function view:OnEnable()
 		  xp:SetJustifyH('RIGHT')
 	panel.xp = xp
 
-	local bg = panel:CreateTexture(nil, 'BACKGROUND')
-		  bg:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
-		  bg:SetTexCoord(0, 0.76, 0, 0.86)
-		  bg:SetPoint('TOPLEFT', 0, -78)
-		  bg:SetPoint("BOTTOMRIGHT")
-
-	-- gold colored horizontal line:
-	local line = panel:CreateTexture()
-	line:SetTexture(0.74, 0.52, 0.06, 0.6)
-	line:SetHeight(1)
-	line:SetPoint('TOPLEFT', portrait, 'BOTTOMLEFT', -5, -4)
-	line:SetPoint('RIGHT', panel, 'RIGHT', 0, 0)
+	local background = panel:CreateTexture(nil, 'BACKGROUND')
+		  background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
+		  background:SetTexCoord(0, 0.76, 0, 0.86)
+		  background:SetPoint('TOPLEFT', 0, -40 -20)
+		  background:SetPoint("BOTTOMRIGHT")
 
 	-- flowcontainer that'll hold all our precious data
 	local contents = CreateFrame('Frame', nil, panel)
-		  contents:SetPoint('TOPLEFT', bg, 'TOPLEFT', 10, -10)
-		  contents:SetPoint('BOTTOMRIGHT', bg, 'BOTTOMRIGHT', -10, 10)
+		  contents:SetPoint('TOPLEFT', background, 'TOPLEFT', 12, -10)
+		  contents:SetPoint('BOTTOMRIGHT', background, 'BOTTOMRIGHT', -12, 10)
 		  contents.contents = {}
 	panel.contents = contents
 
