@@ -101,8 +101,10 @@ local function UpdateList()
 		end
 	end
 
-	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numRows, #scrollFrame, 20)
-	-- scrollFrame:SetPoint('BOTTOMRIGHT', -10+(needsScrollBar and -14 or 0), 2)
+	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numRows, #scrollFrame, scrollFrame[1]:GetHeight())
+	-- adjustments so rows have decent padding with and without scroll bar
+	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
+
 	return numRows
 end
 
@@ -128,7 +130,7 @@ function lists:SelectDataSource(button, btn, up)
 			sourceButton:SetChecked(false)
 		end
 	end
-	UpdateList()
+	lists:Update()
 end
 
 function lists:UpdateDataSources()
@@ -153,18 +155,54 @@ function lists:UpdateDataSources()
 end
 
 function lists:OnEnable()
+	local panel = self.panel
 	self:UpdateDataSources()
 
-	local panel = self.panel
+	local collapseAll = CreateFrame('Button', '$parentCollapseAll', panel)
+	local label = collapseAll:CreateFontString('$parentText', 'ARTWORK', 'GameFontNormalLeft')
+	      label:SetPoint('LEFT', 20, 0)
+	      label:SetHeight(collapseAll:GetHeight())
+	collapseAll:SetFontString(label)
+	collapseAll:SetHighlightFontObject('GameFontHighlightLeft')
+	collapseAll:SetDisabledFontObject('GameFontDisableLeft')
+	collapseAll:SetNormalFontObject('GameFontNormalLeft')
+
+	collapseAll:SetNormalTexture('Interface\\Buttons\\UI-MinusButton-UP')
+	local tex = collapseAll:GetNormalTexture()
+	      tex:SetSize(16, 16)
+	      tex:ClearAllPoints()
+	      tex:SetPoint('LEFT', 3, 0)
+	collapseAll:SetHighlightTexture('Interface\\Buttons\\UI-PlusButton-Hilight', 'ADD')
+	local tex = collapseAll:GetHighlightTexture()
+	      tex:SetSize(16, 16)
+	      tex:ClearAllPoints()
+	      tex:SetPoint('LEFT', 3, 0)
+	collapseAll:SetDisabledTexture('Interface\\Buttons\\UI-PlusButton-Disabled')
+	local tex = collapseAll:GetDisabledTexture()
+	      tex:SetSize(16, 16)
+	      tex:ClearAllPoints()
+	      tex:SetPoint('LEFT', 3, 0)
+
+	collapseAll:SetSize(270, 13)
+	collapseAll:SetPoint('TOPLEFT', panel, 'TOPLEFT', 4, -40-4)
+	-- collapseAll:SetScript('OnClick', )
+	collapseAll:SetText(_G.ALL)
+	collapseAll:Disable()
+
+	local count = panel:CreateFontString('$parentText', 'ARTWORK', 'GameFontNormalRight')
+	      count:SetSize(300, collapseAll:GetHeight())
+	      count:SetPoint('TOPRIGHT', panel, 'TOPRIGHT', -4, -40-4)
+	panel.resultCount = count
+
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
 	      background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
 	      background:SetTexCoord(0, 0.76, 0, 0.86)
-	      background:SetPoint('TOPLEFT', 0, -40)
+	      background:SetPoint('TOPLEFT', 0, -40 -20)
 		  background:SetPoint('BOTTOMRIGHT')
 
 	local scrollFrame = CreateFrame('ScrollFrame', '$parentScrollFrame', panel, 'FauxScrollFrameTemplate')
 	      scrollFrame:SetSize(360, 354)
-	      scrollFrame:SetPoint('TOPLEFT', 0, -40-6)
+	      scrollFrame:SetPoint('TOPLEFT', 0, -40-4 -20 -2)
 	      scrollFrame:SetPoint('BOTTOMRIGHT', -24, 2)
 	      scrollFrame.scrollBarHideable = true
 	panel.scrollFrame = scrollFrame
@@ -173,7 +211,7 @@ function lists:OnEnable()
 		FauxScrollFrame_OnVerticalScroll(self, offset, 20, UpdateList)
 	end)
 
-	for index = 1, 17 do
+	for index = 1, 16 do
 		local row = CreateFrame('Button', '$parentRow'..index, panel, nil, index)
 		      row:SetHeight(20)
 		scrollFrame[index] = row
@@ -245,6 +283,7 @@ end
 
 function lists:Update()
 	local numRows = UpdateList()
+	lists.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
 	return numRows
 end
 
