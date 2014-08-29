@@ -251,7 +251,7 @@ local function SortOnClick(self, btn)
 	secondarySort = reverse and  secondarySort or primarySort
 	primarySort   = reverse and -1*primarySort or newSort
 
-	local index, sorters = 1, addonName..'UIPanelContainersSorter'
+	--[[ local index, sorters = 1, addonName..'UIPanelContainersSorter'
 	while true do
 		local sorter = _G[sorters..index]
 		if not sorter then break end
@@ -263,7 +263,7 @@ local function SortOnClick(self, btn)
 			arrow:Hide()
 		end
 		index = index + 1
-	end
+	end --]]
 
 	table.sort(view.itemsTable, DataSort)
 	ListUpdate(view.panel.scrollFrame)
@@ -300,29 +300,27 @@ function view:OnEnable()
 	end
 	panel.filters = filterButtons
 
-	local sorters = {"Quality", "Name", "Count", "Level"}
+	local sorters = {"Quality", "Item Name", "Count", "Level"}
 	local sortButtons = {}
 	for i, name in ipairs(sorters) do
-		local sorter = CreateFrame("Button", "$parentSorter"..i, panel, "AuctionSortButtonTemplate", i)
+		local sorter = CreateFrame("Button", "$parentSorter"..i, panel, "WhoFrameColumnHeaderTemplate", i)
 			  sorter:SetText(name)
-			  sorter:SetSize(sorter:GetTextWidth() + 34, 19)
 			  sorter:SetScript("OnClick", SortOnClick)
-		_G[sorter:GetName().."Arrow"]:Hide()
-
-		if name == 'Name' then
-			-- make this column wider
-			sorter:SetWidth(185)
-		end
+		-- _G[sorter:GetName().."Arrow"]:Hide()
 
 		if i == 1 then
-			sorter:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 10, -80)
+			sorter:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 10, -80-2)
 		else
 			sorter:SetPoint("LEFT", sortButtons[i-1], "RIGHT", -2, 0)
 		end
-		-- stretch the last one
-		if i == #sorters then
-			sorter:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", -10, -80)
+
+		if i == 2 then
+			-- make the main column wider
+			WhoFrameColumn_SetWidth(sorter, 230)
+		else
+			WhoFrameColumn_SetWidth(sorter, sorter:GetTextWidth() + 16)
 		end
+
 		table.insert(sortButtons, sorter)
 	end
 	panel.sorters = sorters
