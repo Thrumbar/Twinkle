@@ -29,9 +29,12 @@ local function ItemLinksAreEqual(link1, link2)
 end
 
 local function DataUpdate(characterKey)
-	local filter = view.panel:GetName().."Filter"
+	local filter = view.panel:GetName()
 
-	local showBags, showBank, showVoid = _G[filter.."Bags"]:GetChecked(), _G[filter.."Bank"]:GetChecked(), _G[filter.."VoidStorage"]:GetChecked()
+	local showBags, showBank, showVoid =
+		_G[filter.."Bags"]:GetChecked(),
+		_G[filter.."Bank"]:GetChecked(),
+		_G[filter.."VoidStorage"]:GetChecked()
 
 	wipe(view.itemsTable)
 	local containers = DataStore:GetContainers(characterKey)
@@ -140,11 +143,11 @@ local function DataUpdate(characterKey)
 	end
 end
 
-local function ListUpdate(self)
+local function UpdateList(self)
 	local offset = FauxScrollFrame_GetOffset(self)
-	for i = 1, #self.buttons do
+	for i = 1, #self do
 		local index = i + offset
-		local item = self.buttons[i]
+		local item = self[i]
 
 		if view.itemsTable[index] then
 			local itemID, itemCount, itemLink, timeLeft = unpack(view.itemsTable[index])
@@ -155,7 +158,7 @@ local function ListUpdate(self)
 			end
 
 			-- delay if we don't have data
-			if not name then view:ScheduleTimer(ListUpdate, 0.1, self); return end
+			if not name then view:ScheduleTimer(UpdateList, 0.1, self); return end
 
 			item.icon:SetTexture(texture)
 			item.item.link = itemLink or link
@@ -188,8 +191,9 @@ local function ListUpdate(self)
 		end
 	end
 
-	local needsScrollBar = FauxScrollFrame_Update(self, #view.itemsTable, #self.buttons, 22)
-	self:SetPoint("BOTTOMRIGHT", -10+(needsScrollBar and -18 or 0), 10)
+	local needsScrollBar = FauxScrollFrame_Update(self, #view.itemsTable, #self, self[1]:GetHeight())
+	-- adjustments so rows have decent padding with and without scroll bar
+	self:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
 end
 
 -- TODO: FIXME: this is ugly as hell
@@ -252,144 +256,198 @@ local function SortOnClick(self, btn)
 	primarySort   = reverse and -1*primarySort or newSort
 
 	table.sort(view.itemsTable, DataSort)
-	ListUpdate(view.panel.scrollFrame)
+	UpdateList(view.panel.scrollFrame)
 end
+
+local function FilterButtonOnClick() view:Update() end
+local function CreateDataSourceButton(index, name, title, icon) -- (subModule, index)
+	-- local name, title, icon = subModule:GetName(), subModule.title, subModule.icon
+	local button = CreateFrame('CheckButton', '$parent'..name, view.panel, 'PopupButtonTemplate', index)
+	      button:SetNormalTexture(icon)
+	      button:SetScale(0.75)
+
+	      button:SetScript('OnClick', FilterButtonOnClick) -- function(...) view:SelectDataSource(...) end)
+	      button:SetScript('OnEnter', addon.ShowTooltip)
+	      button:SetScript('OnLeave', addon.HideTooltip)
+
+	      button.tiptext = title or name
+	      button.module = name
+	return button
+end
+
+local function ItemButtonOnClick(self, btn) HandleModifiedItemClick(self.link) end
+
+--[[
+function view:SelectDataSource(button, btn, up)
+	for index, sourceButton in ipairs(self.panel) do
+		if sourceButton == button then
+			self.provider = self:GetModule(sourceButton.module)
+			sourceButton:SetChecked(true)
+		else
+			sourceButton:SetChecked(false)
+		end
+	end
+	UpdateList()
+end
+
+function view:UpdateDataSources()
+	local panel = self.panel
+
+	local index = 0
+	for name, subModule in self:IterateModules() do
+		self.provider = self.provider or subModule
+
+		-- init data selector
+		index = index + 1
+		local button = _G[panel:GetName()..subModule:GetName()] or CreateDataSourceButton(subModule, index)
+		      button:ClearAllPoints()
+		      button:SetChecked(self.provider == subModule)
+		panel[index] = button
+		if index == 1 then
+			button:SetPoint('TOPLEFT', 10, -12)
+		else
+			button:SetPoint('TOPLEFT', panel[index - 1], 'TOPRIGHT', 12, 0)
+		end
+	end
+end --]]
 
 function view:OnEnable()
 	local panel = self.panel
 
 	-- TODO: show slot count (13/97) on icons
-	local filters = {
-		IsAddOnLoaded('DataStore_Containers') and {'Bags', 'Interface\\MINIMAP\\TRACKING\\Banker'},
-		IsAddOnLoaded('DataStore_Containers') and {'Bank', 'INTERFACE\\ICONS\\achievement_guildperk_mobilebanking'},
-		IsAddOnLoaded('DataStore_Containers') and {'VoidStorage', 'INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup'},
-		IsAddOnLoaded('DataStore_Inventory')  and {'Equipment', 'Interface\\GUILDFRAME\\GuildLogo-NoLogo'},
-		IsAddOnLoaded('DataStore_Mails')      and {'Mail', 'Interface\\MINIMAP\\TRACKING\\Mailbox'},
-	}
-	local filterButtons = {}
-	local function OnFilterButtonClick() self.Update() end
+	-- TODO: convert to checking if required functions exist
+	local filters = {}
+	if IsAddOnLoaded('DataStore_Containers') then
+		table.insert(filters, {'Bags', 'Bags', 'Interface\\MINIMAP\\TRACKING\\Banker'})
+		table.insert(filters, {'Bank', 'Bank', 'INTERFACE\\ICONS\\achievement_guildperk_mobilebanking'})
+		table.insert(filters, {'VoidStorage', 'Void Storage', 'INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup'})
+	end
+	if IsAddOnLoaded('DataStore_Inventory') then
+		table.insert(filters, {'Equipment', 'Equipped Items', 'Interface\\GUILDFRAME\\GuildLogo-NoLogo'})
+	end
+	if IsAddOnLoaded('DataStore_Mails') then
+		table.insert(filters, {'Mail', 'Mails', 'Interface\\MINIMAP\\TRACKING\\Mailbox'})
+	end
+
 	for i, data in ipairs(filters) do
-		local filter = CreateFrame("CheckButton", "$parentFilter"..data[1], panel, "PopupButtonTemplate", i) -- SimplePopupButtonTemplate
-			  filter:SetNormalTexture(data[2])
+		local filter = CreateDataSourceButton(i, unpack(data))
 			  filter:SetChecked(true)
-			  filter:SetScript("OnClick", OnFilterButtonClick)
-			  filter:SetScript("OnEnter", addon.ShowTooltip)
-			  filter:SetScript("OnLeave", addon.HideTooltip)
-			  filter.tiptext = data[1]
 
 		if i == 1 then
-			filter:SetPoint("TOPLEFT", 10, -10)
+			filter:SetPoint("TOPLEFT", 10, -12)
 		else
-			filter:SetPoint("LEFT", filterButtons[i-1], "RIGHT", 10, 0)
+			filter:SetPoint("LEFT", filters[i-1], "RIGHT", 10, 0)
 		end
-		table.insert(filterButtons, filter)
+		filters[i] = filter
 	end
-	panel.filters = filterButtons
+	panel.filters = filters -- filterButtons
 
 	local sorters = {"Quality", "Item Name", "Count", "Level"}
-	local sortButtons = {}
+	local tabRegions = {'', 'Left', 'Middle', 'Right'}
 	for i, name in ipairs(sorters) do
 		local sorter = CreateFrame("Button", "$parentSorter"..i, panel, "WhoFrameColumnHeaderTemplate", i)
 			  sorter:SetText(name)
 			  sorter:SetScript("OnClick", SortOnClick)
 
+		-- sorter:SetNormalFontObject(GameFontNormalSmall)
+		local sorterName = sorter:GetName()
+		for _, region in ipairs(tabRegions) do
+			_G[sorterName..region]:SetHeight(20)
+		end
+
 		if i == 1 then
-			sorter:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 10, -80-2)
+			sorter:SetPoint('TOPLEFT', panel, 'TOPLEFT', 4, -40-4)
 		else
-			sorter:SetPoint("LEFT", sortButtons[i-1], "RIGHT", -2, 0)
+			sorter:SetPoint("LEFT", sorters[i-1], "RIGHT", -2, 0)
 		end
 
 		if i == 2 then
 			-- make the main column wider
-			WhoFrameColumn_SetWidth(sorter, 230)
+			WhoFrameColumn_SetWidth(sorter, 238)
 		else
 			WhoFrameColumn_SetWidth(sorter, sorter:GetTextWidth() + 16)
 		end
-
-		table.insert(sortButtons, sorter)
+		sorters[i] = sorter
 	end
 	panel.sorters = sorters
 
-	local bg = panel:CreateTexture(nil, "BACKGROUND")
-		  bg:SetTexture("Interface\\TALENTFRAME\\spec-paper-bg")
-		  bg:SetTexCoord(0, 0.76, 0, 0.86)
-		  bg:SetPoint("TOPLEFT", 0, -78)
-		  bg:SetPoint("BOTTOMRIGHT")
+	local background = panel:CreateTexture(nil, 'BACKGROUND')
+	      background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
+	      background:SetTexCoord(0, 0.76, 0, 0.86)
+	      background:SetPoint('TOPLEFT', 0, -40 -20)
+		  background:SetPoint('BOTTOMRIGHT')
 
-	local buttonHeight = 22
-	local list = CreateFrame("ScrollFrame", "$parentList", panel, "FauxScrollFrameTemplate")
-	list:SetSize(345, 305)
-	list:SetPoint("TOPLEFT", bg, "TOPLEFT", 10, -6)
-	list:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT", -10, -6)
-	list:SetScript("OnVerticalScroll", function(self, offset)
-		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, ListUpdate)
+	local scrollFrame = CreateFrame('ScrollFrame', '$parentScrollFrame', panel, 'FauxScrollFrameTemplate')
+	      scrollFrame:SetSize(360, 354 - 20)
+	      scrollFrame:SetPoint('TOPLEFT', 0, -40-4 -20 -2)
+	      scrollFrame:SetPoint('BOTTOMRIGHT', -24, 2)
+	      scrollFrame.scrollBarHideable = true
+	panel.scrollFrame = scrollFrame
+
+	scrollFrame:SetScript('OnVerticalScroll', function(self, offset)
+		local buttonHeight = self[1]:GetHeight()
+		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, UpdateList)
 	end)
 
-	local function ItemButtonClick(self, btn)
-		HandleModifiedItemClick(self.link)
-	end
+	for i = 1, 11 do
+		local row = CreateFrame('Frame', nil, panel, nil, i)
+		      row:SetHeight(30)
+		      row:Hide()
 
-	list.scrollBarHideable = true
-	list.buttons = {}
-	for i = 1, 10 do
-		local row = CreateFrame("Frame", nil, panel, nil, i)
-		row:SetHeight(30)
-		row:Hide()
-
-		row:SetPoint("RIGHT", list, "RIGHT", 2, 0)
+		row:SetPoint('RIGHT', scrollFrame, 'RIGHT', 0, 0)
 		if i == 1 then
-			row:SetPoint("TOPLEFT", list, "TOPLEFT")
+			row:SetPoint('TOPLEFT', scrollFrame, 'TOPLEFT', 8, 0)
 		else
-			row:SetPoint("TOPLEFT", list.buttons[i-1], "BOTTOMLEFT", 0, 0)
+			row:SetPoint('TOPLEFT', scrollFrame[i-1], 'BOTTOMLEFT', 0, 0)
 		end
 
 		-- ACHIEVEMENTFRAME\\UI-Achievement-HorizontalShadow
-		local backdrop = row:CreateTexture(nil, "BACKGROUND")
-		      backdrop:SetTexture("Interface\\HelpFrame\\HelpFrameButton-Highlight")
+		local backdrop = row:CreateTexture(nil, 'BACKGROUND')
+		      backdrop:SetTexture('Interface\\HelpFrame\\HelpFrameButton-Highlight')
 		      backdrop:SetTexCoord(0, 1, 0, 0.578125)
 		      backdrop:SetDesaturated(true)
-		      backdrop:SetBlendMode("ADD")
+		      backdrop:SetBlendMode('ADD')
 		      backdrop:SetAllPoints()
 		row.backdrop = backdrop
 
-		local item = CreateFrame("Button", nil, row)
+		local item = CreateFrame('Button', nil, row)
 		      item:SetSize(26, 26)
-		      item:SetPoint("LEFT", 2, 0)
-		      item:SetScript("OnEnter", addon.ShowTooltip)
-		      item:SetScript("OnLeave", addon.HideTooltip)
-		      item:SetScript("OnClick", ItemButtonClick)
+		      item:SetPoint('LEFT', 0, 0)
+		      item:SetScript('OnEnter', addon.ShowTooltip)
+		      item:SetScript('OnLeave', addon.HideTooltip)
+		      item:SetScript('OnClick', ItemButtonOnClick)
 		row.item = item
-		local icon = item:CreateTexture(nil, "BORDER")
+		local icon = item:CreateTexture(nil, 'BORDER')
 		      icon:SetAllPoints()
 		row.icon = icon
 
 		local normalTexture = item:CreateTexture()
-		      normalTexture:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+		      normalTexture:SetTexture('Interface\\Buttons\\UI-Quickslot2')
 		      normalTexture:SetSize(42, 42)
-		      normalTexture:SetPoint("CENTER")
+		      normalTexture:SetPoint('CENTER')
 		item:SetNormalTexture(normalTexture)
-		item:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
-		item:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+		item:SetPushedTexture('Interface\\Buttons\\UI-Quickslot-Depress')
+		item:SetHighlightTexture('Interface\\Buttons\\ButtonHilight-Square', 'ADD')
 
-		local name = row:CreateFontString(nil, nil, "GameFontHighlight")
-			  name:SetPoint("LEFT", item, "RIGHT", 6, 0)
-			  name:SetJustifyH("LEFT")
+		local name = row:CreateFontString(nil, nil, 'GameFontHighlight')
+			  name:SetPoint('LEFT', item, 'RIGHT', 6, 0)
+			  name:SetJustifyH('LEFT')
 			  name:SetWidth(210)
 		row.name = name
-		local count = row:CreateFontString(nil, nil, "GameFontHighlight")
+		local count = row:CreateFontString(nil, nil, 'GameFontHighlight')
 		      count:SetWidth(40)
-		      count:SetPoint("LEFT", name, "RIGHT", 6, 0)
-		      count:SetJustifyH("RIGHT")
+		      count:SetPoint('LEFT', name, 'RIGHT', 6, 0)
+		      count:SetJustifyH('RIGHT')
 		row.count = count
-		local level = row:CreateFontString(nil, nil, "GameFontHighlight")
-			  level:SetPoint("LEFT", count, "RIGHT", 6, 0)
-			  level:SetPoint("RIGHT")
-			  level:SetJustifyH("RIGHT")
+		local level = row:CreateFontString(nil, nil, 'GameFontHighlight')
+			  level:SetPoint('LEFT', count, 'RIGHT', 6, 0)
+			  level:SetPoint('RIGHT')
+			  level:SetJustifyH('RIGHT')
 		row.level = level
 
-		table.insert(list.buttons, row)
+		table.insert(scrollFrame, row)
 	end
-	panel.scrollFrame = list
+	panel.scrollFrame = scrollFrame
 end
 
 function view:Update()
@@ -400,7 +458,7 @@ function view:Update()
 	table.sort(self.itemsTable, DataSort)
 
 	panel.scrollFrame:SetVerticalScroll(0)
-	ListUpdate(panel.scrollFrame)
+	UpdateList(panel.scrollFrame)
 end
 
 local ItemSearch = LibStub('LibItemSearch-1.2')
@@ -423,7 +481,7 @@ function view:Search(what, onWhom)
 
 	local character = addon.GetSelectedCharacter()
 	if self.panel:IsVisible() and character == onWhom then
-		ListUpdate(self.panel.scrollFrame)
+		UpdateList(self.panel.scrollFrame)
 	end
 
 	return hasMatch
