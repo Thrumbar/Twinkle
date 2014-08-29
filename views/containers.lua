@@ -251,20 +251,6 @@ local function SortOnClick(self, btn)
 	secondarySort = reverse and  secondarySort or primarySort
 	primarySort   = reverse and -1*primarySort or newSort
 
-	--[[ local index, sorters = 1, addonName..'UIPanelContainersSorter'
-	while true do
-		local sorter = _G[sorters..index]
-		if not sorter then break end
-		local arrow  = _G[sorters..index..'Arrow']
-		if sorter == self then
-			arrow:Show()
-			arrow:SetTexCoord(0, 0.5625, primarySort > 0 and 1 or 0, primarySort > 0 and 0 or 1)
-		else
-			arrow:Hide()
-		end
-		index = index + 1
-	end --]]
-
 	table.sort(view.itemsTable, DataSort)
 	ListUpdate(view.panel.scrollFrame)
 end
@@ -306,7 +292,6 @@ function view:OnEnable()
 		local sorter = CreateFrame("Button", "$parentSorter"..i, panel, "WhoFrameColumnHeaderTemplate", i)
 			  sorter:SetText(name)
 			  sorter:SetScript("OnClick", SortOnClick)
-		-- _G[sorter:GetName().."Arrow"]:Hide()
 
 		if i == 1 then
 			sorter:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 10, -80-2)
