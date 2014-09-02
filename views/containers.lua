@@ -178,13 +178,14 @@ local function UpdateList(self)
 			end
 
 			local r, g, b = GetItemQualityColor(quality)
-			-- item.name:SetTextColor(r, g, b)
-			if quality and quality ~= 1 then
-				item.backdrop:Show()
+			item.name:SetTextColor(r, g, b)
+			--[[ if quality and quality ~= 1 then
+				-- item.backdrop:Show()
 				item.backdrop:SetVertexColor(r, g, b, 0.5)
 			else
-				item.backdrop:Hide()
-			end
+				item.backdrop:SetVertexColor(1, 1, 1, 0.5)
+				-- item.backdrop:Hide()
+			end --]]
 			item:Show()
 		else
 			item:Hide()
@@ -389,8 +390,10 @@ function view:OnEnable()
 		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, UpdateList)
 	end)
 
+	local function OnEnter(self) self.shadow:SetAlpha(1) end
+	local function OnLeave(self) self.shadow:SetAlpha(0.5) end
 	for i = 1, 11 do
-		local row = CreateFrame('Frame', nil, panel, nil, i)
+		local row = CreateFrame('Button', nil, panel, nil, i)
 		      row:SetHeight(30)
 		      row:Hide()
 
@@ -401,14 +404,35 @@ function view:OnEnable()
 			row:SetPoint('TOPLEFT', scrollFrame[i-1], 'BOTTOMLEFT', 0, 0)
 		end
 
-		-- ACHIEVEMENTFRAME\\UI-Achievement-HorizontalShadow
-		local backdrop = row:CreateTexture(nil, 'BACKGROUND')
-		      backdrop:SetTexture('Interface\\HelpFrame\\HelpFrameButton-Highlight')
-		      backdrop:SetTexCoord(0, 1, 0, 0.578125)
-		      backdrop:SetDesaturated(true)
-		      backdrop:SetBlendMode('ADD')
-		      backdrop:SetAllPoints()
-		row.backdrop = backdrop
+		row:SetScript('OnEnter', OnEnter)
+		row:SetScript('OnLeave', OnLeave)
+
+		--[[ local highlight = row:CreateTexture(nil, 'HIGHLIGHT')
+		      -- UI-PlusButton-Hilight, UI-Common-MouseHilight, UI-Listbox-Highlight, UI-Listbox-Highlight2
+		      highlight:SetTexture('Interface\\Buttons\\UI-Listbox-Highlight')
+		      highlight:SetAlpha(0.5)
+		      highlight:SetAllPoints()
+		row:SetHighlightTexture(highlight) --]]
+
+		local shadow = row:CreateTexture(nil, 'BACKGROUND')
+		      shadow:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
+		      shadow:SetTexCoord(50/512, 322/512, 633/1024, (678-10)/1024)
+		      shadow:SetPoint('TOPLEFT', 26, 0)
+		      shadow:SetPoint('BOTTOMRIGHT', 0, 0)
+		      -- shadow:SetSize(270, 30)
+		      shadow:SetAlpha(0.5)
+		row.shadow = shadow
+
+		local level = row:CreateFontString(nil, nil, 'GameFontHighlight')
+			  level:SetPoint('RIGHT', 0, 0)
+			  level:SetWidth(40)
+			  level:SetJustifyH('RIGHT')
+		row.level = level
+		local count = row:CreateFontString(nil, nil, 'GameFontHighlight')
+		      count:SetWidth(40)
+		      count:SetPoint('RIGHT', level, 'LEFT', -4, 0)
+		      count:SetJustifyH('RIGHT')
+		row.count = count
 
 		local item = CreateFrame('Button', nil, row)
 		      item:SetSize(26, 26)
@@ -431,19 +455,10 @@ function view:OnEnable()
 
 		local name = row:CreateFontString(nil, nil, 'GameFontHighlight')
 			  name:SetPoint('LEFT', item, 'RIGHT', 6, 0)
+			  name:SetPoint('RIGHT', level, 'LEFT', -4)
+			  name:SetHeight(row:GetHeight())
 			  name:SetJustifyH('LEFT')
-			  name:SetWidth(210)
 		row.name = name
-		local count = row:CreateFontString(nil, nil, 'GameFontHighlight')
-		      count:SetWidth(40)
-		      count:SetPoint('LEFT', name, 'RIGHT', 6, 0)
-		      count:SetJustifyH('RIGHT')
-		row.count = count
-		local level = row:CreateFontString(nil, nil, 'GameFontHighlight')
-			  level:SetPoint('LEFT', count, 'RIGHT', 6, 0)
-			  level:SetPoint('RIGHT')
-			  level:SetJustifyH('RIGHT')
-		row.level = level
 
 		table.insert(scrollFrame, row)
 	end
