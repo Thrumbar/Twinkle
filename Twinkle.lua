@@ -71,6 +71,8 @@ end
 local characters = {}
 local thisCharacter
 function addon:OnInitialize()
+	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
+
 	-- TODO: prepare settings
 	-- fill char data
 	self.data.GetCharacters(characters)

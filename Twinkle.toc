@@ -4,8 +4,7 @@
 ## Version: @project-version@
 # Dependencies:
 ## OptionalDeps: TipTac, DataMore, DataStore
-## SavedVariables: Twinkle_GlobalDB
-# SavedVariablesPerCharacter: Twinkle_LocalDB
+## SavedVariables: TwinkleDB
 
 #@no-lib-strip@
 # libraries
