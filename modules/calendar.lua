@@ -250,7 +250,7 @@ local characters = {} -- filled on load
 local thisCharacter   -- filled on load
 -- TODO: resolve dependency on DataStore_Agenda - move to data.lua
 local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, contextEventIndex)
-	if not IsAddOnLoaded('DataStore_Agenda') then return end
+	if not DataStore:GetMethodOwner('GetCalendarEventInfo') or not DataStore:GetMethodOwner('GetNumCalendarEvents') then return end
 	local month, year = CalendarGetMonth(monthOffset)
 	local thisDate = string.format("%04d-%02d-%02d", year, month, day)
 

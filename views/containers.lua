@@ -316,7 +316,7 @@ function view:OnEnable()
 	local panel = self.panel
 
 	-- TODO: show slot count (13/97) on icons
-	-- TODO: convert to checking if required functions exist
+	-- TODO: convert to checking if required functions exist: DataStore:GetMethodOwner(methodName)
 	local filters = {}
 	if IsAddOnLoaded('DataStore_Containers') then
 		table.insert(filters, {'Bags', 'Bags', 'Interface\\MINIMAP\\TRACKING\\Banker'})

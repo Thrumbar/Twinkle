@@ -25,7 +25,7 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 
 	wipe(recipeKnownCharacters)
 	wipe(recipeUnknownCharacters)
-	if not IsAddOnLoaded("DataStore_Crafts") then
+	if not DataStore:GetMethodOwner('GetProfession') or not DataStore:GetMethodOwner('GetProfessionInfo') or not DataStore:GetMethodOwner('GetCraftLineInfo') or not DataStore:GetMethodOwner('GetNumCraftLines') then
 		return recipeKnownCharacters, recipeUnknownCharacters
 	end
 

@@ -10,7 +10,7 @@ local questInfo = {}
 -- TODO: return list of characters that completed quest, too
 local function GetOnQuestInfo(questID, onlyActive)
 	wipe(questInfo)
-	if not IsAddOnLoaded("DataStore_Quests") then
+	if not DataStore:GetMethodOwner('GetQuestLogInfo') or not DataStore:GetMethodOwner('GetQuestLogSize') then
 		return questInfo
 	end
 
@@ -23,7 +23,7 @@ local function GetOnQuestInfo(questID, onlyActive)
 				local qID = ns.GetLinkID(questLink)
 
 				if not isHeader and qID == questID and completed ~= 1 then
-					local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
+					local progress = DataStore:GetMethodOwner('GetQuestProgressPercentage') and DataStore:GetQuestProgressPercentage(characterKey, questID) or 0
 					local characterName = ns.data.GetCharacterText(characterKey)
 					if progress == 0 then
 						table.insert(questInfo, characterName)

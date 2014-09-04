@@ -7,7 +7,7 @@ local characters = ns.data.GetCharacters()
 -- ================================================
 local friendInfo = {}
 local function GetFriendsInfo(unitName)
-	if not IsAddOnLoaded("DataStore_Agenda") then
+	if not DataStore:GetMethodOwner('GetContactInfo') then
 		return friendInfo
 	end
 
