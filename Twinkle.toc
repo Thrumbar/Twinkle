@@ -40,8 +40,8 @@ modules\views.lua
 brokers\auctions.lua
 brokers\characters.lua
 brokers\currency.lua
+brokers\lockouts.lua
 brokers\money.lua
-brokers\raid.lua
 brokers\talents.lua
 brokers\weekly.lua
 

@@ -103,7 +103,7 @@ function data.GetLevel(characterKey)
 	end
 end
 function data.GetMoney(characterKey)
-	if DataStore:GetMethodOwner('GetCurrentCharacter') then
+	if DataStore:GetMethodOwner('GetMoney') then
 		return DataStore:GetMoney(characterKey)
 	elseif characterKey == data.GetCurrentCharacter() then
 		return GetMoney()
@@ -329,16 +329,18 @@ function data.GetCurrencyInfo(characterKey, identifier)
 	local hasData = false
 	if type(identifier) == 'number' and DataStore:GetMethodOwner('GetCurrencyTotals') then
 		name, _, icon = GetCurrencyInfo(identifier)
-		count, weekly = DataStore:GetCurrencyTotals(characterKey, identifier)
+		local weeklyMax, totalMax
+		count, weekly, weeklyMax, totalMax = DataStore:GetCurrencyTotals(characterKey, identifier)
 		if count ~= 0 or weekly ~= 0 or weeklyMax ~= 0 or totalMax ~= 0 then
 			hasData = true
 		end
 	end
 
 	if not hasData then
+		identifier = type(identifier) == 'number' and GetCurrencyInfo(identifier) or identifier
 		for index = 1, data.GetNumCurrencies(characterKey) do
 			local _isHeader, _name, _count, _icon = data.GetCurrencyInfoByIndex(characterKey, index)
-			if name == identifier then
+			if _name == identifier then
 				isHeader, name, count, icon = _isHeader, _name, _count, _icon
 				break
 			end
