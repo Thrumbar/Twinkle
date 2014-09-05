@@ -357,7 +357,7 @@ function data.GetRandomLFGState(characterKey, useTable)
 	wipe(useTable)
 
 	if DataStore:GetMethodOwner('GetLFGs') then
-		for dungeonID, status, resetTime, numDefeated in DataStore:GetLFGs(characterKey) do
+		for dungeonID, status, resetTime, numDefeated in DataStore:IterateLFGs(characterKey) do
 			local dungeon, typeID = GetLFGDungeonInfo(dungeonID)
 			if typeID == TYPEID_RANDOM_DUNGEON and type(status) == 'boolean' then
 				table.insert(useTable, {
@@ -376,7 +376,7 @@ function data.GetLFRState(characterKey, useTable)
 	wipe(useTable)
 
 	if DataStore:GetMethodOwner('GetLFGs') then
-		for dungeonID, status, resetTime, numDefeated in DataStore:GetLFGs(characterKey) do
+		for dungeonID, status, resetTime, numDefeated in DataStore:IterateLFGs(characterKey) do
 			local dungeon, typeID, subTypeID = GetLFGDungeonInfo(dungeonID)
 			if typeID == TYPEID_DUNGEON and subTypeID == LFG_SUBTYPEID_RAID and type(status) == 'boolean' then
 				table.insert(useTable, {
