@@ -1,6 +1,9 @@
 local addonName, addon, _ = ...
 
 -- GLOBALS: _G
+-- TODO: sort lockouts
+-- TODO: SHIFT-click to post lockoutLink to chat
+-- TODO: display defeated/available bosses OnEnter
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Lockouts')
@@ -11,15 +14,14 @@ local function GetCharacterInstanceLockouts(characterKey)
 	wipe(instanceLockouts)
 
 	-- DataStore:IsEncounterDefeated()
-	for instanceID, difficulty in DataStore:IterateInstanceLockouts(characterKey) do
-		if true then -- instancesList[instanceID] then
-			hasData = true
-			local instanceReset, isExtended, isRaid, numKilledBosses = DataStore:GetInstanceLockoutInfo(characterKey, instanceID, difficulty)
-			local color = (instanceReset == 0 and _G.GRAY_FONT_COLOR_CODE)
-				or (numKilledBosses > 0 and _G.GREEN_FONT_COLOR_CODE)
-				or _G.NORMAL_FONT_COLOR_CODE
-			table.insert(instanceLockouts, color..numKilledBosses..'|r')
-		end
+	for lockoutID, lockoutLink in DataStore:IterateInstanceLockouts(characterKey) do
+		hasData = true
+		local instanceName, difficulty, instanceReset, isExtended, isRaid, numDefeated, numBosses = DataStore:GetInstanceLockoutInfo(characterKey, lockoutID)
+		local color = (instanceReset == 0 and _G.GRAY_FONT_COLOR_CODE)
+			or (numDefeated > 0 and _G.GREEN_FONT_COLOR_CODE)
+			or _G.NORMAL_FONT_COLOR_CODE
+		local rowText = string.format('%s%d/%d|r', color, numDefeated, numBosses)
+		table.insert(instanceLockouts, rowText)
 	end
 	return hasData and instanceLockouts or nil
 end
@@ -53,7 +55,7 @@ function broker:UpdateTooltip()
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local data = GetCharacterInstanceLockouts(characterKey, true)
 		if data then
-			lineNum = self:AddLine( ns.data.GetCharacterText(characterKey),  unpack(data))
+			lineNum = self:AddLine(addon.data.GetCharacterText(characterKey),  unpack(data))
 			self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
 		end
 	end
