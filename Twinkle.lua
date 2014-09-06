@@ -192,6 +192,7 @@ function addon.UpdateCharacters()
 	local currentSelection = scrollFrame.selection
 	OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)
 
+	local maxLevel = GetMaxPlayerLevel()
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
 	for i = 1, #scrollFrame.buttons do
 		local button = scrollFrame.buttons[i]
@@ -204,7 +205,7 @@ function addon.UpdateCharacters()
 			button.element = character
 
 			local level = addon.data.GetLevel(character)
-			button.info:SetText(level < 90 and level or '')
+			button.info:SetText(level < maxLevel and level or '')
 
 			local icon = addon.data.GetCharacterFactionIcon(character)
 			local name = addon.data.GetCharacterText(character)
