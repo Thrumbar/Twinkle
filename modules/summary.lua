@@ -4,9 +4,9 @@ local addonName, addon, _ = ...
 -- GLOBALS: CreateFrame, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_OnVerticalScroll
 -- GLOBALS: hooksecurefunc, ipairs
 
-local summary = addon:NewModule('summary')
+local summary = addon:NewModule('Summary')
 
-function summary.OnEnable()
+function summary:OnEnable()
 	local views = addon:GetModule('views', true)
 	if not views then return end
 
@@ -19,7 +19,7 @@ function summary.OnEnable()
 	button:SetText('Summary')
 	button:SetScript('OnClick', function(self, btn, up)
 		summary.show = not summary.show
-		summary.Update()
+		summary:Update()
 	end)
 	frame.summary = button
 
@@ -83,7 +83,7 @@ function summary.OnEnable()
 	-- make sure all views are always up to date & filtered properly
 	local function OnViewUpdate()
 		-- summary.updating = true
-		summary.Update()
+		summary:Update()
 		-- summary.updating = nil
 	end
 	-- hook into existing views
