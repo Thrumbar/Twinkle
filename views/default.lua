@@ -367,7 +367,8 @@ function view:Update()
 	panel.level:SetFormattedText('%s %d %s', LEVEL, level, raceName)
 
 	local guild, rank, rankIndex = addon.data.GetGuildInfo(character)
-	panel.guild:SetFormattedText('%s%s', guild, rankIndex == 0 and ' |TInterface\\GROUPFRAME\\UI-Group-LeaderIcon:0|t' or '')
+	panel.guild:SetFormattedText('%s%s', guild or '',
+		(rankIndex and rankIndex == 0) and ' |TInterface\\GROUPFRAME\\UI-Group-LeaderIcon:0|t' or '')
 
 	local xpText
 	if level < MAX_PLAYER_LEVEL then

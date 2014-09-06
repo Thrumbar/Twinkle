@@ -29,50 +29,54 @@ end
 --  General Information
 -- ========================================
 function data.GetName(characterKey)
-	if DataStore:GetMethodOwner('GetCharacterName') then
-		return DataStore:GetCharacterName(characterKey)
+	if characterKey == thisCharacter then
+		local characterName = UnitName('player')
+		return characterName
 	else
-		return characterKey
+		return DataStore:GetCharacterName(characterKey) or characterKey
 	end
 end
 function data.GetFullName(characterKey)
-	-- return DataStore:GetCharacterName(characterKey)
-	local account, realm, character = strsplit('.', characterKey)
-	return character..'-'..string.gsub(realm, ' ', '')
+	if character == thisCharacter then
+		local fullName = strjoin('-', UnitFullName('player'))
+	else
+		local account, realm, character = strsplit('.', characterKey)
+		return character..'-'..string.gsub(realm, ' ', '')
+	end
 end
 function data.GetCharacterText(characterKey)
-	local text
-	if DataStore:GetMethodOwner('GetColoredCharacterName') then
-		text = DataStore:GetColoredCharacterName(characterKey) .. '|r'
+	if characterKey == thisCharacter then
+		local characterName = UnitName('player')
+		local _, className = UnitClass('player')
+		return string.format('|c%s%s|r', _G.RAID_CLASS_COLORS[className].colorStr, characterName)
 	else
-		local _, _, characterName = strsplit('.', characterKey)
-		text = characterName
+		local characterName = DataStore:GetColoredCharacterName(characterKey)
+		return characterName and characterName..'|r' or data.GetName(characterKey)
 	end
-	return text or ''
 end
 function data.GetCharacterFactionIcon(characterKey)
-	local text
-	if DataStore:GetMethodOwner('GetCharacterFaction') then
-		local faction = DataStore:GetCharacterFaction(characterKey)
-		if faction == 'Horde' then
-			-- Interface\\PVPFrame\\PVPCurrency-Honor-Horde'
-			text = '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t'
-		elseif faction == 'Alliance' then
-			-- Interface\\PVPFrame\\PVPCurrency-Honor-Alliance'
-			text = '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t'
-		else
-			-- Interface\\ICONS\\FactionChange
-			text = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t'
-		end
+	local faction
+	if characterKey == thisCharacter then
+		faction = UnitFactionGroup('player')
+	else
+		faction = DataStore:GetCharacterFaction(characterKey)
 	end
-	return text or ''
+
+	if faction == 'Horde' then
+		return '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t'    -- Interface\\PVPFrame\\PVPCurrency-Honor-Horde'
+	elseif faction == 'Alliance' then
+		return '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t' -- Interface\\PVPFrame\\PVPCurrency-Honor-Alliance'
+	else
+		return '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t'   -- Interface\\ICONS\\FactionChange
+	end
 end
 function data.GetRace(characterKey)
-	if DataStore:GetMethodOwner('GetCharacterRace') then
-		local locale, english = DataStore:GetCharacterRace(characterKey)
-		return locale, english
+	if characterKey == thisCharacter then
+		local raceLocale, raceFileName = UnitRace('player')
+		return raceLocale, raceFileName
 	else
-		return ''
+		local raceLocale, raceFileName = DataStore:GetCharacterRace(characterKey)
+		return raceLocale, raceFileName
 	end
 end
 
@@ -86,60 +90,65 @@ local function GetClassID(class)
 end
 function data.GetClass(characterKey)
 	if characterKey == thisCharacter then
-		return UnitClass('player')
-	elseif DataStore:GetMethodOwner('GetCharacterClass') then
-		local locale, english = DataStore:GetCharacterClass(characterKey)
-		local classID = GetClassID(english)
-		return locale, english, classID
+		local classLocale, className, classID = UnitClass('player')
+		return classLocale, className, classID
 	else
-		return ''
+		local classLocale, className = DataStore:GetCharacterClass(characterKey)
+		local classID = className and GetClassID(className) or nil
+		return classLocale, className, classID
 	end
 end
 function data.GetLevel(characterKey)
-	if DataStore:GetMethodOwner('GetCharacterLevel') then
-		return DataStore:GetCharacterLevel(characterKey)
+	if characterKey == thisCharacter then
+		return UnitLevel('player')
 	else
-		return 0
+		return DataStore:GetCharacterLevel(characterKey) or 0
 	end
 end
 function data.GetMoney(characterKey)
-	if DataStore:GetMethodOwner('GetMoney') then
-		return DataStore:GetMoney(characterKey)
-	elseif characterKey == data.GetCurrentCharacter() then
+	if characterKey == thisCharacter then
 		return GetMoney()
 	else
-		return 0
+		return DataStore:GetMoney(characterKey) or 0
 	end
 end
 function data.GetAverageItemLevel(characterKey)
-	if DataStore:GetMethodOwner('GetAverageItemLevel') then
-		return math.floor(DataStore:GetAverageItemLevel(characterKey) + 0.5)
+	if characterKey == thisCharacter then
+		local total, equipped = GetAverageItemLevel()
+		return math.floor(total + 0.5)
 	else
-		return 0
+		local equipped, total = DataStore:GetAverageItemLevel(characterKey)
+		return math.floor((total or 0) + 0.5)
 	end
 end
 function data.GetXPInfo(characterKey)
-	if DataStore:GetMethodOwner('GetXPRate') and DataStore:GetMethodOwner('GetRestXPRate') then
-		-- GetXP, GetXPMax, GetRestXP
-		local currentXP = DataStore:GetXPRate(characterKey)
-		local restedXP  = DataStore:GetRestXPRate(characterKey)
-
-		if restedXP and restedXP > 0 then
-			return string.format('%d%% (+%d%%)', currentXP, restedXP*1.5)
-		else
-			return string.format('%d%%', currentXP)
-		end
+	local levelProgress, restedRate
+	if characterKey == thisCharacter then
+		local restedXP = GetXPExhaustion() -- 475500
+		local currentXP, maxXP = UnitXP('player'), UnitXPMax('player')
+		levelProgress = math.floor(currentXP/maxXP + 0.5) * 100
+		restedRate = restedXP / maxXP / 1.5 * 100
 	else
-		return ''
+		-- also available: GetXP, GetXPMax, GetRestXP
+		levelProgress = DataStore:GetXPRate(characterKey) or 0
+		restedRate  = DataStore:GetRestXPRate(characterKey) or 0
+	end
+
+	if restedRate and restedRate > 0 then
+		return string.format('%d%% (+%d%%)', levelProgress, restedRate*1.5)
+	else
+		return string.format('%d%%', levelProgress)
 	end
 end
 function data.GetLocation(characterKey)
-	if DataStore:GetMethodOwner('GetLocation') and DataStore:GetMethodOwner('IsResting') then
-		local location = DataStore:GetLocation(characterKey)
-		local isResting = DataStore:IsResting(characterKey)
-		return location or '', isResting
+	if characterKey == thisCharacter then
+		local zone, subZone = GetZoneText(), GetSubZoneText()
+		local resting = IsResting()
+		return zone, isResting
 	else
-		return ''
+		local zone, subZone = DataStore:GetLocation(characterKey)
+		local isResting = DataStore:IsResting(characterKey) or false
+		return zone or '', isResting
 	end
 end
 function data.GetAuctionState(characterKey)
@@ -157,6 +166,7 @@ function data.GetAuctionInfo(characterKey, list, index)
 end
 function data.GetNumMails(characterKey)
 	if DataStore:GetMethodOwner('GetNumMails') then
+		-- returns the number of item attachments in mails
 		return DataStore:GetNumMails(characterKey) or 0
 	else
 		return 0
@@ -170,11 +180,12 @@ function data.GetMailInfo(characterKey, index)
 	end
 end
 function data.GetGuildInfo(characterKey)
-	if DataStore:GetMethodOwner('GetGuildInfo') then
-		local guildName, guildRank, rankID = DataStore:GetGuildInfo(characterKey)
+	if characterKey == thisCharacter then
+		local guildName, guildRank, rankID, _ = GetGuildInfo('player')
 		return guildName, guildRank, rankID
 	else
-		return '', '', -1
+		local guildName, guildRank, rankID = DataStore:GetGuildInfo(characterKey)
+		return guildName, guildRank, rankID
 	end
 end
 function data.GetNumUnspentTalents(characterKey)
@@ -281,11 +292,10 @@ function data.GetGuildsItemCounts(itemID, uncached)
 end
 function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	if characterKey == thisCharacter then
-		return GetInventoryItemLink('player', slotID)
-	elseif DataStore:GetMethodOwner('GetInventoryItem') then
-		-- FIXME: DataStore doesn't save upgraded items
+		local item = GetInventoryItemLink('player', slotID)
+	else
 		local item = DataStore:GetInventoryItem(characterKey, slotID)
-		if not rawOnly and type(item) == 'number' then
+		if item and type(item) == 'number' and not rawOnly then
 			_, item = GetItemInfo(item)
 		end
 		return item
@@ -318,7 +328,7 @@ function data.GetCurrencyInfoByIndex(characterKey, index)
 	if characterKey == thisCharacter then
 		local name, isHeader, _, _, _, count, icon = GetCurrencyListInfo(index)
 		return isHeader, name, count, icon
-	elseif DataStore:GetMethodOwner('GetCurrencyInfo') then
+	else
 		return DataStore:GetCurrencyInfo(characterKey, index)
 	end
 end
@@ -327,11 +337,11 @@ end
 function data.GetCurrencyInfo(characterKey, identifier)
 	local count, weekly, isHeader, name, icon
 	local hasData = false
-	if type(identifier) == 'number' and DataStore:GetMethodOwner('GetCurrencyTotals') then
+	if type(identifier) == 'number' then
 		name, _, icon = GetCurrencyInfo(identifier)
 		local weeklyMax, totalMax
 		count, weekly, weeklyMax, totalMax = DataStore:GetCurrencyTotals(characterKey, identifier)
-		if count ~= 0 or weekly ~= 0 or weeklyMax ~= 0 or totalMax ~= 0 then
+		if count and not (count == 0 and weekly == 0 and weeklyMax == 0 and totalMax == 0) then
 			hasData = true
 		end
 	end
@@ -356,8 +366,9 @@ function data.GetRandomLFGState(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	if DataStore:GetMethodOwner('GetLFGs') then
-		for dungeonID, status, resetTime, numDefeated in DataStore:IterateLFGs(characterKey) do
+	local iterator = DataStore:IterateLFGs(characterKey)
+	if iterator then
+		for dungeonID, status, resetTime, numDefeated in iterator do
 			local dungeon, typeID = GetLFGDungeonInfo(dungeonID)
 			if typeID == TYPEID_RANDOM_DUNGEON and type(status) == 'boolean' then
 				table.insert(useTable, {
@@ -375,8 +386,9 @@ function data.GetLFRState(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	if DataStore:GetMethodOwner('GetLFGs') then
-		for dungeonID, status, resetTime, numDefeated in DataStore:IterateLFGs(characterKey) do
+	local iterator = DataStore:IterateLFGs(characterKey)
+	if iterator then
+		for dungeonID, status, resetTime, numDefeated in iterator do
 			local dungeon, typeID, subTypeID = GetLFGDungeonInfo(dungeonID)
 			if typeID == TYPEID_DUNGEON and subTypeID == LFG_SUBTYPEID_RAID and type(status) == 'boolean' then
 				table.insert(useTable, {
@@ -395,9 +407,9 @@ function data.GetDailyQuests(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	if DataStore:GetMethodOwner('GetDailiesHistorySize') and DataStore:GetMethodOwner('GetDailiesHistoryInfo') then
-		for i = 1, DataStore:GetDailiesHistorySize(characterKey) do
-			local _, title = DataStore:GetDailiesHistoryInfo(characterKey, i)
+	for i = 1, DataStore:GetDailiesHistorySize(characterKey) or 0 do
+		local _, title = DataStore:GetDailiesHistoryInfo(characterKey, i)
+		if title then
 			table.insert(useTable, title)
 		end
 	end
