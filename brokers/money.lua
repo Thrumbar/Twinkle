@@ -17,8 +17,9 @@ local function GetPrettyAmount(amount, style)
 		silverSep = '|TInterface\\MoneyFrame\\UI-SilverIcon:0:0:2:0|t '
 		copperSep = '|TInterface\\MoneyFrame\\UI-CopperIcon:0:0:2:0|t '
 	elseif style == 'gsc' then
-		goldSep   = '|cffffd700g|r '
-		silverSep = '|cffc7c7cfs|r '
+		prefix    = _G.HIGHLIGHT_FONT_COLOR_CODE
+		goldSep   = '|cffffd700g|r '.._G.HIGHLIGHT_FONT_COLOR_CODE
+		silverSep = '|cffc7c7cfs|r '.._G.HIGHLIGHT_FONT_COLOR_CODE
 		copperSep = '|cffeda55fc|r'
 	elseif style == 'dot' then
 		prefix    = '|cffffd700'
@@ -142,6 +143,8 @@ function broker:UpdateTooltip()
 	self:AddLine('Last Week',    GetPrettyAmount(currentMoney - week,    tooltipFormat))
 	self:AddLine('Last Month',   GetPrettyAmount(currentMoney - month,   tooltipFormat))
 	self:AddLine(' ')
+	-- bg: :SetCellColor(lineNum, colNum, r, g, b, a)
+	-- bg: :SetLineColor(lineNum, r, g, b, a)
 
 	local total
 	table.sort(broker.characters, MoneySort)
