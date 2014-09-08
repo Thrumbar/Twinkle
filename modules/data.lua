@@ -293,6 +293,7 @@ end
 function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	if characterKey == thisCharacter then
 		local item = GetInventoryItemLink('player', slotID)
+		return item
 	else
 		local item = DataStore:GetInventoryItem(characterKey, slotID)
 		if item and type(item) == 'number' and not rawOnly then
