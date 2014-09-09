@@ -44,7 +44,6 @@ end
 
 function broker:GetAccountMoney()
 	local money = 0
-
 	for _, characterKey in ipairs(self.characters) do
 		if characterKey == addon.data.GetCurrentCharacter() then
 			money = money + GetMoney()
@@ -53,7 +52,6 @@ function broker:GetAccountMoney()
 			money = money + (amount or 0)
 		end
 	end
-
 	return money
 end
 
@@ -110,10 +108,6 @@ function broker:OnEnable()
 	self.db.global.history[today] = self:GetAccountMoney()
 
 	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
-	self:RegisterEvent('PLAYER_LOGOUT', function()
-		local today = date('%Y-%m-%d')
-		self.db.global.history[today] = self:GetAccountMoney()
-	end, self) -- is this arg really needed?
 	self:Update()
 end
 function broker:OnDisable()
@@ -125,6 +119,9 @@ end
 
 function broker:UpdateLDB()
 	self.text = GetPrettyAmount(GetMoney(), broker.db.profile.ldbFormat)
+
+	local today = date('%Y-%m-%d')
+	broker.db.global.history[today] = broker:GetAccountMoney()
 end
 
 function broker:UpdateTooltip()
@@ -146,7 +143,6 @@ function broker:UpdateTooltip()
 	-- bg: :SetCellColor(lineNum, colNum, r, g, b, a)
 	-- bg: :SetLineColor(lineNum, r, g, b, a)
 
-	local total
 	table.sort(broker.characters, MoneySort)
 	for _, characterKey in ipairs(broker.characters) do
 		local amount = addon.data.GetMoney(characterKey)
