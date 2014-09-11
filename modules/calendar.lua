@@ -91,10 +91,11 @@ local function DayOnEnter(self)
 
 	for _, eventInfo in ipairs(events) do
 		local eventColor, eventStatus = GetEventInfo(eventInfo.status)
+		local hours, minutes = strsplit(':', eventInfo.time)
 		GameTooltip:AddLine(' ')
 		GameTooltip:AddDoubleLine(
 			string.format('%s', eventInfo.title),
-			GameTime_GetFormattedTime(string.split(':', eventInfo.time), false),
+			GameTime_GetFormattedTime(hours, minutes, false),
 			eventColor.r, eventColor.g, eventColor.b,
 			_G.HIGHLIGHT_FONT_COLOR.r, _G.HIGHLIGHT_FONT_COLOR.g, _G.HIGHLIGHT_FONT_COLOR.b,
 			1
@@ -128,8 +129,9 @@ local function UpdateEventPicker()
 		      buttonIcon:Show()
 		local buttonTitle = _G[buttonName..'Title']
 		      buttonTitle:SetFormattedText('%s (%s)', eventInfo.title, addon.data.GetCharacterText(eventInfo.character))
+		local hours, minutes = strsplit(':', eventInfo.time)
 		local buttonTime = _G[buttonName..'Time']
-		      buttonTime:SetText(GameTime_GetFormattedTime(string.split(':', eventInfo.time), false))
+		      buttonTime:SetText(GameTime_GetFormattedTime(hours, minutes, false))
 		      buttonTime:Show()
 	end
 end
@@ -138,9 +140,10 @@ local function UpdateHolidayFrame(eventInfo)
 	-- TODO: improve this
 	local title, description = _G.CalendarViewHolidayTitleFrame, _G.CalendarViewHolidayDescription
 	CalendarTitleFrame_SetText(title, eventInfo.title)
+	local hours, minutes = strsplit(':', eventInfo.time)
 	description:SetFormattedText('%s has this event in their agenda for %s.',
 		addon.data.GetCharacterText(eventInfo.character),
-		GameTime_GetFormattedTime(string.split(':', eventInfo.time), false)
+		GameTime_GetFormattedTime(hours, minutes, false)
 	)
 end
 local function EventOnClick(self, btn)
@@ -214,9 +217,10 @@ local function AddDayEvent(dayButtonName, eventInfo)
 	-- update event texts
 	local titleText, timeText = UpdateEventTextPositions(eventButton, showingBigEvents)
 	local eventColor, eventStatus = GetEventInfo(eventInfo.eventStatus)
+	local hours, minutes = strsplit(':', eventInfo.time)
 	titleText:SetFormattedText('%s', eventInfo.title)
 	titleText:SetTextColor(eventColor.r, eventColor.g, eventColor.b)
-	timeText:SetText(GameTime_GetFormattedTime(string.split(':', eventInfo.time), false))
+	timeText:SetText(GameTime_GetFormattedTime(hours, minutes, false))
 
 	-- anchor event button
 	eventButton:SetPoint('BOTTOMLEFT', '$parent', 'BOTTOMLEFT', 4, 3)
