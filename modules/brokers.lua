@@ -33,6 +33,8 @@ local prototype = {
 		-- setup LDB
 		local ldb = LDB:NewDataObject(identifier, {
 			type	= 'data source',
+			text    = brokerName,
+			label   = brokerName,
 
 			OnClick = self.OnClick,
 			OnEnter = function(frame, ...)
