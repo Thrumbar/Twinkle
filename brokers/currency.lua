@@ -3,7 +3,7 @@ local addonName, addon, _ = ...
 -- GLOBALS: GetCoinTextureString, GetMoney
 
 local brokers = addon:GetModule('brokers')
-local broker = brokers:NewModule('currency')
+local broker = brokers:NewModule('Currency')
 
 -- GLOBALS: _G, ipairs, string, ToggleCharacter
 

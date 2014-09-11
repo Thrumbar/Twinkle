@@ -4,7 +4,7 @@ local addonName, addon, _ = ...
 -- GLOBALS: ipairs, string, table, math
 
 local brokers = addon:GetModule('brokers')
-local broker = brokers:NewModule('characters')
+local broker = brokers:NewModule('Characters')
 local characters
 
 local function UpdateItemLevelQualities() end
@@ -45,6 +45,7 @@ local function GetDifficultyItemLevels(instanceID)
 	end
 end
 
+-- TODO: FIXME: this does not work when launching the game
 local itemLevelQualities, checkList = {}, {}
 local function UpdateItemLevelQualities()
 	local index = 1
@@ -107,6 +108,7 @@ local function ColorByItemLevel(itemLevel)
 end
 -- FOO, BAR = itemLevelQualities, ColorByItemLevel
 
+-- TODO: FIXME: does not init levels properly
 function broker:OnEnable()
 	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update, self)
 	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
@@ -116,6 +118,7 @@ function broker:OnEnable()
 	-- create our own characters table, so sorting doesn't influence other brokers
 	characters = addon.data.GetCharacters()
 	UpdateItemLevelQualities()
+	self:Update()
 end
 function broker:OnDisable()
 	self:UnregisterEvent('PLAYER_LEVEL_UP')

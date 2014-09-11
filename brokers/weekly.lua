@@ -7,7 +7,7 @@ local format, strsplit = string.format, string.split
 local max, floor = math.max, math.floor
 
 local brokers = addon:GetModule('brokers')
-local broker = brokers:NewModule('weekly')
+local broker = brokers:NewModule('Weekly')
 
 function broker:OnEnable()
 	-- self:RegisterEvent('EVENT_NAME', self.Update, self)

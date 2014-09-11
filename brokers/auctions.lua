@@ -3,7 +3,7 @@ local addonName, addon, _ = ...
 -- GLOBALS:
 
 local brokers = addon:GetModule('brokers')
-local broker = brokers:NewModule('auctions')
+local broker = brokers:NewModule('Auctions')
 
 local lists = {'Auctions', 'Bids'}
 local function GetAuctionState(characterKey)

@@ -7,7 +7,7 @@ local addonName, addon, _ = ...
 -- TODO: display / change loot spec?
 
 local brokers = addon:GetModule('brokers')
-local broker = brokers:NewModule('talents')
+local broker = brokers:NewModule('Talents')
 local thisCharacter = DataStore:GetCharacter()
 
 local function CheckTalents(characterKey)
