@@ -78,7 +78,7 @@ function broker:GetHistoryValues()
 		if dateStamp >= yesterday and (not dayDate   or dateStamp < dayDate)   then dayDate   = dateStamp end
 	end
 
-	local session = self.db.global.history[today]
+	local session = self.session
 	local day     = dayDate   and self.db.global.history[dayDate]   or session
 	local week    = weekDate  and self.db.global.history[weekDate]  or session
 	local month   = monthDate and self.db.global.history[monthDate] or session
@@ -104,8 +104,9 @@ function broker:OnEnable()
 	})
 	self:Prune()
 
+	self.session = self:GetAccountMoney()
 	local today = date('%Y-%m-%d')
-	self.db.global.history[today] = self:GetAccountMoney()
+	self.db.global.history[today] = self.session
 
 	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
 	self:Update()
