@@ -367,14 +367,13 @@ function data.GetRandomLFGState(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	local iterator = DataStore:IterateLFGs(characterKey)
+	local iterator = DataStore:IterateLFGs(characterKey, _G.TYPEID_RANDOM_DUNGEON)
 	if iterator then
-		for dungeonID, status, resetTime, numDefeated in iterator do
-			local dungeon, typeID = GetLFGDungeonInfo(dungeonID)
-			if typeID == TYPEID_RANDOM_DUNGEON and type(status) == 'boolean' then
+		for dungeonID, dungeonName, status, resetTime, numDefeated, numBosses in iterator do
+			if type(status) ~= 'string' then
 				table.insert(useTable, {
 					id = dungeonID,
-					name = dungeon,
+					name = dungeonName,
 					complete = status
 				})
 			end
@@ -387,14 +386,13 @@ function data.GetLFRState(characterKey, useTable)
 	useTable = useTable or {}
 	wipe(useTable)
 
-	local iterator = DataStore:IterateLFGs(characterKey)
+	local iterator = DataStore:IterateLFGs(characterKey, _G.TYPEID_DUNGEON, _G.LFG_SUBTYPEID_RAID)
 	if iterator then
-		for dungeonID, status, resetTime, numDefeated in iterator do
-			local dungeon, typeID, subTypeID = GetLFGDungeonInfo(dungeonID)
-			if typeID == TYPEID_DUNGEON and subTypeID == LFG_SUBTYPEID_RAID and type(status) == 'boolean' then
+		for dungeonID, dungeonName, status, resetTime, numDefeated, numBosses in iterator do
+			if type(status) ~= 'string' then
 				table.insert(useTable, {
 					id = dungeonID,
-					name = dungeon,
+					name = dungeonName,
 					killed = numDefeated,
 					complete = status
 				})
