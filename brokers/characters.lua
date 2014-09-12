@@ -114,6 +114,7 @@ function broker:OnEnable()
 	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
 	self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', self.Update, self)
 	self:RegisterEvent('PLAYER_TALENT_UPDATE', self.Update, self)
+	self:RegisterEvent('PLAYER_ENTERING_WORLD', self.Update, self)
 
 	-- create our own characters table, so sorting doesn't influence other brokers
 	characters = addon.data.GetCharacters()
@@ -125,6 +126,7 @@ function broker:OnDisable()
 	self:UnregisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
 	self:UnregisterEvent('PLAYER_EQUIPMENT_CHANGED')
 	self:UnregisterEvent('PLAYER_TALENT_UPDATE')
+	self:UnregisterEvent('PLAYER_ENTERING_WORLD')
 end
 
 function broker:OnClick(btn, down)
