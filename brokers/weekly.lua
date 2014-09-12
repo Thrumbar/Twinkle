@@ -1,7 +1,7 @@
 local addonName, addon, _ = ...
 
 -- GLOBALS: _G, DataStore
--- GLOBALS: GetItemInfo, IsAddOnLoaded, IsQuestFlaggedCompleted, GetLFGDungeonNumEncounters, GetLFGDungeonEncounterInfo, GetLFGDungeonRewardCapInfo
+-- GLOBALS: GetItemIcon, IsAddOnLoaded, IsQuestFlaggedCompleted, GetLFGDungeonNumEncounters, GetLFGDungeonEncounterInfo, GetLFGDungeonRewardCapInfo
 -- GLOBALS: select, wipe, type, tonumber, ipairs, unpack
 local format, strsplit = string.format, string.split
 local max, floor = math.max, math.floor
@@ -33,18 +33,15 @@ local weeklyQuests 	= { -- sharedID or 'allianceID|hordeID'
 	'32719|32718', -- lesser charms trade-in
 	33338, 33334, --32956, -- timeless isle (epoch stone, rares, pirate chest)
 }
+-- CONQUEST_CURRENCY, HONOR_CURRENCY
 local currencies 	= { _G.VALOR_CURRENCY, _G.JUSTICE_CURRENCY, 738, 697, 752, 776 } -- lesser/elder/mogu/warforged charm
---[[
-CONQUEST_CURRENCY = 390
-HONOR_CURRENCY = 392
---]]
 
-local function tex(item, text)
-	local icon = select(10, GetItemInfo(item))
+local function tex(itemID, text)
+	local icon = GetItemIcon(itemID)
 	return icon and '|T'..icon..':0|t' or text or '?'
 end
 local returnTable = {}
-local function getColumnHeaders(dataType)
+local function GetColumnHeaders(dataType)
 	if dataType == 'lfr' then
 		return _G.RAID_FINDER,
 			'MV', 'HoF', 'ToES', 'ToT', 'SoO'
@@ -55,12 +52,11 @@ local function getColumnHeaders(dataType)
 		return _G.QUESTS_LABEL
 			, tex(94221, 'Stone'), tex(94222, 'Key'), tex(87391, 'Chest'), tex(93792, 'Chamberlain'), tex(90538, 'Champions')
 			, tex(90815, 'Charms')
-			--, tex(97849, 'Barrens')
 			, tex(105715, 'Epoch'), tex(33847, 'Rares')
 	end
 	return ''
 end
-local function colorize(value, goodValue, badValue)
+local function Colorize(value, goodValue, badValue)
 	local returnString = value or ''
 	if goodValue and badValue and goodValue == badValue then
 		returnString = _G.GRAY_FONT_COLOR_CODE .. value .. _G.FONT_COLOR_CODE_CLOSE
@@ -94,62 +90,49 @@ local function prepare(dataTable)
 	return unpack(dataTable)
 end
 
+local temp = {}
+local lockoutReturns = { lfr = {}, worldboss = {}, weekly = {} }
+local function GetLFRGroup(dungeonID)
+	for group, dungeons in ipairs(LFRDungeons) do
+		for index, dungeon in ipairs(dungeons) do
+			if dungeon == dungeonID then
+				return group
+			end
+		end
+	end
+	return #LFRDungeons + 1
+end
+local function GetCharacterLFRLockouts(characterKey, hideEmpty)
+	wipe(lockoutReturns.lfr)
+	local hasData = false
+	for _, data in ipairs(addon.data.GetLFRState(characterKey, temp)) do
+		hasData = true
+		local dungeonID, name, numDefeated, completed = data.id, data.name, data.killed or 0, data.complete
+		local group = GetLFRGroup(dungeonID)
+		local text = lockoutReturns.lfr[group] and lockoutReturns.lfr[group]..' ' or ''
+		lockoutReturns.lfr[group] = text .. Colorize(numDefeated, 0, numDefeated + (completed and 0 or 1))
+	end
+	return hasData and lockoutReturns.lfr or nil
+end
+
+local function GetCharacterBossLockouts(characterKey, hideEmpty)
+	wipe(lockoutReturns.worldboss)
+	local showLine = characterKey == brokers:GetCharacter()
+	for index in ipairs(worldBosses) do
+		local expires = DataStore:IsWorldBossKilledBy(characterKey, index)
+		lockoutReturns.worldboss[index] = expires ~= nil
+		showLine = showLine or expires
+	end
+	return (showLine or not hideEmpty) and lockoutReturns.worldboss or nil
+end
+
+
 local function GetCharacterQuestState(characterKey, questID)
 	if characterKey == brokers:GetCharacter() then
 		return IsQuestFlaggedCompleted(questID) and true or false
 	else
 		return DataStore:IsWeeklyQuestCompletedBy(characterKey, questID) or false
 	end
-end
-local function GetCharacterLockoutState(characterKey, dungeonID)
-	local numEncounters, numDefeated = GetLFGDungeonNumEncounters(dungeonID)
-
-	if characterKey == brokers:GetCharacter() then
-		local _, _, cleared, available = GetLFGDungeonRewardCapInfo(dungeonID)
-
-		numEncounters = cleared == 1 and numDefeated or (available * numEncounters)
-		return numDefeated or 0, numEncounters or 0
-	else
-		local status, reset, numDefeated = DataStore:GetLFGInfo(characterKey, dungeonID)
-		if status == true then
-			return numDefeated or 0, numDefeated or 0
-		elseif status == false then
-			return numDefeated or 0, numEncounters or 0
-		else
-			return 0, 0
-		end
-	end
-
-	return 0, 0
-end
-
-local lockoutReturns = { lfr = {}, worldboss = {}, weekly = {} }
-local function GetCharacterLFRLockouts(characterKey, hideEmpty)
-	wipe(lockoutReturns.lfr)
-	local showLine = (characterKey == brokers:GetCharacter())
-	local numDefeated, numEncounters, categoryData
-	for index, LFRCategory in ipairs(LFRDungeons) do
-		categoryData = ''
-		for _, dungeonID in ipairs(LFRCategory) do
-			numDefeated, numEncounters = GetCharacterLockoutState(characterKey, dungeonID)
-			categoryData = (categoryData ~= '' and categoryData..' ' or '') .. colorize(numDefeated, 0, numEncounters)
-			-- show line if any bosses are down or we may visit this LFR wing
-			showLine = showLine or numDefeated > 0 or numEncounters > 0 or nil
-		end
-		lockoutReturns.lfr[index] = categoryData
-	end
-	return (showLine or not hideEmpty) and lockoutReturns.lfr or nil
-end
-local function GetCharacterBossLockouts(characterKey, hideEmpty)
-	wipe(lockoutReturns.worldboss)
-	local showLine, done = characterKey == brokers:GetCharacter(), nil
-	for index in ipairs(worldBosses) do
-		local expires = DataStore:IsWorldBossKilledBy(characterKey, index)
-		done = expires and expires > time() or false
-		lockoutReturns.worldboss[index] = done
-		showLine = showLine or done or nil
-	end
-	return (showLine or not hideEmpty) and lockoutReturns.worldboss or nil
 end
 local function GetCharacterWeeklyLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.weekly)
@@ -167,17 +150,16 @@ local function GetCharacterWeeklyLockouts(characterKey, hideEmpty)
 	end
 	return (showLine or not hideEmpty) and lockoutReturns.weekly or nil
 end
--- /old code
 
 local function NOOP() end -- do nothing
 function broker:UpdateTooltip()
 	local numColumns, lineNum = 1 + max(0, #worldBosses, #weeklyQuests, #LFRDungeons), 2
-	self:SetColumnLayout(numColumns, 'LEFT', 'RIGHT')
+	self:SetColumnLayout(numColumns, 'LEFT')
 
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CALENDAR_REPEAT_WEEKLY, 'LEFT', numColumns)
 
-	self:AddHeader(getColumnHeaders('lfr'))
+	self:AddHeader(GetColumnHeaders('lfr'))
 	self:AddSeparator(2)
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local data = GetCharacterLFRLockouts(characterKey, true)
@@ -188,7 +170,7 @@ function broker:UpdateTooltip()
 	end
 
 	self:AddLine(' ')
-	self:AddHeader(getColumnHeaders('boss'))
+	self:AddHeader(GetColumnHeaders('boss'))
 	self:AddSeparator(2)
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local data = GetCharacterBossLockouts(characterKey, true)
@@ -199,7 +181,7 @@ function broker:UpdateTooltip()
 	end
 
 	self:AddLine(' ')
-	self:AddHeader(getColumnHeaders('weekly'))
+	self:AddHeader(GetColumnHeaders('weekly'))
 	self:AddSeparator(2)
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local data = GetCharacterWeeklyLockouts(characterKey, true)
