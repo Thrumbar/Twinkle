@@ -120,14 +120,19 @@ function broker:UpdateTooltip()
 
 		-- FIXME: chinese have separate lockous
 		local defeated10, defeated25, hasID
-		defeated10, nBosses, hasID = GetInstanceLockouts(characterKey, 3, 'Schlacht um Orgrimmar') -- 10 normal
-		defeated25, _, hasID = GetInstanceLockouts(characterKey, 4, 'Schlacht um Orgrimmar') -- 25 normal
+		defeated10, nBosses, locked = GetInstanceLockouts(characterKey, 3, 'Schlacht um Orgrimmar') -- 10 normal
+		hasID = hasID or locked
+		defeated25, _, locked = GetInstanceLockouts(characterKey, 4, 'Schlacht um Orgrimmar') -- 25 normal
+		hasID = hasID or locked
 		local nDefeated = math.max(defeated10, defeated25)
 		local color = (not hasID and nDefeated > 0 and _G.GRAY_FONT_COLOR_CODE) or (nDefeated > 0 and _G.GREEN_FONT_COLOR_CODE) or _G.NORMAL_FONT_COLOR_CODE
 		self:SetCell(lineNum, 3, string.format('%s%d/%d|r', color, nDefeated, nBosses))
 
-		defeated10, hcBosses, hasID = GetInstanceLockouts(characterKey, 5, 'Schlacht um Orgrimmar') -- 10 heroic
-		defeated25, _, hasID = GetInstanceLockouts(characterKey, 6, 'Schlacht um Orgrimmar') -- 25 heroic
+		hasID = false
+		defeated10, hcBosses, locked = GetInstanceLockouts(characterKey, 5, 'Schlacht um Orgrimmar') -- 10 heroic
+		hasID = hasID or locked
+		defeated25, _, locked = GetInstanceLockouts(characterKey, 6, 'Schlacht um Orgrimmar') -- 25 heroic
+		hasID = hasID or locked
 		local hcDefeated = math.max(defeated10, defeated25)
 		local color = (not hasID and hcDefeated and _G.GRAY_FONT_COLOR_CODE) or (hcDefeated > 0 and _G.GREEN_FONT_COLOR_CODE) or _G.NORMAL_FONT_COLOR_CODE
 		self:SetCell(lineNum, 4, string.format('%s%d/%d|r', color, hcDefeated, hcBosses))
