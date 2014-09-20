@@ -84,3 +84,42 @@ function reputation:GetItemInfo(characterKey, index, itemIndex)
 	end
 	return icon, link, tiptext
 end
+
+--[[
+local CustomSearch = LibStub('CustomSearch-1.0')
+local linkFilters  = {
+	number = {
+		tags       = {'number', 'no'},
+		canSearch  = function(self, operator, search) return tonumber(search) end,
+		match      = function(self, text, operator, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+
+			-- currency specific search
+			local currencyID   = addon.GetLinkID(hyperlink or '')
+			local currencyName = currencyID and GetCurrencyInfo(currencyID)
+			local _, _, number = DataStore:GetCurrencyInfoByName(characterKey, currencyName)
+
+			if number then
+				return CustomSearch:Compare(operator, number, search)
+			end
+		end,
+	},
+}
+for tag, handler in pairs(lists.filters) do
+	linkFilters[tag] = handler
+end
+
+function reputation:Search(query, characterKey)
+	local numMatches = 0
+	for index = 1, self:GetNumRows(characterKey) do
+		local isHeader, title, _, _, hyperlink = self:GetRowInfo(characterKey, index)
+		if not isHeader then
+			if CustomSearch:Matches(characterKey..': '..hyperlink, query, linkFilters) then
+				numMatches = numMatches + 1
+			end
+		end
+	end
+	return numMatches
+end
+
+--]]

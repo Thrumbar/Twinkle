@@ -97,56 +97,92 @@ function quests:OnClickRow(btn, up)
 	end
 end
 
-local Search     = LibStub('CustomSearch-1.0')
-local ItemSearch = LibStub('LibItemSearch-1.2')
+local CustomSearch = LibStub('CustomSearch-1.0')
+local linkFilters  = {
+	level = {
+		tags      = {'level', 'lvl', 'l', 'no', 'number'},
+		canSearch = function(self, operator, search) return tonumber(search) end,
+		match     = function(self, text, operator, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+			local _, number = hyperlink:match('quest:(%d+):(-?%d+)')
+			         number = tonumber(level)
+			if number then
+				return CustomSearch:Compare(operator, number, search)
+			end
+		end
+	},
+	active = { -- TODO: filter for any character's active quests
+		tags      = {'active'},
+		canSearch = function(self, operator, search) return not operator and search end,
+		match     = function(self, text, operator, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+			local questID = hyperlink:match('quest:(%d+):(-?%d+)')
+			      questID = tonumber(questID)
+			return questID and GetQuestLogIndexByID(questID)
+		end
+	},
+	progress = {
+		tags      = {'p', 'progress'},
+		canSearch = function(self, operator, search)
+			search = tonumber((search:gsub('%%', '')))
+			if search and search < 1 then search = search * 100 end
+			return search
+		end,
+		match     = function(self, text, operator, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+			local questID = hyperlink:match('quest:(%d+):(-?%d+)')
+			      questID = tonumber(questID)
 
-local questFilters = {}
-questFilters.tooltip = ItemSearch.Filters.tooltip
-questFilters.name = {
-  	tags      = {'n', 'name', 'title'},
-	canSearch = function(self, operator, search) return not operator and search end,
-	match     = function(self, link, operator, search)
-		local name = link:match('%[(.-)%]')
-		return Search:Find(search, name)
-	end
-}questFilters.level = {
-	tags      = {'level', 'lvl', 'l'},
-	canSearch = function(self, _, search) return tonumber(search) end,
-	match     = function(self, link, operator, search)
-		local _, level = link:match('quest:(%d+):(-?%d+)')
-		         level = tonumber(level)
-		if level then
-			return Search:Compare(operator, level, search)
+			local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
+			if progress then
+				return CustomSearch:Compare(operator, progress * 100, search)
+			end
 		end
-	end
-}
-questFilters.active = { -- quest is active on logged-in character
-	tags      = {'active'},
-	canSearch = function(self, operator, search) return not operator and search end,
-	match     = function(self, link, operator, search)
-		local questID = link:match('quest:(%d+):(-?%d+)')
-		      questID = tonumber(questID)
-		local index = questID and GetQuestLogIndexByID(questID)
-		return index
-	end
-}
--- filters depending on requested character
-local requestCharacterKey = nil
-questFilters.progress = {
-  	tags      = {'p', 'progress'},
-	canSearch = function(self, operator, search) return tonumber(search) end,
-	match     = function(self, link, operator, search)
-		local characterKey = requestCharacterKey or addon.GetSelectedCharacter()
-		local questID = link:match('quest:(%d+):(-?%d+)')
-		      questID = tonumber(questID)
-		local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
-		if progress then
-			return Search:Compare(operator, progress, search)
+	},
+	group = {
+		tags      = {'g', 'group', 'party', 'raid'},
+		canSearch = function(self, operator, search) return not operator and search end,
+		match     = function(self, text, _, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+			local groupSize, questTag
+			for index = 1, DataStore:GetQuestLogSize(characterKey) do
+				local isHeader, questLink, tag, size = DataStore:GetQuestLogInfo(characterKey, index)
+				if questLink == hyperlink then
+					groupSize, questTag = size, tag
+					break
+				end
+			end
+			return CustomSearch:Find(search, tostring(groupSize) or '', questTag or '')
+		end,
+	},
+	--[[ reward = {
+		tags      = {'r', 'reward'},
+		canSearch = function(self, operator, search) return search end,
+		match     = function(self, text, operator, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+			-- find index in character's quest list
+			--[ [ local numRewards = DataStore:GetQuestLogNumRewards(characterKey, index)
+			local _, _, _, _, money = DataStore:GetQuestLogInfo(characterKey, index)
+			local rewardsMoney = money and money > 0
+
+			local rewardIndex = itemIndex - (rewardsMoney and 1 or 0)
+			if itemIndex == 1 and rewardsMoney then
+				icon, link, tooltipText = 'Interface\\MONEYFRAME\\UI-GoldIcon', nil, GetCoinTextureString(money)..' '
+			elseif rewardIndex <= numRewards then
+				local rewardType, rewardID
+				      rewardType, rewardID, count = DataStore:GetQuestLogRewardInfo(characterKey, index, rewardIndex)
+				if rewardType == 's' then
+					_, _, icon = GetSpellInfo(rewardID)
+					link = GetSpellLink(rewardID)
+				else
+					_, link, _, _, _, _, _, _, _, icon = GetItemInfo(rewardID)
+				end
+			end --] ]
 		end
-	end
+	} --]]
 }
-questFilters.difficulty = {
-	tags = {'q', 'quality', 'difficulty', 'diff'},
+linkFilters.difficulty = {
+	tags      = {'q', 'quality', 'difficulty', 'diff'},
 	canSearch = function(self, operator, search)
 		if search == 'trivial' or search == 'gray' or search == 'grey' then
 			return 0
@@ -160,81 +196,31 @@ questFilters.difficulty = {
 			return 4
 		end
 	end,
-	match = function(self, link, operator, search)
-		local characterKey = requestCharacterKey or addon.GetSelectedCharacter()
-		local _, questLevel = link:match('quest:(%d+):(-?%d+)')
+	match = function(self, text, _, search)
+		local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+		local _, questLevel = hyperlink:match('quest:(%d+):(-?%d+)')
 		         questLevel = tonumber(questLevel)
 		local difficulty = GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
 		for label, data in pairs(QuestDifficultyColors) do
 			if data == difficulty then
-				difficulty = questFilters.difficulty.canSearch(nil, nil, label)
+				difficulty = linkFilters.difficulty.canSearch(nil, nil, label)
 				break
 			end
 		end
-		print('difficulty', link, operator, search, type(search), difficulty, type(difficulty))
-		return Search:Compare(operator, difficulty, search)
+		return CustomSearch:Compare(operator, difficulty, search)
 	end
 }
---[[ questFilters.reward = {
-	tags      = {'reward', 'r'},
-	canSearch = function(self, operator, search) return search end,
-	match     = function(self, link, operator, search)
-		-- find index in character's quest list
-		--[ [ local numRewards = DataStore:GetQuestLogNumRewards(characterKey, index)
-		local _, _, _, _, money = DataStore:GetQuestLogInfo(characterKey, index)
-		local rewardsMoney = money and money > 0
+for tag, handler in pairs(lists.filters) do
+	linkFilters[tag] = handler
+end
 
-		local rewardIndex = itemIndex - (rewardsMoney and 1 or 0)
-		if itemIndex == 1 and rewardsMoney then
-			icon, link, tooltipText = 'Interface\\MONEYFRAME\\UI-GoldIcon', nil, GetCoinTextureString(money)..' '
-		elseif rewardIndex <= numRewards then
-			local rewardType, rewardID
-			      rewardType, rewardID, count = DataStore:GetQuestLogRewardInfo(characterKey, index, rewardIndex)
-			if rewardType == 's' then
-				_, _, icon = GetSpellInfo(rewardID)
-				link = GetSpellLink(rewardID)
-			else
-				_, link, _, _, _, _, _, _, _, icon = GetItemInfo(rewardID)
-			end
-		end --] ]
-	end
-} --]]
-
-local textFilter = {
-	text = {
-	  	tags = {'text'},
-		canSearch = function(self, operator, search) return not operator and search end,
-		match = function(self, text, _, search)
-			return Search:Find(search, text)
-		end
-	},
-}
-local numberFilter = {
-	number = {
-		tags = {'number', 'no'},
-		canSearch = function(self, operator, search) return tonumber(search) end,
-		match = function(self, number, operator, search)
-			number = number and tonumber(number)
-			if number then
-				return Search:Compare(operator, number, search)
-			end
-		end,
-	},
-}
-
-function quests:Search(search, characterKey)
-	local hasMatch = 0
-
+function quests:Search(query, characterKey)
+	local numMatches = 0
 	for index = 1, self:GetNumRows(characterKey) do
-		local isHeader, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
-		-- expose for search to work
-		requestCharacterKey = characterKey
-		if Search:Matches(questLink, search, questFilters)
-			or (questTag and Search:Matches(questTag, search, textFilter))
-			or (groupSize and Search:Matches(groupSize, search, numberFilter)) then
-			hasMatch = hasMatch + 1
+		local isHeader, hyperlink = DataStore:GetQuestLogInfo(characterKey, index)
+		if not isHeader and CustomSearch:Matches(characterKey..': '..hyperlink, query, linkFilters) then
+			numMatches = numMatches + 1
 		end
 	end
-
-	return hasMatch
+	return numMatches
 end

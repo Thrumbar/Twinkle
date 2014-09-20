@@ -49,31 +49,6 @@ local function GetInstanceLockouts(characterKey, difficulty, instanceName)
 end
 
 function broker:OnEnable()
-	-- local currencyID, currencyQuantity, specificQuantity, specificLimit, overallQuantity, overallLimit, periodPurseQuantity, periodPurseLimit, purseQuantity, purseLimit, isWeekly = GetLFGDungeonRewardCapInfo(dungeonID)
-	-- local dungeonName, typeID, subtypeID, minLvl, maxLvl, recLvl, minRecLvl, maxRecLvl, expansionId, groupId, textureFilename, difficulty, maxPlayers, dungeonDescription, isHoliday, bonusRepAmount, forceHide, _ = GetLFGDungeonInfo(dungeonID)
-	-- local instances = GetLFRChoiceOrder()
-	-- TYPEID_DUNGEON, LFG_SUBTYPEID_FLEXRAID
-	--[[
-	DataStore:GetLFGInfo("Default.Die Aldor.Thany", 730) => false, 1410310801, 3
-	GetLFGDungeonInfo(730) => "Niedergang", 1, 5, 90, 90, 90, 90, 90, 4, 0, "ORGRIMMARDOWNFALL", 14, 25, "Mit der dunklen Macht, die unter Pandaria schlummerte, will Garrosh Azeroth einer neuen Ordnung unterwerfen. Haltet ihn auf!", false, 0, false, 7
-	GetLFGDungeonRewardCapInfo(730) => TODO: check this on thany
-	0, 1, 0, 1, 0, 1, 0, 0, 0, 0, true,
-	"Immerseus", 1,
-	"Die gefallenen Besch\195\188tzer", 1,
-	"Norushen", 1,
-	"Sha des Stolzes", 1,
-	"Galakras", 1,
-	"Eiserner Koloss", 1,
-	"Dunkelschamanen der Kor'kron", 1,
-	"General Nazgrim", 1,
-	"Malkorok", 1,
-	"Die Sch\195\164tze Pandarias", 1,
-	"Thok der Blutr\195\188nstige", 1,
-	"Belagerungsingenieur Ru\195\159schmied", 1,
-	"Die Getreuen der Klaxxi", 1,
-	"Garrosh H\195\182llschrei", 1
-	--]]
-
 	-- self:RegisterEvent('EVENT_NAME', self.Update, self)
 	self:Update()
 end

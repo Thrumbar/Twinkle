@@ -79,8 +79,8 @@ function views:Show(view)
 	content.panel = newPanel
 	currentView = view
 
-	self:Update()
-	-- addon:SendMessage('TWINKLE_VIEW_SHOW', view:GetName())
+	self:Update(addon.GetSearch and addon:GetSearch() or nil)
+	addon:SendMessage('TWINKLE_VIEW_CHANGED', view:GetName())
 end
 
 function views:GetActiveView()

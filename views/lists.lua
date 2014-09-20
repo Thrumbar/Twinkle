@@ -38,11 +38,10 @@ local function UpdateList()
 	local scrollFrame = self.panel.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
 
-	local searchString = addon:GetSearch()
 	local buttonIndex = 1
 	for index = 1, self.provider:GetNumRows(characterKey) do
 		-- TODO: fix search filtering, including search & collapse/expand
-		-- if not self.search or MatchesSearch(self.provider, characterKey, index, self.search) then
+		-- if not self.searchString or MatchesSearch(self.provider, characterKey, index, self.searchString) then
 		numRows = numRows + 1 -- this counts the number of rows remaining after filtering
 		if index >= offset+1 then
 			local button = scrollFrame[buttonIndex]
@@ -281,7 +280,8 @@ function lists:OnDisable()
 	--
 end
 
-function lists:Update()
+function lists:Update(searchString)
+	self.searchString = searchString
 	local numRows = UpdateList()
 	lists.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
 	return numRows
@@ -289,6 +289,27 @@ end
 
 local CustomSearch = LibStub('CustomSearch-1.0')
 local ItemSearch   = LibStub('LibItemSearch-1.2')
+lists.filters = {
+	tooltip = {
+		tags      = ItemSearch.Filters.tooltip.tags,
+		onlyTags  = ItemSearch.Filters.tooltip.onlyTags,
+		canSearch = ItemSearch.Filters.tooltip.canSearch,
+		match     = function(self, text, operator, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+			return ItemSearch.Filters.tooltip.match(self, hyperlink or text, operator, search)
+		end
+	},
+	name = {
+		tags      = {'n', 'name', 'title', 'text'},
+		canSearch = function(self, operator, search) return not operator and search end,
+		match     = function(self, text, operator, search)
+			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
+			local name = hyperlink:match('%[(.-)%]') or hyperlink
+			if name then return CustomSearch:Find(search, name) end
+		end
+	},
+}
+
 local filters = {
 	text = {
 	  	tags = {'text'},

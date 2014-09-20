@@ -5,7 +5,7 @@ _G[addonName] = addon
 -- GLOBALS: CreateFrame, SetPortraitToTexture, PlaySound, EditBox_ClearFocus, FauxScrollFrame_OnVerticalScroll, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, OptionsList_ClearSelection, OptionsList_SelectButton, ToggleFrame
 -- GLOBALS: gsub, type, pairs, tonumber, table, string, hooksecurefunc
 
-LibStub('AceAddon-3.0'):NewAddon(addon, addonName) --, 'AceEvent-3.0')
+LibStub('AceAddon-3.0'):NewAddon(addon, addonName, 'AceEvent-3.0')
 
 -- convenient and smart tooltip handling
 function addon.ShowTooltip(self, anchor)
@@ -226,6 +226,16 @@ function addon.UpdateCharacters()
 	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, #characters, #scrollFrame.buttons, scrollFrame.buttons[1]:GetHeight(), parent:GetName()..'Button', width - 18, width)
 end
 
+function addon.GetCharacterButton(characterKey)
+	local button
+	for i = 1, #scrollFrame.buttons do
+		if scrollFrame.buttons[i].element == characterKey then
+			button = scrollFrame.buttons[i]
+		end
+	end
+	return button
+end
+
 function addon.GetSelectedCharacter()
 	local scrollFrame = addon.frame.sidebar.scrollFrame
 	return scrollFrame.selection or thisCharacter
@@ -253,6 +263,7 @@ function addon.SelectCharacter(button)
 	end
 
 	addon:Update()
+	addon:SendMessage('TWINKLE_CHARACTER_CHANGED', button.element)
 end
 
 function addon:Update()
