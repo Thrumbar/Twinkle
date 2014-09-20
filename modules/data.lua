@@ -3,13 +3,51 @@ local addonName, addon, _ = ...
 local data = addon:NewModule('data', 'AceEvent-3.0')
 addon.data = data
 
-local thisCharacter = DataStore:GetCharacter()
+local LibRealmInfo    = LibStub('LibRealmInfo')
+local thisCharacter   = DataStore:GetCharacter()
 local realmCharacters = DataStore:GetCharacters()
+local emptyTable      = {}
+
+local gameRegion
+local function GetGameRegion()
+	if gameRegion then return gameRegion end
+	local _, _, _, _, realmID = BNGetToonInfo(BNGetInfo())
+	local _, _, _, _, _, region = LibRealmInfo:GetRealmInfo(realmID)
+	gameRegion = region or GetCVar('portal')
+	-- TODO: FIXME: make sure GetCharacters gets called later ...
+	return gameRegion or 'EU'
+end
 
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
-	for characterName, characterKey in pairs(realmCharacters) do
+	--[[ for characterName, characterKey in pairs(realmCharacters) do
 		table.insert(useTable, characterKey)
+	end
+	table.sort(useTable)
+	return useTable --]]
+	return data.GetAllCharacters(useTable, GetRealmName())
+end
+
+local realms = {}
+function data.GetAllCharacters(useTable, realm)
+	wipe(realms)
+	if realm then
+		local _, _, _, _, _, _, _, _, connected = LibRealmInfo:GetRealmInfoByName(realm, GetGameRegion())
+		for _, realmID in pairs(connected or emptyTable) do
+			realms[ (LibRealmInfo:GetRealmInfo(realmID)) ] = true
+		end
+	end
+	realms[ realm or (GetRealmName()) ] = true
+
+	if useTable then wipe(useTable) else useTable = {} end
+	for account in pairs(DataStore:GetAccounts()) do
+		for realm in pairs(DataStore:GetRealms(account)) do
+			if realms[realm] then
+				for _, characterKey in pairs(DataStore:GetCharacters(realm, account)) do
+					table.insert(useTable, characterKey)
+				end
+			end
+		end
 	end
 	table.sort(useTable)
 	return useTable
@@ -343,6 +381,12 @@ function data.GetCurrencyInfo(characterKey, identifier)
 		local weeklyMax, totalMax
 		count, weekly, weeklyMax, totalMax = DataStore:GetCurrencyTotals(characterKey, identifier)
 		if count and not (count == 0 and weekly == 0 and weeklyMax == 0 and totalMax == 0) then
+			hasData = true
+		end
+
+		if characterKey == thisCharacter then
+			name, count, icon, weekly = GetCurrencyInfo(identifier)
+			isHeader = not name
 			hasData = true
 		end
 	end
