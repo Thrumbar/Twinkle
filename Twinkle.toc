@@ -20,6 +20,7 @@ libs\LibItemUpgradeInfo-1.0\Core.lua
 libs\LibReforgingInfo-1.0\LibReforgingInfo-1.0.lua
 libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\LibQTip-1.0\LibQTip-1.0.lua
+libs\LibRealmInfo\LibRealmInfo.lua
 #@end-no-lib-strip@
 
 Twinkle.lua
