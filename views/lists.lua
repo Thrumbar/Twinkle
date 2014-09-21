@@ -39,7 +39,7 @@ local function UpdateList()
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
 
 	local buttonIndex = 1
-	for index = 1, self.provider:GetNumRows(characterKey) do
+	for index = 1, self.provider:GetNumRows(characterKey) or 0 do
 		-- TODO: fix search filtering, including search & collapse/expand
 		-- if not self.searchString or MatchesSearch(self.provider, characterKey, index, self.searchString) then
 		numRows = numRows + 1 -- this counts the number of rows remaining after filtering

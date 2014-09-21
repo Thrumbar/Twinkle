@@ -147,7 +147,7 @@ local optionsTable = {
 			order = 1,
 			args = {},
 		},--]]
-		[addonName..'_GlobalDB'] = {
+		[addonName..'DB'] = {
 			type = 'group',
 			inline = true,
 			name = 'Shared Settings',
