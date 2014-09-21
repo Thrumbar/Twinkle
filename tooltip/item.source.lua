@@ -50,7 +50,8 @@ local function GetItemSources(item)
 	EJ_SetSearch(itemName)
 	for index = 1, EJ_GetNumSearchResults() do
 		local resultName, _, path, _, _, resultItemID = EncounterJournal_GetSearchDisplay(index)
-		if item == resultItemID or resultName == itemName then
+		if resultItemID == item or resultName == itemName then
+			-- print('search for', item, link, 'result', resultName, resultItemID, path)
 			if not tContains(itemSources, path) then
 				table.insert(itemSources, path)
 			end
@@ -67,15 +68,15 @@ function ns.AddItemSources(tooltip, itemID)
 	local linesAdded = false
 	local sources = GetItemSources(itemID)
 	if #sources > 0 then
+		tooltip:AddLine(' ')
 		local lastInstance, encounters
-
 		for _, path in pairs(sources) do
 			local instance, encounter = path:match("(.-) | (.+)")
 			if not lastInstance or instance == lastInstance then
 				encounters = (encounters and encounters..", " or "") .. encounter
 			else
-				local text = string.format("|cFFFF7F00%s:|r %s", instance, encounters)
-				tooltip:AddLine(text, nil, nil, nil, true)
+				tooltip:AddLine(string.format("|cFFFF7F00%s:|r %s", lastInstance, encounters), nil, nil, nil, true)
+				encounters = encounter
 			end
 			lastInstance = instance
 		end
