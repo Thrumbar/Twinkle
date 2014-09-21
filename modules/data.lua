@@ -11,7 +11,14 @@ local emptyTable      = {}
 local gameRegion
 local function GetGameRegion()
 	if gameRegion then return gameRegion end
-	local _, _, _, _, realmID = BNGetToonInfo(BNGetInfo())
+	local realmID, _
+	local _, _, _, tocVersion = GetBuildInfo()
+	if tocVersion >= 60000 then
+		_, _, _, _, realmID = BNGetToonInfo(BNGetInfo())
+	else
+		_, realmID = strsplit(':', UnitGUID('player'))
+	end
+
 	local _, _, _, _, _, region = LibRealmInfo:GetRealmInfo(realmID)
 	gameRegion = region or GetCVar('portal')
 	-- TODO: FIXME: make sure GetCharacters gets called later ...

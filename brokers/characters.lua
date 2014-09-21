@@ -24,7 +24,8 @@ local function GetLootItemLevel(difficulty)
 end
 
 local function GetDifficultyItemLevels(instanceID)
-	EncounterJournal_DisplayInstance(instanceID)
+	-- EncounterJournal_DisplayInstance(instanceID)
+	EJ_SelectInstance(instanceID)
 
 	local difficulty, heroicDifficulty = 0
 	while true do

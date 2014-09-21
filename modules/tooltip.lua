@@ -182,24 +182,28 @@ end
 -- GLOBALS: GameTooltip, ItemRefTooltip, ShoppingTooltip1, ShoppingTooltip2, ShoppingTooltip3
 function plugin.OnEnable()
 	GameTooltip:HookScript('OnTooltipCleared',       ClearTooltipItem)
-	ItemRefTooltip:HookScript('OnTooltipCleared',    ClearTooltipItem)
-
 	GameTooltip:HookScript('OnTooltipSetItem',       HandleTooltipItem)
-	ItemRefTooltip:HookScript('OnTooltipSetItem',    HandleTooltipItem)
-	ShoppingTooltip1:HookScript('OnTooltipSetItem',  HandleTooltipItem)
-	ShoppingTooltip2:HookScript('OnTooltipSetItem',  HandleTooltipItem)
-	ShoppingTooltip3:HookScript('OnTooltipSetItem',  HandleTooltipItem)
-
 	GameTooltip:HookScript('OnTooltipSetUnit',       addon.AddSocialInfo)
-	ItemRefTooltip:HookScript('OnTooltipSetUnit',    addon.AddSocialInfo)
-
-	hooksecurefunc(GameTooltip, 'SetHyperlink',      HandleTooltipHyperlink)
-	hooksecurefunc(ShoppingTooltip1, 'SetHyperlink', HandleTooltipHyperlink)
-	hooksecurefunc(ShoppingTooltip2, 'SetHyperlink', HandleTooltipHyperlink)
-	hooksecurefunc(ShoppingTooltip3, 'SetHyperlink', HandleTooltipHyperlink)
-
 	GameTooltip:HookScript('OnTooltipSetSpell',      HandleTooltipSpell)
 	-- GameTooltip:HookScript('OnTooltipSetEquipmentSet', function(self) end) -- ??
+	hooksecurefunc(GameTooltip, 'SetHyperlink',      HandleTooltipHyperlink)
+
+	ItemRefTooltip:HookScript('OnTooltipCleared',    ClearTooltipItem)
+	ItemRefTooltip:HookScript('OnTooltipSetItem',    HandleTooltipItem)
+	ItemRefTooltip:HookScript('OnTooltipSetUnit',    addon.AddSocialInfo)
+
+	if ShoppingTooltip1 then
+		ShoppingTooltip1:HookScript('OnTooltipSetItem',  HandleTooltipItem)
+		hooksecurefunc(ShoppingTooltip1, 'SetHyperlink', HandleTooltipHyperlink)
+	end
+	if ShoppingTooltip2 then
+		ShoppingTooltip2:HookScript('OnTooltipSetItem',  HandleTooltipItem)
+		hooksecurefunc(ShoppingTooltip2, 'SetHyperlink', HandleTooltipHyperlink)
+	end
+	if ShoppingTooltip3 then
+		ShoppingTooltip3:HookScript('OnTooltipSetItem',  HandleTooltipItem)
+		hooksecurefunc(ShoppingTooltip3, 'SetHyperlink', HandleTooltipHyperlink)
+	end
 
 	hooksecurefunc(GameTooltip, 'SetGlyphByID', function(self, glyphID)
 		-- shown when hovering a glyph in the talent ui
