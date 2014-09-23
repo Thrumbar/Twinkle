@@ -14,9 +14,9 @@ local function GetGameRegion()
 	local realmID, _
 	local _, _, _, tocVersion = GetBuildInfo()
 	if tocVersion >= 60000 then
-		_, _, _, _, realmID = BNGetToonInfo(BNGetInfo())
-	else
 		_, realmID = strsplit(':', UnitGUID('player'))
+	else
+		_, _, _, _, realmID = BNGetToonInfo(BNGetInfo())
 	end
 
 	local _, _, _, _, _, region = LibRealmInfo:GetRealmInfo(realmID)
