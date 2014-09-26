@@ -5,25 +5,8 @@ addon.data = data
 
 local LibRealmInfo    = LibStub('LibRealmInfo')
 local thisCharacter   = DataStore:GetCharacter()
-local realmCharacters = DataStore:GetCharacters()
+local realmCharacters = DataStore:GetCharacters() -- TODO: this is bsh*t
 local emptyTable      = {}
-
-local gameRegion
-local function GetGameRegion()
-	if gameRegion then return gameRegion end
-	local realmID, _
-	local _, _, _, tocVersion = GetBuildInfo()
-	if tocVersion >= 60000 then
-		_, realmID = strsplit(':', UnitGUID('player'))
-	else
-		_, _, _, _, realmID = BNGetToonInfo(BNGetInfo())
-	end
-
-	local _, _, _, _, _, region = LibRealmInfo:GetRealmInfo(realmID)
-	gameRegion = region or GetCVar('portal')
-	-- TODO: FIXME: make sure GetCharacters gets called later ...
-	return gameRegion or 'EU'
-end
 
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
@@ -39,7 +22,7 @@ local realms = {}
 function data.GetAllCharacters(useTable, realm)
 	wipe(realms)
 	if realm then
-		local _, _, _, _, _, _, _, _, connected = LibRealmInfo:GetRealmInfoByName(realm, GetGameRegion())
+		local _, _, _, _, _, _, _, _, connected = LibRealmInfo:GetRealmInfoByName(realm)
 		for _, realmID in pairs(connected or emptyTable) do
 			realms[ (LibRealmInfo:GetRealmInfo(realmID)) ] = true
 		end

@@ -1,8 +1,5 @@
 local addonName, ns, _ = ...
 
-local characters = ns.data.GetCharacters()
-local thisCharacter = ns.data.GetCurrentCharacter()
-
 -- ================================================
 --  Quests
 -- ================================================
@@ -15,8 +12,8 @@ local function GetOnQuestInfo(questID, onlyActive)
 	end
 
 	-- TODO: abstract to ns.data
-	for _, characterKey in ipairs(characters) do
-		if characterKey ~= thisCharacter then
+	for _, characterKey in ipairs(ns.data.GetCharacters()) do
+		if characterKey ~= ns.data.GetCurrentCharacter() then
 			local numActiveQuests = DataStore:GetQuestLogSize(characterKey)
 			for i = 1, numActiveQuests do
 				local isHeader, questLink, _, _, _, completed = DataStore:GetQuestLogInfo(characterKey, i)

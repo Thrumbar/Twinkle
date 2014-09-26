@@ -1,8 +1,5 @@
 local addonName, ns, _ = ...
 
-local characters = ns.data.GetCharacters()
-local thisCharacter = ns.data.GetCurrentCharacter()
-
 -- ================================================
 --  Achievements
 -- ================================================
@@ -13,10 +10,10 @@ local function GetAchievementCompletionInfo(achievementID, onlyIncomplete)
 	wipe(achievementDone)
 
 	local isShared
-	for _, characterKey in ipairs(characters) do
+	for _, characterKey in ipairs(ns.data.GetCharacters()) do
 		local progress, goal
 		progress, goal, isShared = DataStore:GetAchievementProgress(characterKey, achievementID)
-		if characterKey ~= thisCharacter or isShared then
+		if characterKey ~= ns.data.GetCurrentCharacter() or isShared then
 			if not progress or progress <= 0 then
 				-- ignore
 			elseif progress == goal then
@@ -40,7 +37,7 @@ function ns.AddAchievementInfo(tooltip, achievementID)
 
 	local linesAdded, data = nil, nil
 	local incomplete, complete, isShared = GetAchievementCompletionInfo(achievementID, onlyIncomplete)
-	for _, characterKey in pairs(characters) do
+	for _, characterKey in pairs(ns.data.GetCharacters()) do
 		local progress = incomplete[characterKey]
 		if progress then
 			if isShared then

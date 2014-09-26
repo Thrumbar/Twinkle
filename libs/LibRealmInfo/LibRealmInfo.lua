@@ -1,4 +1,4 @@
-﻿--[[--------------------------------------------------------------------
+--[[--------------------------------------------------------------------
 	LibRealmInfo
 	World of Warcraft library for obtaining information about realms.
 	Copyright 2014 Phanx <addons@phanx.net>
@@ -52,7 +52,7 @@ local localeToRegion = { deDE = "EU", esES = "EU", esMX = "US", frFR = "EU", itI
 
 local function GetCurrentRegion()
 	if not currentRegion then
-		local realmID, _ = tonumber(strmatch(UnitGUID("player"), "Player:(%d+)"))
+		local realmID, _ = tonumber(strmatch(UnitGUID("player") or '', "Player:(%d+)"))
 		if not realmID then
 			_, _, _, _, realmID = BNGetToonInfo(BNGetInfo() or 1)
 		end

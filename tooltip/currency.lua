@@ -1,14 +1,12 @@
 local addonName, ns, _ = ...
 
-local characters = ns.data.GetCharacters()
-
 -- ================================================
 --  Currencies
 -- ================================================
 local currencyInfo = {}
 local function GetCurrencyInfo(currencyID)
 	wipe(currencyInfo)
-	for _, character in ipairs(characters) do
+	for _, character in ipairs(ns.data.GetCharacters()) do
 		local isHeader, _, count, _ = ns.data.GetCurrencyInfo(character, currencyID)
 		if count and count > 0 then -- and not isHeader and
 			currencyInfo[character] = count
@@ -22,7 +20,7 @@ function ns.AddCurrencyInfo(tooltip, currencyID)
 
 	local linesAdded, overallCount = nil, 0
 	local data = GetCurrencyInfo(currencyID)
-	for _, characterKey in pairs(characters) do
+	for _, characterKey in pairs(ns.data.GetCharacters()) do
 		local count = data[characterKey]
 		if count then
 			local characterText = ns.data.GetCharacterText(characterKey)

@@ -1,7 +1,5 @@
 local addonName, ns, _ = ...
 
-local characters = ns.data.GetCharacters()
-
 -- ================================================
 --  Social (Friends / Ignores)
 -- ================================================
@@ -12,7 +10,7 @@ local function GetFriendsInfo(unitName)
 	end
 
 	wipe(friendInfo)
-	for _, character in ipairs(characters) do
+	for _, character in ipairs(ns.data.GetCharacters()) do
 		-- might just as well be <nil, nil, "">
 		local _, _, note = DataStore:GetContactInfo(character, unitName)
 		if note then

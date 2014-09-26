@@ -1,7 +1,5 @@
 local addonName, ns, _ = ...
 
-local characters = ns.data.GetCharacters()
-
 -- ================================================
 --  Recipes
 -- ================================================
@@ -30,7 +28,7 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	end
 
 	local selfKnown = nil
-	for _, character in ipairs(characters) do
+	for _, character in ipairs(ns.data.GetCharacters()) do
 		local profession = DataStore:GetProfession(character, professionName)
 		if profession then
 			local numCrafts = DataStore:GetNumCraftLines(profession)

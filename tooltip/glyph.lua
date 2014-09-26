@@ -1,6 +1,6 @@
 local addonName, ns, _ = ...
 -- FIXME: Several glyphs have the save name but are for different classes (e.g. Stampede)
-local characters = ns.data.GetCharacters()
+-- local characters = ns.data.GetCharacters()
 
 -- ================================================
 --  Glyphs
@@ -11,7 +11,7 @@ local function GetGlyphKnownInfo(glyph, onlyUnknown)
 	wipe(glyphKnown)
 	wipe(glyphUnknown)
 	-- TODO: add level learnable info "Mychar (60)"
-	for _, character in ipairs(characters) do
+	for _, character in ipairs(ns.data.GetCharacters()) do
 		local isKnown, canLearn = DataStore:IsGlyphKnown(character, glyph)
 		if isKnown and not onlyUnknown then
 			table.insert(glyphKnown, ns.data.GetCharacterText(character))

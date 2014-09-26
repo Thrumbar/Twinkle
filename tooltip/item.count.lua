@@ -1,7 +1,5 @@
 local addonName, ns, _ = ...
 
-local characters = ns.data.GetCharacters()
-
 -- ================================================
 --  Item counts
 -- ================================================
@@ -12,7 +10,7 @@ function ns.AddItemCounts(tooltip, itemID)
 	local separator, showTotals, showGuilds, includeGuildCountInTotal = ', ', true, true, true -- TODO: config
 
 	local overallCount, numLines = 0, 0
-	for _, character in ipairs(characters) do
+	for _, character in ipairs(ns.data.GetCharacters()) do
 		local baseCount, text = overallCount, nil
 		for i, count in ipairs( ns.data.GetItemCounts(character, itemID) ) do
 			if count > 0 then
