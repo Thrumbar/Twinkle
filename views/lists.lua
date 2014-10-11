@@ -281,7 +281,7 @@ function lists:OnDisable()
 end
 
 function lists:Update(searchString)
-	self.searchString = searchString
+	lists.searchString = searchString
 	local numRows = UpdateList()
 	lists.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
 	return numRows

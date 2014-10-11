@@ -34,7 +34,7 @@ function ns.AddItemCounts(tooltip, itemID)
 		end
 	end
 	if showTotals and numLines > 1 then
-		tooltip:AddDoubleLine(' ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
+		tooltip:AddDoubleLine('  ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
 	end
 
 	return numLines > 0

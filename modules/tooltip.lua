@@ -12,8 +12,9 @@ local PROFESSION_MIN_SKILL = '^' .. addon.GlobalStringToPattern(_G.ITEM_MIN_SKIL
 function addon.AddEmptyLine(tooltip, slim, force)
 	local numLines = tooltip:NumLines()
 	local lastText = _G[tooltip:GetName()..'TextLeft'..numLines]
+	      lastText = lastText and lastText:GetText()
 	-- don't create multiple blank lines
-	if force or (lastText and lastText:GetText() ~= nil) then
+	if force or (lastText and lastText ~= ' ') then
 		tooltip:AddLine(' ')
 		numLines = numLines + 1
 	end
@@ -160,7 +161,7 @@ end
 local function HandleTooltipHyperlink(self, hyperlink)
 	local id, linkType = addon.GetLinkID(hyperlink)
 	-- print('SetHyperlink', hyperlink, linkType, id)
-	if linkType == "quest" then
+	if linkType == 'quest' then
 		-- would use OnTooltipSetQuest but that doesn't supply id
 		local linesAdded = nil
 		addon.AddEmptyLine(self, true)
