@@ -1,8 +1,8 @@
 local addonName, addon, _ = ...
 
 -- GLOBALS: _G, DataStore
--- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_OnVerticalScroll
--- GLOBALS: ipairs
+-- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_SetOffset, FauxScrollFrame_OnVerticalScroll
+-- GLOBALS: ipairs, wipe, strjoin, type
 
 local views = addon:GetModule('views')
 local lists = views:NewModule('lists', 'AceEvent-3.0')
@@ -10,7 +10,7 @@ local lists = views:NewModule('lists', 'AceEvent-3.0')
       lists.title = 'Lists'
 local NUM_ITEMS_PER_ROW = 5
 local INDENT_WIDTH = 20
-local collapsed = {}
+local collapsed, searchResultCache = {}, {}
 
 local function SetCollapsedState(button, state)
 	button.state = state
@@ -47,11 +47,11 @@ local function OnButtonClick(self, btn, up)
 	end
 end
 
+local headerParents = {}
 local function UpdateList()
 	local self = lists
 	local query = addon.GetSearch and addon:GetSearch()
-	local headerParent, headerState = nil, nil
-	local headerLastLevel, nextDataRow = 0, nil
+	local headerState, nextDataRow = nil, 1
 
 	local characterKey = addon:GetSelectedCharacter()
 	local providerName = self.provider:GetName()
@@ -62,52 +62,61 @@ local function UpdateList()
 	local buttonIndex, numRows, numDataRows = 1, 0, 0
 	for index = 1, self.provider:GetNumRows(characterKey) or 0 do
 		local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
-		local identifier  = isHeader and title or link
+		local identifier = isHeader and title or link
 		-- store collapse/expand all state
 		if isHeader and collapsed[providerName].all ~= nil then
 			collapsed[providerName][identifier] = collapsed[providerName].all or nil
 		end
-		-- TODO: allow collapsing nested categories
-		headerParent = isHeader and identifier or headerParent
-		local isCollapsed = (not isHeader and collapsed[providerName][headerParent])
-			or (isHeader and collapsed[providerName][identifier])
 
-		-- TODO: cache filter results
-		local matchesSearch = isHeader or not query or self:SearchRow(self.provider, query, characterKey, index)
-		if isHeader then
-			numRows = numRows + 1
-			local state = isCollapsed and 'collapsed' or 'expanded'
-			if headerState == nil then
-				headerState = state
-			elseif headerState and headerState ~= state then
-				headerState = false
+		-- hide nested collapsed rows
+		local matchesSearch = isHeader or self:SearchRow(self.provider, query, characterKey, index)
+		local isCollapsed, isHidden = false, false
+		for level, parentIdentifier in ipairs(headerParents) do
+			if not isHeader or level < isHeader then
+				-- state depends on parent's state
+				isHidden = isHidden or collapsed[providerName][parentIdentifier]
+			elseif level > isHeader then
+				headerParents[level] = nil
 			end
+		end
 
+		if isHeader then
 			local headerLevel = isHeader and type(isHeader) == 'number' and isHeader or 0
-			if headerLevel <= headerLastLevel and nextDataRow < buttonIndex then
+			if headerLevel <= #headerParents and nextDataRow < buttonIndex then
 				-- remove empty sibling/parent headers
 				while buttonIndex > (nextDataRow or 1) and scrollFrame[buttonIndex] do
 					buttonIndex = buttonIndex - 1
 					numRows     = numRows - 1
 				end
 			end
-			headerLastLevel = headerLevel
+			headerParents[headerLevel] = identifier
+			numRows = numRows + 1
+
+			-- compare state for "toggle all" button
+			isCollapsed = collapsed[providerName][identifier]
+			local state = isCollapsed and 'collapsed' or 'expanded'
+			if headerState == nil then
+				headerState = state
+			elseif headerState and headerState ~= state then
+				headerState = false
+			end
 		elseif matchesSearch then
+			-- this row matches, even though it may not be displayed
 			numRows = numRows + 1
 			numDataRows = numDataRows + 1
-			nextDataRow = buttonIndex + (isCollapsed and 0 or 1)
+			nextDataRow = buttonIndex + (isHidden and 0 or 1)
 		end
 
-		if index >= offset+1 and matchesSearch then
+		if index >= offset+1 and matchesSearch and not isHidden then
 			local button = scrollFrame[buttonIndex]
-			if button and (isHeader or not isCollapsed) then
+			if button then
 				button:SetID(index)
 				button:SetText(title)
 				button.link = link
 				button.tiptext = tiptext
 
 				-- keep indentation intact
-				button:SetPoint('LEFT', scrollFrame, 'LEFT', (headerLastLevel - 1) * INDENT_WIDTH + 10, 0)
+				button:SetPoint('LEFT', scrollFrame, 'LEFT', (#headerParents - 1) * INDENT_WIDTH + 10, 0)
 
 				if isHeader then
 					local texture = isCollapsed and 'UI-PlusButton-UP' or 'UI-MinusButton-UP'
@@ -200,6 +209,7 @@ function lists:UpdateDataSources()
 	for name, subModule in self:IterateModules() do
 		self.provider   = self.provider or subModule
 		collapsed[name] = collapsed[name] or {}
+		searchResultCache[name] = searchResultCache[name] or {}
 
 		-- init data selector
 		index = index + 1
@@ -378,19 +388,30 @@ lists.filters = {
 }
 
 function lists:SearchRow(provider, query, characterKey, index)
+	if not query then return true end
+	local cache = searchResultCache[provider:GetName()]
+	local key   = strjoin(':', characterKey, index)
+	if cache and cache.query ~= query then
+		wipe(cache)
+		cache.query = query
+	elseif cache[key] ~= nil then
+		return cache[key]
+	end
+
 	local isHeader, title, prefix, suffix, hyperlink = provider:GetRowInfo(characterKey, index)
 	local searchString = characterKey..': '..(hyperlink or title)
 	if CustomSearch:Matches(searchString, query, provider.filters or self.filters) then
-		return true
-	else
-		-- check items
+		cache[key] = true
+	else -- check items
 		for itemIndex = 1, NUM_ITEMS_PER_ROW do
 			local itemName, itemLink, tiptext, count = provider:GetItemInfo(characterKey, index, itemIndex)
 			if itemLink and ItemSearch:Matches(itemLink, query) then
-				return true
+				cache[key] = true
+				break
 			end
 		end
 	end
+	return cache[key]
 end
 
 function lists:Search(query, characterKey)
