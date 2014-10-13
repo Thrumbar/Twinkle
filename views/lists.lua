@@ -15,16 +15,18 @@ local function SetCollapsedState(button, state)
 	button.state = state
 	local actionIcon = state == 'expanded' and 'MinusButton' or 'PlusButton'
 	button:GetNormalTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-UP')
-	button:GetDisabledTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-UP')
-	button:GetHighlightTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-UP', 'ADD')
+	button:GetDisabledTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-Disabled')
+	-- button:GetHighlightTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-Hilight', 'ADD')
 end
 
+-- click handler for list rows
 local function OnRowClick(self, btn, up)
 	if not self.link then
 		-- collapse/expand this category
-		local index = self:GetID()
-		local providerName = lists.provider:GetName()
-		collapsed[providerName][index] = not collapsed[providerName][index] or nil
+		local providerName  = lists.provider:GetName()
+		local characterKey  = addon:GetSelectedCharacter()
+		local _, identifier = lists.provider:GetRowInfo(characterKey, self:GetID())
+		collapsed[providerName][identifier] = not collapsed[providerName][identifier] or nil
 		lists:Update()
 	elseif IsModifiedClick() and HandleModifiedItemClick(self.link) then
 		return
@@ -33,6 +35,7 @@ local function OnRowClick(self, btn, up)
 	end
 end
 
+-- click handler for item buttons
 local function OnButtonClick(self, btn, up)
 	if not self.link then
 		return
@@ -45,7 +48,7 @@ end
 
 local function UpdateList()
 	local self = lists
-	local numRows, headerIndex, headerState = 0, nil, nil
+	local numRows, headerIdentifier, headerState = 0, nil, nil
 
 	local characterKey = addon:GetSelectedCharacter()
 	local providerName = self.provider:GetName()
@@ -60,13 +63,14 @@ local function UpdateList()
 
 		-- TODO: index is not identifying
 		local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
+		local identifier = isHeader and title or link
 		if isHeader and collapsed[providerName].all ~= nil then
-			collapsed[providerName][index] = collapsed[providerName].all or nil
+			collapsed[providerName][identifier] = collapsed[providerName].all or nil
 		end
 		-- TODO: we need to consider depth, e.g. for cooking
-		headerIndex = isHeader and index or headerIndex
-		local isCollapsed = collapsed[providerName] and ((not isHeader and collapsed[providerName][headerIndex])
-			or (isHeader and collapsed[providerName][index]))
+		headerIdentifier = isHeader and identifier or headerIdentifier
+		local isCollapsed = (not isHeader and collapsed[providerName][headerIdentifier])
+			or (isHeader and collapsed[providerName][identifier])
 
 		if isHeader then
 			local state = isCollapsed and 'collapsed' or 'expanded'
