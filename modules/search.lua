@@ -51,10 +51,9 @@ function search:Clear()
 		icon:SetAlpha(1)
 	end
 
+	addon.frame.search.searchString = nil
 	addon:UpdateCharacters()
-	if not self.updating then
-		addon:Update()
-	end
+	addon:Update()
 end
 
 local searchResults = {}
