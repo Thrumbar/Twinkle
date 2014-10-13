@@ -11,18 +11,18 @@ local quests = lists:NewModule('Quests', 'AceEvent-3.0')
       quests.title = 'Quests'
 
 local shortTags = {
-	[_G.FAILED] = '|TInterface\\RAIDFRAME\\ReadyCheck-NotReady:0|t',
+	[_G.FAILED]   = '|TInterface\\RAIDFRAME\\ReadyCheck-NotReady:0|t',
 	[_G.COMPLETE] = '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t',
-	[_G.DAILY] = '•', -- daily
-	[_G.ELITE] = '+', -- elite
-	[_G.PLAYER_V_PLAYER] = 'PvP', -- player vs. player
-	[_G.GROUP] = 'G', -- group
+	[_G.DAILY]    = '•', -- daily
+	[_G.ELITE]    = '+', -- elite
+	[_G.GROUP]    = 'G', -- group
 	[_G.GUILD_CHALLENGE_TYPE1] = 'D', -- dungeon
 	[_G.GUILD_CHALLENGE_TYPE2] = 'R', -- raid
 	[_G.GUILD_CHALLENGE_TYPE4] = 'SC', -- scenario
 	[_G.GUILD_CHALLENGE_TYPE3] = 'RBG', -- rated battle ground
+	[_G.ITEM_QUALITY5_DESC]    = 'L', -- legendary
+	[_G.PLAYER_V_PLAYER]       = 'PvP', -- player vs. player
 	-- [_G.REPEATABLE] = '∞', -- repeatable
-	[_G.ITEM_QUALITY5_DESC] = 'L', -- legendary
 }
 
 function quests:OnEnable()

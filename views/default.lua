@@ -9,8 +9,6 @@ local view  = views:NewModule('default', 'AceTimer-3.0')
       view.icon = 'Interface\\Icons\\INV_Misc_GroupLooking'
       view.title = 'General'
 
-local MAX_PLAYER_LEVEL = 90
-
 local function UpdateFlowContainer(container)
 	local character = addon.GetSelectedCharacter()
 	local containerWidth = container:GetWidth()
@@ -316,6 +314,7 @@ function view:OnEnable()
 
 		local status
 		for _, dungeon in ipairs(data) do
+			-- TODO: indicate "dungeon complete, but not all bosses looted"
 			status = string.format('%s|T%s:0|t %s', status and status.."|n|T:0|t " or '',
 				dungeon.complete and 'Interface\\RAIDFRAME\\ReadyCheck-Ready' or 'Interface\\FriendsFrame\\StatusIcon-Offline',
 				dungeon.name

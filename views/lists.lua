@@ -9,10 +9,23 @@ local lists = views:NewModule('lists', 'AceEvent-3.0')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = 'Lists'
 local NUM_ITEMS_PER_ROW = 5
+local collapsed = {}
+
+local function SetCollapsedState(button, state)
+	button.state = state
+	local actionIcon = state == 'expanded' and 'MinusButton' or 'PlusButton'
+	button:GetNormalTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-UP')
+	button:GetDisabledTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-UP')
+	button:GetHighlightTexture():SetTexture('Interface\\Buttons\\UI-'..actionIcon..'-UP', 'ADD')
+end
 
 local function OnRowClick(self, btn, up)
 	if not self.link then
-		return
+		-- collapse/expand this category
+		local index = self:GetID()
+		local providerName = lists.provider:GetName()
+		collapsed[providerName][index] = not collapsed[providerName][index] or nil
+		lists:Update()
 	elseif IsModifiedClick() and HandleModifiedItemClick(self.link) then
 		return
 	elseif lists.provider.OnClickRow then
@@ -32,25 +45,45 @@ end
 
 local function UpdateList()
 	local self = lists
-	local characterKey = addon:GetSelectedCharacter()
-	local numRows = 0
+	local numRows, headerIndex, headerState = 0, nil, nil
 
-	local scrollFrame = self.panel.scrollFrame
-	local offset = FauxScrollFrame_GetOffset(scrollFrame)
+	local characterKey = addon:GetSelectedCharacter()
+	local providerName = self.provider:GetName()
+	local scrollFrame  = self.panel.scrollFrame
+	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
 
 	local buttonIndex = 1
 	for index = 1, self.provider:GetNumRows(characterKey) or 0 do
 		-- TODO: fix search filtering, including search & collapse/expand
+		-- TODO: show headers of filtered results
 		-- if not self.searchString or MatchesSearch(self.provider, characterKey, index, self.searchString) then
-		numRows = numRows + 1 -- this counts the number of rows remaining after filtering
+
+		-- TODO: index is not identifying
+		local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
+		if isHeader and collapsed[providerName].all ~= nil then
+			collapsed[providerName][index] = collapsed[providerName].all or nil
+		end
+		-- TODO: we need to consider depth, e.g. for cooking
+		headerIndex = isHeader and index or headerIndex
+		local isCollapsed = collapsed[providerName] and ((not isHeader and collapsed[providerName][headerIndex])
+			or (isHeader and collapsed[providerName][index]))
+
+		if isHeader then
+			local state = isCollapsed and 'collapsed' or 'expanded'
+			if headerState == nil then
+				headerState = state
+			elseif headerState and headerState ~= state then
+				headerState = false
+			end
+		else
+			-- #rows remaining after filtering, excluding header lines, including lines out of scroll range
+			numRows = numRows + 1
+		end
+
 		if index >= offset+1 then
 			local button = scrollFrame[buttonIndex]
 			if button then
-				buttonIndex = buttonIndex + 1
-
-				local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
-				local isCollapsed = false -- TODO: store as setting
-
+				button:SetID(index)
 				button:SetText(title)
 				button.link = link
 				button.tiptext = tiptext
@@ -61,27 +94,36 @@ local function UpdateList()
 					button:SetHighlightTexture('Interface\\Buttons\\UI-PlusButton-Hilight')
 					button.prefix:SetText('')
 					button.suffix:SetText('')
-				else
+				elseif not isCollapsed then
 					button:SetNormalTexture('')
 					button:SetHighlightTexture('')
 					button.prefix:SetText(prefix or '')
 					button.suffix:SetText(suffix or '')
 				end
 
-				-- we can display associated icons, e.g. quest rewards or crafting reagents
-				for itemIndex, itemButton in ipairs(button) do
-					local icon, link, tiptext = self.provider:GetItemInfo(characterKey, index, itemIndex)
-					if icon then
-						itemButton.icon:SetTexture(icon)
-						itemButton.link = link
-						itemButton.tiptext = tiptext
-						itemButton:Show()
-					else
-						itemButton:Hide()
+				if isHeader or not isCollapsed then
+					-- we can display associated icons, e.g. quest rewards or crafting reagents
+					for itemIndex, itemButton in ipairs(button) do
+						local icon, link, tiptext = self.provider:GetItemInfo(characterKey, index, itemIndex)
+						if icon then
+							itemButton.icon:SetTexture(icon)
+							itemButton.link = link
+							itemButton.tiptext = tiptext
+							itemButton:Show()
+						else
+							itemButton:Hide()
+						end
 					end
+
+					buttonIndex = buttonIndex + 1
 				end
 			end
 		end
+	end
+
+	collapsed[providerName].all = nil
+	if headerState then
+		SetCollapsedState(self.panel.toggleAll, headerState)
 	end
 
 	-- hide empty rows
@@ -137,7 +179,8 @@ function lists:UpdateDataSources()
 
 	local index = 0
 	for name, subModule in self:IterateModules() do
-		self.provider = self.provider or subModule
+		self.provider   = self.provider or subModule
+		collapsed[name] = collapsed[name] or {}
 
 		-- init data selector
 		index = index + 1
@@ -160,7 +203,6 @@ function lists:OnEnable()
 	local collapseAll = CreateFrame('Button', '$parentCollapseAll', panel)
 	      collapseAll:SetSize(270, 20)
 	      collapseAll:SetPoint('TOPLEFT', panel, 'TOPLEFT', 4, -40-4)
-	      -- collapseAll:SetScript('OnClick', )
 	local label = collapseAll:CreateFontString('$parentText', 'ARTWORK', 'GameFontNormalLeft')
 	      label:SetPoint('LEFT', 20, 0)
 	      label:SetHeight(collapseAll:GetHeight())
@@ -186,7 +228,13 @@ function lists:OnEnable()
 	      tex:SetPoint('LEFT', 3, 0)
 
 	collapseAll:SetText(_G.ALL)
-	collapseAll:Disable()
+	collapseAll.state = 'expanded'
+	collapseAll:SetScript('OnClick', function(button, btn, up)
+		local providerName = self.provider:GetName()
+		collapsed[providerName].all = button.state == 'expanded'
+		self:Update()
+	end)
+	panel.toggleAll = collapseAll
 
 	local count = panel:CreateFontString('$parentText', 'ARTWORK', 'GameFontNormalRight')
 	      count:SetSize(300, collapseAll:GetHeight())
