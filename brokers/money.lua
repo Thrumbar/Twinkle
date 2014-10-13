@@ -58,7 +58,7 @@ end
 function broker:GetHistoryValues()
 	local today     = date('%Y-%m-%d')
 	local timeDiff  = time() -  1*24*60*60
-	local yesterday = date('%Y-%m-%d', timeDiff)
+	local lastDay   = date('%Y-%m-%d', timeDiff)
 	      timeDiff  = timeDiff -  6*24*60*60
 	local lastWeek  = date('%Y-%m-%d', timeDiff)
 	      timeDiff  = timeDiff - 11*24*60*60
@@ -70,12 +70,12 @@ function broker:GetHistoryValues()
 	end
 
 	local dayDate, weekDate, monthDate
-	-- we only need the oldest date for every timespan
+	-- we only need the most recent date before each timespan
 	for dateStamp, money in pairs(self.db.global.history) do
 		-- some dates might not exist because we didn't log in
-		if dateStamp >= lastMonth and (not monthDate or dateStamp < monthDate) then monthDate = dateStamp end
-		if dateStamp >= lastWeek  and (not weekDate  or dateStamp < weekDate)  then weekDate  = dateStamp end
-		if dateStamp >= yesterday and (not dayDate   or dateStamp < dayDate)   then dayDate   = dateStamp end
+		if dateStamp <= lastMonth and (not monthDate or dateStamp > monthDate) then monthDate = dateStamp end
+		if dateStamp <= lastWeek  and (not weekDate  or dateStamp > weekDate)  then weekDate  = dateStamp end
+		if dateStamp <= lastDay   and (not dayDate   or dateStamp > dayDate)   then dayDate   = dateStamp end
 	end
 
 	local session = self.session
