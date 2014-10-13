@@ -252,9 +252,7 @@ end
 
 local characters = {} -- filled on load
 local thisCharacter   -- filled on load
--- TODO: resolve dependency on DataStore_Agenda - move to data.lua
 local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, contextEventIndex)
-	if not DataStore:GetMethodOwner('GetCalendarEventInfo') or not DataStore:GetMethodOwner('GetNumCalendarEvents') then return end
 	local month, year = CalendarGetMonth(monthOffset)
 	local thisDate = string.format("%04d-%02d-%02d", year, month, day)
 
@@ -270,17 +268,31 @@ local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, cont
 
 	for _, character in pairs(characters) do
 		if character ~= thisCharacter then
-			for i = 1, DataStore:GetNumCalendarEvents(character) do
-				local eventDate, eventTime, title, eventType, inviteStatus  = DataStore:GetCalendarEventInfo(character, i)
+			for i = 1, DataStore:GetNumCalendarEvents(character) or 0 do
+				local eventDate, eventTime, title, eventType, inviteStatus = DataStore:GetCalendarEventInfo(character, i)
 				if eventDate == thisDate then
-					table.insert(dayButton.otherEvents, {
-						character = character,
-						eventIndex = i,
-						time = eventTime,
-						title = title,
-						type = eventType,
-						status = tonumber(inviteStatus),
-					})
+					-- events for this day
+					local isDuplicate = false
+					for index = 1, CalendarGetNumDayEvents(monthOffset, day) do
+						local blizzTitle, hour, minute, cType, _, blizzType = CalendarGetDayEvent(monthOffset, day, index)
+						local blizzTime, blizzType = strjoin(':', hour, minute), tostring(blizzType)
+						if cType ~= 'HOLIDAY' and cType ~= 'RAID_LOCKOUT' and cType ~= 'RAID_RESET'
+							and blizzType == eventType and blizzTitle == title and blizzTime == eventTime then
+							isDuplicate = true
+							break
+						end
+					end
+					-- only display events once
+					if not isDuplicate then
+						table.insert(dayButton.otherEvents, {
+							character = character,
+							eventIndex = i,
+							time = eventTime,
+							title = title,
+							type = eventType,
+							status = tonumber(inviteStatus),
+						})
+					end
 				end
 			end
 		end
