@@ -9,6 +9,7 @@ local lists = views:NewModule('lists', 'AceEvent-3.0')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = 'Lists'
 local NUM_ITEMS_PER_ROW = 5
+local INDENT_WIDTH = 20
 local collapsed = {}
 
 local function SetCollapsedState(button, state)
@@ -48,49 +49,65 @@ end
 
 local function UpdateList()
 	local self = lists
-	local numRows, headerIdentifier, headerState = 0, nil, nil
+	local query = addon.GetSearch and addon:GetSearch()
+	local headerParent, headerState = nil, nil
+	local headerLastLevel, nextDataRow = 0, nil
 
 	local characterKey = addon:GetSelectedCharacter()
 	local providerName = self.provider:GetName()
 	local scrollFrame  = self.panel.scrollFrame
 	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
 
-	local buttonIndex = 1
+	-- numRows: including headers (=> scroll frame), numDataRows: excluding headers (=> result count)
+	local buttonIndex, numRows, numDataRows = 1, 0, 0
 	for index = 1, self.provider:GetNumRows(characterKey) or 0 do
-		-- TODO: fix search filtering, including search & collapse/expand
-		-- TODO: show headers of filtered results
-		-- if not self.searchString or MatchesSearch(self.provider, characterKey, index, self.searchString) then
-
-		-- TODO: index is not identifying
 		local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
-		local identifier = isHeader and title or link
+		local identifier  = isHeader and title or link
+		-- store collapse/expand all state
 		if isHeader and collapsed[providerName].all ~= nil then
 			collapsed[providerName][identifier] = collapsed[providerName].all or nil
 		end
-		-- TODO: we need to consider depth, e.g. for cooking
-		headerIdentifier = isHeader and identifier or headerIdentifier
-		local isCollapsed = (not isHeader and collapsed[providerName][headerIdentifier])
+		-- TODO: allow collapsing nested categories
+		headerParent = isHeader and identifier or headerParent
+		local isCollapsed = (not isHeader and collapsed[providerName][headerParent])
 			or (isHeader and collapsed[providerName][identifier])
 
+		-- TODO: cache filter results
+		local matchesSearch = isHeader or not query or self:SearchRow(self.provider, query, characterKey, index)
 		if isHeader then
+			numRows = numRows + 1
 			local state = isCollapsed and 'collapsed' or 'expanded'
 			if headerState == nil then
 				headerState = state
 			elseif headerState and headerState ~= state then
 				headerState = false
 			end
-		else
-			-- #rows remaining after filtering, excluding header lines, including lines out of scroll range
+
+			local headerLevel = isHeader and type(isHeader) == 'number' and isHeader or 0
+			if headerLevel <= headerLastLevel and nextDataRow < buttonIndex then
+				-- remove empty sibling/parent headers
+				while buttonIndex > (nextDataRow or 1) and scrollFrame[buttonIndex] do
+					buttonIndex = buttonIndex - 1
+					numRows     = numRows - 1
+				end
+			end
+			headerLastLevel = headerLevel
+		elseif matchesSearch then
 			numRows = numRows + 1
+			numDataRows = numDataRows + 1
+			nextDataRow = buttonIndex + (isCollapsed and 0 or 1)
 		end
 
-		if index >= offset+1 then
+		if index >= offset+1 and matchesSearch then
 			local button = scrollFrame[buttonIndex]
-			if button then
+			if button and (isHeader or not isCollapsed) then
 				button:SetID(index)
 				button:SetText(title)
 				button.link = link
 				button.tiptext = tiptext
+
+				-- keep indentation intact
+				button:SetPoint('LEFT', scrollFrame, 'LEFT', (headerLastLevel - 1) * INDENT_WIDTH + 10, 0)
 
 				if isHeader then
 					local texture = isCollapsed and 'UI-PlusButton-UP' or 'UI-MinusButton-UP'
@@ -98,40 +115,38 @@ local function UpdateList()
 					button:SetHighlightTexture('Interface\\Buttons\\UI-PlusButton-Hilight')
 					button.prefix:SetText('')
 					button.suffix:SetText('')
-				elseif not isCollapsed then
+				else
 					button:SetNormalTexture('')
 					button:SetHighlightTexture('')
 					button.prefix:SetText(prefix or '')
 					button.suffix:SetText(suffix or '')
 				end
 
-				if isHeader or not isCollapsed then
-					-- we can display associated icons, e.g. quest rewards or crafting reagents
-					for itemIndex, itemButton in ipairs(button) do
-						local icon, link, tiptext = self.provider:GetItemInfo(characterKey, index, itemIndex)
-						if icon then
-							itemButton.icon:SetTexture(icon)
-							itemButton.link = link
-							itemButton.tiptext = tiptext
-							itemButton:Show()
-						else
-							itemButton:Hide()
-						end
+				-- we can display associated icons, e.g. quest rewards or crafting reagents
+				for itemIndex, itemButton in ipairs(button) do
+					local icon, link, tiptext = self.provider:GetItemInfo(characterKey, index, itemIndex)
+					if icon then
+						itemButton.icon:SetTexture(icon)
+						itemButton.link = link
+						itemButton.tiptext = tiptext
+						itemButton:Show()
+					else
+						itemButton:Hide()
 					end
-
-					buttonIndex = buttonIndex + 1
 				end
+				buttonIndex = buttonIndex + 1
 			end
 		end
 	end
 
+	-- reset "collapse/expand all" flag
 	collapsed[providerName].all = nil
 	if headerState then
 		SetCollapsedState(self.panel.toggleAll, headerState)
 	end
 
 	-- hide empty rows
-	for index = buttonIndex, #scrollFrame do
+	for index = nextDataRow or buttonIndex, #scrollFrame do
 		local button = scrollFrame[index]
 		button:SetNormalTexture('')
 		button:SetHighlightTexture('')
@@ -150,7 +165,7 @@ local function UpdateList()
 	-- adjustments so rows have decent padding with and without scroll bar
 	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
 
-	return numRows
+	return numDataRows
 end
 
 local function CreateDataSourceButton(subModule, index)
@@ -268,11 +283,12 @@ function lists:OnEnable()
 		scrollFrame[index] = row
 
 		if index == 1 then
-			row:SetPoint('TOPLEFT', scrollFrame, 'TOPLEFT', 10, -4)
+			row:SetPoint('TOP', scrollFrame, 'TOP', 0, -4)
 		else
-			row:SetPoint('TOPLEFT', scrollFrame[index - 1], 'BOTTOMLEFT')
+			row:SetPoint('TOP', scrollFrame[index - 1], 'BOTTOM', 0, 0)
 		end
-		row:SetPoint('RIGHT', scrollFrame, 'RIGHT')
+		row:SetPoint('LEFT', scrollFrame, 'LEFT', 10, 0)
+		row:SetPoint('RIGHT', scrollFrame, 'RIGHT', 0, 0)
 		row:SetScript('OnEnter', addon.ShowTooltip)
 		row:SetScript('OnLeave', addon.HideTooltip)
 		row:SetScript('OnClick', OnRowClick)
@@ -332,8 +348,7 @@ function lists:OnDisable()
 	--
 end
 
-function lists:Update(searchString)
-	lists.searchString = searchString
+function lists:Update()
 	local numRows = UpdateList()
 	lists.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
 	return numRows
@@ -362,55 +377,47 @@ lists.filters = {
 	},
 }
 
-local filters = {
-	text = {
-	  	tags = {'text'},
-		canSearch = function(self, operator, search)
-			return not operator and search
-		end,
-		match = function(self, text, _, search)
-			return CustomSearch:Find(search, text)
+function lists:SearchRow(provider, query, characterKey, index)
+	local isHeader, title, prefix, suffix, hyperlink = provider:GetRowInfo(characterKey, index)
+	local searchString = characterKey..': '..(hyperlink or title)
+	if CustomSearch:Matches(searchString, query, provider.filters or self.filters) then
+		return true
+	else
+		-- check items
+		for itemIndex = 1, NUM_ITEMS_PER_ROW do
+			local itemName, itemLink, tiptext, count = provider:GetItemInfo(characterKey, index, itemIndex)
+			if itemLink and ItemSearch:Matches(itemLink, query) then
+				return true
+			end
 		end
-	},
-}
-function lists:Search(search, characterKey)
+	end
+end
+
+function lists:Search(query, characterKey)
+	local isActiveView = characterKey == addon:GetSelectedCharacter() and views:GetActiveView() == self
 	local hasMatch = 0
-
-	for name, subModule in self:IterateModules() do
+	for name, provider in self:IterateModules() do
 		local numMatches = 0
-		if subModule.Search then
-			numMatches = subModule:Search(search, characterKey)
+		if isActiveView and provider == self.provider then
+			-- update displayed data
+			FauxScrollFrame_SetOffset(self.panel.scrollFrame, 0)
+			numMatches = self:Update()
 		else
-			-- TODO: let lists search their values, e.g. reputation standing, quest reward gold etc
-			for index = 1, subModule:GetNumRows(characterKey) do
-				local _, title, prefix, suffix, hyperlink = subModule:GetRowInfo(characterKey, index)
-				local compareString = strjoin(' ', title or '', prefix or '', suffix or '')
-
-				if ItemSearch:Matches(hyperlink or '', search) or CustomSearch:Matches(compareString, search, filters) then
-					-- the row itself matches
+			-- gather search results without affecting current display
+			for index = 1, provider:GetNumRows(characterKey) do
+				local matchesSearch = self:SearchRow(provider, query, characterKey, index)
+				if matchesSearch then
 					numMatches = numMatches + 1
-				else
-					-- check if the row's items match
-					for itemIndex = 1, NUM_ITEMS_PER_ROW do
-						local itemName, itemLink, tiptext, count = subModule:GetItemInfo(characterKey, index, itemIndex)
-						if itemLink and ItemSearch:Matches(itemLink, search) then
-							numMatches = numMatches + 1
-						end
-					end
 				end
 			end
 		end
-		hasMatch = hasMatch + numMatches
 
-		if characterKey == addon:GetSelectedCharacter() then
-			-- FauxScrollFrame_SetOffset(self.panel.scrollFrame, 0)
-			-- numMatches = UpdateList()
-
+		if isActiveView then
 			-- desaturate when data source has no data
-			local button = _G[self.panel:GetName()..subModule:GetName()]
+			local button = _G[self.panel:GetName()..name]
 			      button:GetNormalTexture():SetDesaturated(numMatches == 0)
 		end
+		hasMatch = hasMatch + numMatches
 	end
-
 	return hasMatch
 end

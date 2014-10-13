@@ -59,7 +59,8 @@ tooltip\social.lua
 # views
 views\default.lua
 views\containers.lua
-views\lists.lua
+# FIXME: depends on views, inserted here for ordering
+modules\lists.lua
 views\lists.currencies.lua
 views\lists.quests.lua
 views\lists.reputation.lua

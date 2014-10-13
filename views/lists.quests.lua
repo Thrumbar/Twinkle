@@ -61,7 +61,7 @@ function quests:GetRowInfo(characterKey, index)
 	local color  = questLevel and GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
 	local prefix = questLevel and RGBTableToColorCode(color) .. questLevel .. '|r' or ''
 
-	return isHeader, title, prefix, tags, not isHeader and questLink or nil
+	return isHeader and 1 or nil, title, prefix, tags, not isHeader and questLink or nil
 end
 
 function quests:GetItemInfo(characterKey, index, itemIndex)
@@ -111,7 +111,7 @@ local linkFilters  = {
 			end
 		end
 	},
-	active = { -- TODO: filter for any character's active quests
+	--[[ active = { -- TODO: filter for any character's active quests
 		tags      = {'active'},
 		canSearch = function(self, operator, search) return not operator and search end,
 		match     = function(self, text, operator, search)
@@ -120,7 +120,7 @@ local linkFilters  = {
 			      questID = tonumber(questID)
 			return questID and GetQuestLogIndexByID(questID)
 		end
-	},
+	}, --]]
 	progress = {
 		tags      = {'p', 'progress'},
 		canSearch = function(self, operator, search)
@@ -213,14 +213,4 @@ linkFilters.difficulty = {
 for tag, handler in pairs(lists.filters) do
 	linkFilters[tag] = handler
 end
-
-function quests:Search(query, characterKey)
-	local numMatches = 0
-	for index = 1, self:GetNumRows(characterKey) do
-		local isHeader, hyperlink = DataStore:GetQuestLogInfo(characterKey, index)
-		if not isHeader and CustomSearch:Matches(characterKey..': '..hyperlink, query, linkFilters) then
-			numMatches = numMatches + 1
-		end
-	end
-	return numMatches
-end
+quests.filters = linkFilters

@@ -35,7 +35,10 @@ end
 
 function reputation:GetRowInfo(characterKey, index)
 	local factionID, reputation, standingID, standingText, low, high = DataStore:GetFactionInfo(characterKey, index)
-	local title, description, _, _, _, _, _, _, isHeader, _, hasRep, _, isIndented, _, hasBonus = GetFactionInfoByID(factionID)
+	local title, description, _, _, _, _, atWar, canWar, isHeader, _, hasRep, isWatched, isChild, _, hasBonus = GetFactionInfoByID(factionID)
+	-- gather header details
+	isHeader = (isHeader and 1 or 0) + (isChild and 1 or 0)
+	if isHeader == 0 then isHeader = nil end
 
 	local color = standingID and standingColors[standingID]
 	if GetFriendshipReputation(factionID) then
@@ -86,6 +89,7 @@ function reputation:GetItemInfo(characterKey, index, itemIndex)
 end
 
 --[[
+-- TODO: search integration
 local CustomSearch = LibStub('CustomSearch-1.0')
 local linkFilters  = {
 	number = {
@@ -108,18 +112,6 @@ local linkFilters  = {
 for tag, handler in pairs(lists.filters) do
 	linkFilters[tag] = handler
 end
-
-function reputation:Search(query, characterKey)
-	local numMatches = 0
-	for index = 1, self:GetNumRows(characterKey) do
-		local isHeader, title, _, _, hyperlink = self:GetRowInfo(characterKey, index)
-		if not isHeader then
-			if CustomSearch:Matches(characterKey..': '..hyperlink, query, linkFilters) then
-				numMatches = numMatches + 1
-			end
-		end
-	end
-	return numMatches
-end
+reputation.filters = linkFilters
 
 --]]

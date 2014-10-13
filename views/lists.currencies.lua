@@ -67,7 +67,7 @@ function currencies:GetRowInfo(characterKey, index)
 	local suffix = AbbreviateLargeNumbers(count)
 	local currencyID = not isHeader and currencyIDs[title]
 
-	return isHeader, title, prefix, suffix, currencyID and GetCurrencyLink(currencyID)
+	return isHeader and 1 or nil, title, prefix, suffix, currencyID and GetCurrencyLink(currencyID)
 end
 
 function currencies:GetItemInfo(characterKey, index, itemIndex)
@@ -105,16 +105,4 @@ local linkFilters  = {
 for tag, handler in pairs(lists.filters) do
 	linkFilters[tag] = handler
 end
-
-function currencies:Search(query, characterKey)
-	local numMatches = 0
-	for index = 1, self:GetNumRows(characterKey) do
-		local isHeader, title, _, _, hyperlink = self:GetRowInfo(characterKey, index)
-		if not isHeader then
-			if CustomSearch:Matches(characterKey..': '..hyperlink, query, linkFilters) then
-				numMatches = numMatches + 1
-			end
-		end
-	end
-	return numMatches
-end
+currencies.filters = linkFilters
