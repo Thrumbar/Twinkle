@@ -38,9 +38,15 @@ end
 
 function quests:GetRowInfo(characterKey, index)
 	local isHeader, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
-	local questID, questLevel = questLink:match("quest:(%d+):(-?%d+)")
-	      questID, questLevel = tonumber(questID), tonumber(questLevel)
-	local title = questLink:gsub('[%[%]]', ''):gsub('\124c........', ''):gsub('\124r', '')
+	-- title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory = GetQuestLogTitle(index)
+
+
+	local questID, questLevel, title = nil, nil, questLink or ''
+	if questLink and not isHeader or isHeader == 0 then
+		questID, questLevel = questLink:match("quest:(%d+):(-?%d+)")
+		questID, questLevel = tonumber(questID), tonumber(questLevel)
+		title = questLink:gsub('[%[%]]', ''):gsub('\124c........', ''):gsub('\124r', '')
+	end
 
 	local tags = ''
 	if isComplete == 1 then tags = tags .. shortTags[_G.COMPLETE] end
@@ -54,8 +60,8 @@ function quests:GetRowInfo(characterKey, index)
 		end
 	end
 
-	local progress = DataStore:GetQuestProgressPercentage(characterKey, questID)
-	if isComplete ~= 1 and progress > 0 then
+	local progress = questID and DataStore:GetQuestProgressPercentage(characterKey, questID)
+	if progress and isComplete ~= 1 and progress > 0 then
 		title = title .. ' ('..math.floor(progress*100)..'%)'
 	end
 	local color  = questLevel and GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
