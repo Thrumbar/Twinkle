@@ -65,4 +65,6 @@ views\lists.currencies.lua
 views\lists.quests.lua
 views\lists.reputation.lua
 views\equipment.lua
+modules\items.lua
+views\items.inventory.lua
 # views\tasks.lua
