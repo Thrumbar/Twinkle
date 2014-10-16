@@ -86,6 +86,7 @@ function view:OnEnable()
 
 	-- flowcontainer that'll hold all our precious data
 	local contents = CreateFrame('Frame', nil, panel)
+		  contents:SetSize(panel:GetWidth() - 24, panel:GetHeight() - 60 - 20)
 		  contents:SetPoint('TOPLEFT', background, 'TOPLEFT', 12, -10)
 		  contents:SetPoint('BOTTOMRIGHT', background, 'BOTTOMRIGHT', -12, 10)
 		  contents.contents = {}
@@ -344,7 +345,7 @@ function view:OnEnable()
 	table.insert(contents.contents, 'newline')
 	table.insert(contents.contents, lfrs)
 
-	-- TODO: world bosses, hearth location, raid ids
+	-- TODO: hearth location, raid ids
 	-- TODO: register update events
 
 	view.panel = panel
