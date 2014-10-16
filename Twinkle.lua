@@ -155,9 +155,10 @@ function addon:OnInitialize()
 
 	-- actual content goes in here
 	local content = CreateFrame('Frame', '$parentContent', frame)
-		content:SetPoint('TOPLEFT', sidebar, 'TOPRIGHT', 5, 0)
-		content:SetPoint('BOTTOMRIGHT', -4, 2)
-		content:SetBackdrop({ bgFile = 'Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg.png' })
+	      content:SetSize(frame:GetWidth() - sidebar:GetWidth(), frame:GetHeight() - 22 - 2)
+	      content:SetPoint('TOPLEFT', sidebar, 'TOPRIGHT', 5, 0)
+	      content:SetPoint('BOTTOMRIGHT', -4, 2)
+	      content:SetBackdrop({ bgFile = 'Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg.png' })
 	frame.content = content
 
 	-- setup ldb launcher

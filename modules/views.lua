@@ -9,6 +9,7 @@ local prototype = {
 		local prettyName = viewName:gsub('^.',  string.upper)
 
 		local panel = CreateFrame('Frame', '$parentPanel'..prettyName, addon.frame)
+		      panel:SetSize(addon.frame.content:GetSize())
 		self.panel = panel
 
 		local tab = views.AddTab(self)
@@ -24,6 +25,7 @@ local prototype = {
 	Show = views.Show,
 	Update = function() end, -- so we don't get errors if it doesn't exist
 }
+views:SetDefaultModuleState(false) -- don't enable modules on load
 views:SetDefaultModulePrototype(prototype)
 
 function views:OnInitialize()
@@ -79,7 +81,9 @@ function views:Show(view)
 	content.panel = newPanel
 	currentView = view
 
-	self:Update(addon.GetSearch and addon:GetSearch() or nil)
+	if not view:IsEnabled() then view:Enable() end
+	self:Update()
+
 	addon:SendMessage('TWINKLE_VIEW_CHANGED', view:GetName())
 end
 
@@ -89,6 +93,7 @@ end
 
 function views.Update()
 	if not currentView then
+		views:EnableModule('default')
 		views:Show('default')
 	end
 
@@ -97,8 +102,6 @@ function views.Update()
 		local tab = _G[addon.frame:GetName() .. 'Tab' .. index]
 		tab:SetChecked( tab.element == currentView )
 	end
-
-	-- tell view to update, too
-	currentView:Enable() -- TODO: in case it didn't init before, should not init twice
+	-- update panel
 	currentView:Update()
 end

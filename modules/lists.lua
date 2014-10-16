@@ -5,9 +5,12 @@ local addonName, addon, _ = ...
 -- GLOBALS: ipairs, wipe, strjoin, type
 
 local views = addon:GetModule('views')
-local lists = views:NewModule('lists', 'AceEvent-3.0')
+local lists = views:NewModule('lists')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = 'Lists'
+-- views modules are disabled by default, so our modules need to do the same
+lists:SetDefaultModuleState(false)
+
 local NUM_ITEMS_PER_ROW = 5
 local INDENT_WIDTH = 20
 local collapsed, searchResultCache = {}, {}
@@ -207,6 +210,7 @@ function lists:UpdateDataSources()
 
 	local index = 0
 	for name, subModule in self:IterateModules() do
+		if not subModule:IsEnabled() then subModule:Enable() end
 		self.provider   = self.provider or subModule
 		collapsed[name] = collapsed[name] or {}
 		searchResultCache[name] = searchResultCache[name] or {}
