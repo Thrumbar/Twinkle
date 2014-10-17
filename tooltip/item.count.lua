@@ -8,6 +8,8 @@ local equipped = strtrim(STAT_AVERAGE_ITEM_LEVEL_EQUIPPED, '()'):gsub(': %%d', '
 local locationLabels = { BAGSLOT, MINIMAP_TRACKING_BANKER, VOID_STORAGE, AUCTIONS, equipped, MAIL_LABEL }
 function ns.AddItemCounts(tooltip, itemID)
 	local separator, showTotals, showGuilds, includeGuildCountInTotal = ', ', true, true, true -- TODO: config
+	-- TODO: use only one line if item is unique
+	-- local _, _, _, _, _, _, _, maxStack = GetItemInfo(itemID)
 
 	local overallCount, numLines = 0, 0
 	for _, character in ipairs(ns.data.GetCharacters()) do

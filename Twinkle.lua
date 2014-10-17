@@ -71,8 +71,6 @@ end
 local characters = {}
 local thisCharacter
 function addon:OnInitialize()
-	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
-
 	-- TODO: prepare settings
 	-- fill char data
 	self.data.GetCharacters(characters)
@@ -180,6 +178,20 @@ function addon:OnInitialize()
 end
 
 function addon:OnEnable()
+	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
+
+	LibStub('AceConfig-3.0'):RegisterOptionsTable(addonName, {
+		type = 'group',
+		args = {
+			main = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addonName..'.db.profile'),
+			profiles = LibStub('AceDBOptions-3.0'):GetOptionsTable(self.db),
+		},
+	})
+
+	local AceConfigDialog = LibStub('AceConfigDialog-3.0')
+	      AceConfigDialog:AddToBlizOptions(addonName, addonName, nil, 'main')
+	      AceConfigDialog:AddToBlizOptions(addonName, 'Profiles', addonName, 'profiles')
+
 	-- TODO: register events
 	self.UpdateCharacters()
 	self:Update()
@@ -229,7 +241,7 @@ function addon.UpdateCharacters()
 end
 
 function addon.GetCharacterButton(characterKey)
-	local button
+	local scrollFrame, button = addon.frame.sidebar.scrollFrame, nil
 	for i = 1, #scrollFrame.buttons do
 		if scrollFrame.buttons[i].element == characterKey then
 			button = scrollFrame.buttons[i]

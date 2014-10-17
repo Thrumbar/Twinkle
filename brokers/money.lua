@@ -104,9 +104,28 @@ function broker:OnEnable()
 	})
 	self:Prune()
 
-	self.session = self:GetAccountMoney()
 	local today = date('%Y-%m-%d')
+	self.session = self:GetAccountMoney()
 	self.db.global.history[today] = self.session
+
+	-- create config ui
+	local prettyConfigName = addonName .. ': '..self:GetName()
+	local types = {
+		global = '*none*',
+		tooltipFormat = {
+			gsc  = GetPrettyAmount(540321, 'gsc'),
+			icon = GetPrettyAmount(540321, 'icon'),
+			dot  = GetPrettyAmount(540321, 'dot'),
+		},
+	}
+	types.ldbFormat = types.tooltipFormat
+	LibStub('AceConfig-3.0'):RegisterOptionsTable(prettyConfigName, {
+		type = 'group',
+		args = {
+			main = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addonName..'.db.children.Money.profile', types),
+		},
+	})
+	LibStub('AceConfigDialog-3.0'):AddToBlizOptions(prettyConfigName, 'Money', addonName, 'main')
 
 	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
 	self:Update()
