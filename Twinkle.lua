@@ -84,6 +84,7 @@ function addon:OnInitialize()
 	-- initialize main frame
 	local frame = CreateFrame('Frame', addonName..'Frame', _G.UIParent, 'PortraitFrameTemplate')
 	frame:SetFrameLevel(17)
+	frame:EnableMouse(true)
 	frame:Hide()
 	self.frame = frame
 

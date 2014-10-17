@@ -331,16 +331,37 @@ function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	end
 end
 
---[[
+-- map containers to DataStore internal names
+local containerNames = {
+	[0] = 'Bag0', -- backpack (bags main)
+	[BANK_CONTAINER]        = 'Bag100', -- bank (bank main)
+	[KEYRING_CONTAINER]     = 'Bag-2', -- keyring (unused)
+	[REAGENTBANK_CONTAINER] = '', -- reagents (reagent bank main)
+	void = 'VoidStorage',
+}
+for i = 1, _G.NUM_BAG_SLOTS do -- bags
+	containerNames[i] = 'Bag'..i
+end
+for i = _G.NUM_BAG_SLOTS + 1, _G.NUM_BANKBAGSLOTS do -- bank bags
+	containerNames[i] = 'Bag'..i
+	-- also map inventory ids
+	containerNames[BANK_CONTAINER_INVENTORY_OFFSET + NUM_BANKGENERIC_SLOTS + i] = 'Bag'..i
+end
+
+-- @returns <int:containerSize>
+function data.GetContainerNumSlots(characterKey, bag)
+	local bagName   = containerNames[bag]
+	return DataStore:GetContainerSize(characterKey, bagName or bag or '') or 0
+end
+
+-- @returns nil or <int:itemID>, <string:itemLink>, <int:itemCount>
 function data.GetContainerSlotInfo(characterKey, bag, slot)
-	if DataStore:GetMethodOwner('GetContainerInfo') and DataStore:GetMethodOwner('GetSlotInfo') then
-		local container = DataStore:GetContainerInfo(characterKey, bag)
-		return DataStore_Containers:GetSlotInfo(container, slot)
-	else
-		return nil
+	local bagName   = containerNames[bag]
+	local container = DataStore:GetContainer(characterKey, bagName or bag or '')
+	if container then
+		return DataStore:GetSlotInfo(container, slot)
 	end
 end
---]]
 
 -- ========================================
 --  Currencies

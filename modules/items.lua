@@ -57,8 +57,6 @@ local function OnRowClick(self, btn, up)
 		return
 	elseif IsModifiedClick() and HandleModifiedItemClick(self.link) then
 		return
-	elseif items.provider.OnClickRow then
-		items.provider.OnClickRow(self, btn, up)
 	end
 end
 
@@ -68,8 +66,6 @@ local function OnButtonClick(self, btn, up)
 		return
 	elseif IsModifiedClick() and HandleModifiedItemClick(self.link) then
 		return
-	elseif items.provider.OnClickItem then
-		items.provider.OnClickItem(self, btn, up)
 	end
 end
 
@@ -82,7 +78,7 @@ local function OnSorterClick(button, btn)
 		end
 	end
 	if not index then return end
-	if sortOrder[index] + newSort == 0 then
+	if index == 1 then
 		-- reverse current sort order
 		sortOrder[index] = -1 * sortOrder[index]
 	else
@@ -95,12 +91,10 @@ end
 
 -- left click: regular toggle. right click: show only this one
 local function OnSourceClick(button, btn, up)
-	for index, sourceButton in ipairs(items.panel) do
-		if sourceButton == button then
-			items.provider = items:GetModule(sourceButton.module)
-			sourceButton:SetChecked(true)
-		elseif btn == 'RightButton' then
-			sourceButton:SetChecked(false)
+	if btn == 'RightButton' then
+		for index, sourceButton in ipairs(items.panel) do
+			-- show button eclusively
+			sourceButton:SetChecked(sourceButton == button)
 		end
 	end
 	items:Update()
@@ -125,7 +119,7 @@ local function SortCallback(a, b)
 		end
 	end
 	-- fallback if everything goes wrong
-	return a.itemLink < b.itemLink
+	return a.locations[1] < b.locations[1]
 end
 
 local function UpdateList()
@@ -200,8 +194,10 @@ local function CreateDataSourceButton(subModule)
 	local button = CreateFrame('CheckButton', '$parent'..name, items.panel, 'PopupButtonTemplate')
 	      button:SetNormalTexture(icon)
 	      button:SetScale(0.75)
+	      button:SetChecked(true)
 	      button.tiptext = title
 	      button.module = name
+	      button:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
 	      button:SetScript('OnClick', OnSourceClick)
 	      button:SetScript('OnEnter', addon.ShowTooltip)
 	      button:SetScript('OnLeave', addon.HideTooltip)
@@ -209,21 +205,21 @@ local function CreateDataSourceButton(subModule)
 end
 
 function items:UpdateDataSources()
-	local panel = self.panel
+	local panel, index = self.panel, 1
 	local previous = nil
 	for name, subModule in self:IterateModules() do
 		if not subModule:IsEnabled() then subModule:Enable() end
-		self.provider = self.provider or subModule
 
 		-- init data selector
 		local button = _G[panel:GetName()..name] or CreateDataSourceButton(subModule)
 		      button:ClearAllPoints()
-		      button:SetChecked(self.provider == subModule)
 		if not previous then
 			button:SetPoint('TOPLEFT', 10, -12)
 		else
 			button:SetPoint('TOPLEFT', '$parent'..previous, 'TOPRIGHT', 12, 0)
 		end
+		panel[index] = button
+		index = index + 1
 		previous = name
 	end
 end
@@ -259,7 +255,7 @@ function items:CreateSortButtons()
 	end
 	-- extend main tab to fill whole panel width
 	local tabWidth = panel.sorters[2]:GetWidth()
-	WhoFrameColumn_SetWidth(panel.sorters[2], panel:GetWidth() - (totalWidth - tabWidth) - 10)
+	WhoFrameColumn_SetWidth(panel.sorters[2], panel:GetWidth() - (totalWidth - tabWidth))
 end
 
 local function AddItem(characterKey, baseLink, ...)
@@ -280,7 +276,7 @@ local function AddItem(characterKey, baseLink, ...)
 	if collectionIndex then
 		local collectionItem = collection[characterKey][collectionIndex]
 		collectionItem.count = collectionItem.count + (count or 1)
-		tinsert(collectionItem.locations, identifier)
+		tinsert(collectionItem.locations, location)
 	else
 		tinsert(collection[characterKey], {
 			itemLink = baseLink,
@@ -300,12 +296,12 @@ function items:GatherItems(characterKey)
 		local filterButton = _G[self.panel:GetName()..name]
 		if filterButton:GetChecked() then
 			for index = 1, subModule:GetNumRows(characterKey) or 0 do
-				local identifier, hyperlink, count, level = subModule:GetRowInfo(characterKey, index)
+				local location, hyperlink, count, level = subModule:GetRowInfo(characterKey, index)
 				local baseLink = hyperlink and GetBaseLink(hyperlink)
 
 				local collectionIndex
 				if baseLink then
-					AddItem(characterKey, baseLink, identifier, count, level)
+					AddItem(characterKey, baseLink, location, count, level)
 				end
 			end
 		end
@@ -432,7 +428,7 @@ function items:Search(query, characterKey)
 	local hasMatch = 0
 	for name, provider in self:IterateModules() do
 		local numMatches = 0
-		if isActiveView --[[and provider == self.provider--]] then
+		if isActiveView then
 			-- update displayed data
 			FauxScrollFrame_SetOffset(self.panel.scrollFrame, 0)
 			numMatches = self:Update()
