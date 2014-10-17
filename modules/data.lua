@@ -332,12 +332,13 @@ function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 end
 
 -- map containers to DataStore internal names
+local LibItemLocations = LibStub('LibItemLocations', true) -- provides globals
 local containerNames = {
 	[0] = 'Bag0', -- backpack (bags main)
 	[BANK_CONTAINER]        = 'Bag100', -- bank (bank main)
 	[KEYRING_CONTAINER]     = 'Bag-2', -- keyring (unused)
 	[REAGENTBANK_CONTAINER] = '', -- reagents (reagent bank main)
-	void = 'VoidStorage',
+	[VOIDSTORAGE_CONTAINER or 'VoidStorage'] = 'VoidStorage',
 }
 for i = 1, _G.NUM_BAG_SLOTS do -- bags
 	containerNames[i] = 'Bag'..i
@@ -350,8 +351,9 @@ end
 
 -- @returns <int:containerSize>
 function data.GetContainerNumSlots(characterKey, bag)
-	local bagName   = containerNames[bag]
-	return DataStore:GetContainerSize(characterKey, bagName or bag or '') or 0
+	local bagName  = containerNames[bag]
+	local numSlots = DataStore:GetContainerSize(characterKey, bagName or bag or '') or 0
+	return numSlots
 end
 
 -- @returns nil or <int:itemID>, <string:itemLink>, <int:itemCount>

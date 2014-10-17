@@ -2,38 +2,11 @@ local addonName, addon, _ = ...
 
 -- GLOBALS: _G, DataStore
 -- GLOBALS: GetItemInfo
--- GLOBALS: string
+-- GLOBALS: string, bit, math, type
+-- "interesting" constants: NUM_BAG_SLOTS:<slots>, BANK_CONTAINER:BANK_CONTAINER_INVENTORY_OFFSET + 1 / BANK_CONTAINER_INVENTORY_OFFSET + NUM_BANKGENERIC_SLOTS, NUM_BANKBAGSLOTS:<slots>, REAGENTBANK_CONTAINER:<slots>
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
-
--- masks missing: GuildBank, ReagentBank, AuctionHouse
--- constants: NUM_BAG_SLOTS:<slots>, BANK_CONTAINER:BANK_CONTAINER_INVENTORY_OFFSET + 1 / BANK_CONTAINER_INVENTORY_OFFSET + NUM_BANKGENERIC_SLOTS, NUM_BANKBAGSLOTS:<slots>, REAGENTBANK_CONTAINER:<slots>
-local function PackInventoryLocation(container, slot, player, bank, bags, voidStorage)
-	local location = 0
-	-- basic flags
-	location = bit.bor(location, player      and _G.ITEM_INVENTORY_LOCATION_PLAYER or 0)
-	location = bit.bor(location, bank        and _G.ITEM_INVENTORY_LOCATION_BANK or 0)
-	location = bit.bor(location, bags        and _G.ITEM_INVENTORY_LOCATION_BAGS or 0)
-	location = bit.bor(location, voidStorage and _G.ITEM_INVENTORY_LOCATION_VOIDSTORAGE or 0)
-	-- container (tab, bag, ...) and slot
-	location = location + (slot or 1)
-	if container and container > 0 then
-		location = bit.lshift(container, ITEM_INVENTORY_BAG_BIT_OFFSET)
-	end
-
-	return location
-
-	-- local player, bank, bags, voidStorage, slot, bag, tab, voidSlot = EquipmentManager_UnpackLocation(location)
-	-- EquipmentManager_GetItemInfoByLocation(location)
-	--[[
-	local items = GetInventoryItemsForSlot(slotID, returnTable, transmogrify)
-	{ -- location = itemID,
-		1048586 = 104505,
-		3146241 =  99580,
-		3146264 = 105117,
-	}
-	--]]
-end
+local LibItemLocations = LibStub('LibItemLocations', true)
 
 local views = addon:GetModule('views')
 local items = views:GetModule('items')
@@ -63,7 +36,7 @@ function inventory:GetRowInfo(characterKey, slotID)
 		_, itemLink = GetItemInfo(item)
 	end
 
-	local location = PackInventoryLocation(nil, slotID, true)
+	local location = LibItemLocations:PackInventoryLocation(nil, slotID, true)
 	local level    = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
 	local count    = 1
 
@@ -80,8 +53,8 @@ end
 -- local views = addon:GetModule('views')
 -- local items = views:GetModule('items')
 local bags       = items:NewModule('Bags', 'AceEvent-3.0')
-      bags.icon  = 'Interface\\MINIMAP\\TRACKING\\Banker'
-      bags.title = 'Bags'
+      bags.icon  = 'Interface\\ICONS\\INV_Misc_Bag_07' -- _Red'
+      bags.title = _G.INVTYPE_BAG or 'Bags'
 
 function bags:OnEnable()
 	-- TODO: check if this plugin is currently displayed
@@ -110,7 +83,7 @@ function bags:GetRowInfo(characterKey, index)
 		slot      = slot - numSlots
 	end
 
-	local location = PackInventoryLocation(container, slot, true, false, true)
+	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, true)
 	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, container, slot)
 	if itemID and not itemLink then
 		_, itemLink = GetItemInfo(itemID)
@@ -130,8 +103,8 @@ end
 -- local views = addon:GetModule('views')
 -- local items = views:GetModule('items')
 local bank       = items:NewModule('Bank', 'AceEvent-3.0')
-      bank.icon  = 'INTERFACE\\ICONS\\achievement_guildperk_mobilebanking'
-      bank.title = 'Bank'
+      bank.icon  = 'Interface\\MINIMAP\\TRACKING\\Banker'
+      bank.title = _G.BANK or 'Bank'
 
 function bank:OnEnable()
 	-- self:RegisterEvent('PLAYERBANKSLOTS_CHANGED', lists.Update, self)
@@ -163,7 +136,7 @@ function bank:GetRowInfo(characterKey, index)
 		slot      = slot - numSlots
 	end
 
-	local location = PackInventoryLocation(container, slot, true, true)
+	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, true, true) -- bank|bags
 	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, container, slot)
 	if itemID and not itemLink then
 		_, itemLink = GetItemInfo(itemID)
@@ -184,7 +157,7 @@ end
 -- local views = addon:GetModule('views')
 -- local items = views:GetModule('items')
 local reagents       = items:NewModule('ReagentBank', 'AceEvent-3.0')
-      reagents.icon  = 'INTERFACE\\ICONS\\INV_Fabric_Wool_03' -- INV_Enchant_EssenceArcaneLarge, INV_Fabric_Linen_01, INV_Fabric_Silk_03, INV_Fabric_Wool_03, INV_Misc_Fish_08, INV_Misc_Food_19, INV_Misc_Food_04, INV_Misc_Food_Vendor_PinkTurnip
+      reagents.icon  = 'INTERFACE\\ICONS\\INV_Fabric_Linen_01' -- INV_Enchant_EssenceArcaneLarge, INV_Fabric_Linen_01/Silk_03/Wool_03, INV_Misc_Fish_08, INV_Misc_Food_04/08/19/Vendor_PinkTurnip
       reagents.title = 'Reagent Bank'
 
 function reagents:OnEnable()
@@ -199,6 +172,7 @@ function reagents:GetNumRows(characterKey)
 end
 
 function reagents:GetRowInfo(characterKey, index)
+	-- local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, true) -- reagentBank
 	return
 end
 
@@ -224,11 +198,21 @@ function voidstorage:OnDisable()
 end
 
 function voidstorage:GetNumRows(characterKey)
-	return 0
+	-- FIXME: this is specific to DataStore_Containers! It treats VS as one big place => 160 slots
+	return addon.data.GetContainerNumSlots(characterKey, 'VoidStorage')
 end
 
 function voidstorage:GetRowInfo(characterKey, index)
-	return
+	-- FIXME: this is specific to DataStore_Containers!
+	local slotsPerTab = 80
+	local slot, container = index%slotsPerTab, math.ceil(index/slotsPerTab)
+	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, true) -- player|voidStorage
+
+	-- void storage removes enchants, gems etc
+	local itemID, _, count = addon.data.GetContainerSlotInfo(characterKey, 'VoidStorage', index)
+	local _, itemLink, _, level = GetItemInfo(itemID)
+
+	return location, itemLink, count, level
 end
 
 
@@ -243,7 +227,7 @@ end
 -- local items = views:GetModule('items')
 local mails       = items:NewModule('Mails', 'AceEvent-3.0')
       mails.icon  = 'Interface\\MINIMAP\\TRACKING\\Mailbox'
-      mails.title = 'Mails'
+      mails.title = _G.INBOX or 'Mails'
 
 function mails:OnEnable()
 	-- self:RegisterEvent('MAIL_INBOX_UPDATE', lists.Update, self)
@@ -253,9 +237,76 @@ function mails:OnDisable()
 end
 
 function mails:GetNumRows(characterKey)
-	return 0
+	-- FIXME: depends on DataStore_Mails
+	return DataStore:GetNumMails(characterKey) or 0
 end
 
 function mails:GetRowInfo(characterKey, index)
-	return
+	-- FIXME: depends on DataStore_Mails
+	local mailIndex, attachmentIndex = 0, index
+	local location = LibItemLocations:PackInventoryLocation(mailIndex, attachmentIndex, nil, nil, nil, nil, nil, true)
+	local _, count, itemLink = DataStore:GetMailInfo(characterKey, index)
+	local level    = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
+
+	return location, itemLink, count, level
+end
+
+
+-- ======================================
+-- local addonName, addon, _ = ...
+
+-- GLOBALS: _G, DataStore
+-- GLOBALS: GetItemInfo
+-- GLOBALS: string
+
+-- local views = addon:GetModule('views')
+-- local items = views:GetModule('items')
+local guildbank       = items:NewModule('GuildBank', 'AceEvent-3.0')
+      guildbank.icon  = 'INTERFACE\\ICONS\\achievement_guildperk_mobilebanking'
+      guildbank.title = _G.GUILD_BANK or 'Guild Bank'
+
+function guildbank:OnEnable()
+	-- self:RegisterEvent('', lists.Update, self)
+end
+function guildbank:OnDisable()
+	-- self:UnregisterEvent('')
+end
+
+function guildbank:GetNumRows(characterKey)
+	return 0
+end
+
+function guildbank:GetRowInfo(characterKey, index)
+	-- local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, nil, nil, true)
+	-- return location, itemLink, count, level
+end
+
+
+-- ======================================
+-- local addonName, addon, _ = ...
+
+-- GLOBALS: _G, DataStore
+-- GLOBALS: GetItemInfo
+-- GLOBALS: string
+
+-- local views = addon:GetModule('views')
+-- local items = views:GetModule('items')
+local auction       = items:NewModule('AuctionHouse', 'AceEvent-3.0')
+      auction.icon  = 'INTERFACE\\ICONS\\INV_Misc_Coin_02'
+      auction.title = _G.BUTTON_LAG_AUCTIONHOUSE or 'Auction House'
+
+function auction:OnEnable()
+	-- self:RegisterEvent('', lists.Update, self)
+end
+function auction:OnDisable()
+	-- self:UnregisterEvent('')
+end
+
+function auction:GetNumRows(characterKey)
+	return 0
+end
+
+function auction:GetRowInfo(characterKey, index)
+	-- local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, nil, nil, nil, true)
+	-- return location, itemLink, count, level
 end

@@ -22,6 +22,7 @@ libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\LibQTip-1.0\LibQTip-1.0.lua
 libs\LibRealmInfo\LibRealmInfo.lua
 #@end-no-lib-strip@
+libs\LibItemLocations\LibItemLocations.lua
 
 Twinkle.lua
 options.lua
