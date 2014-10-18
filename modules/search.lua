@@ -27,6 +27,7 @@ function search:OnEnable()
 	      searchbox:SetSize(160, 20)
 	searchbox.clearFunc = function() self:Clear() end
 	searchbox:SetScript('OnTextChanged', function(self, userInput)
+		InputBoxInstructions_OnTextChanged(self)
 		if self:GetText() == self.searchString or not userInput then return end
 		search:Update()
 	end)
