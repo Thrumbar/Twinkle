@@ -3,6 +3,8 @@ local addonName, addon, _ = ...
 local data = addon:NewModule('data', 'AceEvent-3.0')
 addon.data = data
 
+-- GLOBALS: DataStore
+
 local LibRealmInfo    = LibStub('LibRealmInfo')
 local thisCharacter   = DataStore:GetCharacter()
 local realmCharacters = DataStore:GetCharacters() -- TODO: this is bsh*t
@@ -319,16 +321,21 @@ function data.GetGuildsItemCounts(itemID, uncached)
 	return guildCounts
 end
 function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
-	if characterKey == thisCharacter then
-		local item = GetInventoryItemLink('player', slotID)
-		return item
-	else
-		local item = DataStore:GetInventoryItem(characterKey, slotID)
+	local item, _
+	if characterKey == thisCharacter and slotID <= _G.BANK_CONTAINER_INVENTORY_OFFSET then
+		-- bank containers is only available when at the bank, use stored data
+		item = GetInventoryItemLink('player', slotID)
+	elseif slotID >= _G.INVSLOT_FIRST_EQUIPPED and slotID <= _G.INVSLOT_LAST_EQUIPPED then
+		-- equipment is saved in DataStore_Inventory
+		item = DataStore:GetInventoryItem(characterKey, slotID)
 		if item and type(item) == 'number' and not rawOnly then
 			_, item = GetItemInfo(item)
 		end
-		return item
+	else
+		-- DataStore saves equipped bags within its Containers module
+		_, _, item = data.GetContainerInfo(characterKey, slotID)
 	end
+	return item
 end
 
 -- map containers to DataStore internal names
@@ -339,21 +346,24 @@ local containerNames = {
 	[KEYRING_CONTAINER]     = 'Bag-2', -- keyring (unused)
 	[REAGENTBANK_CONTAINER] = 'Bag-3', -- reagents (reagent bank main)
 	[VOIDSTORAGE_CONTAINER or 'VoidStorage'] = 'VoidStorage',
+	['VoidStorage1']        = 'VoidStorage.Tab1',
+	['VoidStorage2']        = 'VoidStorage.Tab2',
 }
 for i = 1, _G.NUM_BAG_SLOTS do -- bags
 	containerNames[i] = 'Bag'..i
 end
-for i = _G.NUM_BAG_SLOTS + 1, _G.NUM_BANKBAGSLOTS do -- bank bags
-	containerNames[i] = 'Bag'..i
+for i = 1, _G.NUM_BANKBAGSLOTS do -- bank bags
+	local bagIndex = _G.NUM_BAG_SLOTS + i
+	containerNames[bagIndex] = 'Bag'..bagIndex
 	-- also map inventory ids
-	containerNames[BANK_CONTAINER_INVENTORY_OFFSET + NUM_BANKGENERIC_SLOTS + i] = 'Bag'..i
+	containerNames[_G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS + i] = 'Bag'..bagIndex
 end
 
--- @returns <int:containerSize>
-function data.GetContainerNumSlots(characterKey, bag)
-	local bagName  = containerNames[bag]
-	local numSlots = DataStore:GetContainerSize(characterKey, bagName or bag or '') or 0
-	return numSlots
+-- @returns <int:containerSize>, <int:numFreeSlots>, <string:itemLink>, <string:translatedTypeLabel>
+function data.GetContainerInfo(characterKey, container)
+	local containerName  = containerNames[container] or container or ''
+	local _, containerLink, numSlots, numFreeSlots, bagTypeLabel = DataStore:GetContainerInfo(characterKey, containerName)
+	return numSlots or 0, numFreeSlots or 0, containerLink, bagTypeLabel
 end
 
 -- @returns nil or <int:itemID>, <string:itemLink>, <int:itemCount>

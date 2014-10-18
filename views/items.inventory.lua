@@ -22,21 +22,27 @@ function inventory:OnDisable()
 end
 
 function inventory:GetNumRows(characterKey)
-	return _G.INVSLOT_LAST_EQUIPPED - _G.INVSLOT_FIRST_EQUIPPED + 1
+	local equipment = _G.INVSLOT_LAST_EQUIPPED - _G.INVSLOT_FIRST_EQUIPPED + 1
+	local bagBags   = _G.NUM_BAG_SLOTS
+	local bankBags  = _G.NUM_BANKBAGSLOTS
+	return equipment + bagBags + bankBags
 end
 
-function inventory:GetRowInfo(characterKey, slotID)
-	local item = addon.data.GetInventoryItemLink(characterKey, slotID, true)
-	if not item then return end
-
-	local itemLink
-	if type(item) == 'string' then
-		itemLink = item
-	else
-		_, itemLink = GetItemInfo(item)
+function inventory:GetRowInfo(characterKey, index)
+	if index > _G.CONTAINER_BAG_OFFSET + _G.NUM_BAG_SLOTS then
+		-- bank bags follow way later
+		index = index - _G.CONTAINER_BAG_OFFSET - _G.NUM_BAG_SLOTS
+		index = index + _G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS
 	end
 
-	local location = LibItemLocations:PackInventoryLocation(nil, slotID, true)
+	local itemLink = addon.data.GetInventoryItemLink(characterKey, index, true)
+	if not itemLink then return end
+
+	if type(itemLink) ~= 'string' then
+		_, itemLink = GetItemInfo(itemLink)
+	end
+
+	local location = LibItemLocations:PackInventoryLocation(nil, index, true)
 	local level    = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
 	local count    = 1
 
@@ -67,7 +73,7 @@ end
 function bags:GetNumRows(characterKey)
 	local numRows = 0
 	for container = 0, _G.NUM_BAG_SLOTS do
-		local numSlots = addon.data.GetContainerNumSlots(characterKey, container)
+		local numSlots = addon.data.GetContainerInfo(characterKey, container)
 		numRows = numRows + (numSlots or 0)
 	end
 	return numRows
@@ -75,11 +81,11 @@ end
 
 function bags:GetRowInfo(characterKey, index)
 	local slot, container = index, 0
-	local numSlots = addon.data.GetContainerNumSlots(characterKey, container)
+	local numSlots = addon.data.GetContainerInfo(characterKey, container)
 	while container <= _G.NUM_BAG_SLOTS and slot > numSlots do
 		-- indexed slot is not in this bag
 		container = container + 1
-		numSlots  = addon.data.GetContainerNumSlots(characterKey, container)
+		numSlots  = addon.data.GetContainerInfo(characterKey, container)
 		slot      = slot - numSlots
 	end
 
@@ -119,21 +125,27 @@ function bank:GetNumRows(characterKey)
 	local numRows = _G.NUM_BANKGENERIC_SLOTS
 	local offset  = _G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS
 	for container = 1, _G.NUM_BANKBAGSLOTS do
-		local numSlots = addon.data.GetContainerNumSlots(characterKey, offset + container)
+		local numSlots = addon.data.GetContainerInfo(characterKey, offset + container)
 		numRows = numRows + (numSlots or 0)
 	end
 	return numRows
 end
 
 function bank:GetRowInfo(characterKey, index)
+	-- figure out the correct container
 	local slot, container = index, _G.BANK_CONTAINER
-	local offset  = _G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS
-	local numSlots = addon.data.GetContainerNumSlots(characterKey, container)
+	-- /spew Twinkle.data.GetContainerInfo("Default.Die Aldor.Traumwächter", BANK_CONTAINER)
+	local numSlots = addon.data.GetContainerInfo(characterKey, container)
+	local offset   = _G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS
 	while container <= _G.NUM_BANKBAGSLOTS and slot > numSlots do
 		-- indexed slot is not in this bag
-		container = (container == _G.BANK_CONTAINER and 0 or container) + 1
-		numSlots  = addon.data.GetContainerNumSlots(characterKey, offset + container)
 		slot      = slot - numSlots
+		container = (container == _G.BANK_CONTAINER and 0 or container) + 1
+		numSlots  = addon.data.GetContainerInfo(characterKey, offset + container)
+	end
+	if container > 0 then
+		-- map bank bag to inventory slot id
+		container = container + _G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS
 	end
 
 	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, true, true) -- bank|bags
@@ -168,7 +180,7 @@ function reagents:OnDisable()
 end
 
 function reagents:GetNumRows(characterKey)
-	return addon.data.GetContainerNumSlots(characterKey, REAGENTBANK_CONTAINER)
+	return addon.data.GetContainerInfo(characterKey, REAGENTBANK_CONTAINER)
 end
 
 function reagents:GetRowInfo(characterKey, index)
@@ -205,18 +217,19 @@ function voidstorage:OnDisable()
 end
 
 function voidstorage:GetNumRows(characterKey)
-	-- FIXME: this is specific to DataStore_Containers! It treats VS as one big place => 160 slots
-	return addon.data.GetContainerNumSlots(characterKey, 'VoidStorage')
+	local numRows = addon.data.GetContainerInfo(characterKey, 'VoidStorage1')
+		+ addon.data.GetContainerInfo(characterKey, 'VoidStorage2')
+	return numRows
 end
 
 function voidstorage:GetRowInfo(characterKey, index)
-	-- FIXME: this is specific to DataStore_Containers!
 	local slotsPerTab = 80
 	local slot, container = index%slotsPerTab, math.ceil(index/slotsPerTab)
 	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, true) -- player|voidStorage
 
 	-- void storage removes enchants, gems etc
-	local itemID, _, count = addon.data.GetContainerSlotInfo(characterKey, 'VoidStorage', index)
+	local itemID, _, count = addon.data.GetContainerSlotInfo(characterKey, 'VoidStorage'..container, slot)
+	if not itemID then return end
 	local _, itemLink, _, level = GetItemInfo(itemID)
 
 	return location, itemLink, count, level
