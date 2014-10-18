@@ -4,23 +4,19 @@ local addonName, ns, _ = ...
 --  Quests
 -- ================================================
 local questInfo = {}
+-- TODO: abstract to ns.data
 -- TODO: return list of characters that completed quest, too
 local function GetOnQuestInfo(questID, onlyActive)
 	wipe(questInfo)
-	if not DataStore:GetMethodOwner('GetQuestLogInfo') or not DataStore:GetMethodOwner('GetQuestLogSize') then
-		return questInfo
-	end
-
-	-- TODO: abstract to ns.data
 	for _, characterKey in ipairs(ns.data.GetCharacters()) do
 		if characterKey ~= ns.data.GetCurrentCharacter() then
-			local numActiveQuests = DataStore:GetQuestLogSize(characterKey)
+			local numActiveQuests = DataStore:GetQuestLogSize(characterKey) or 0
 			for i = 1, numActiveQuests do
-				local isHeader, questLink, _, _, _, completed = DataStore:GetQuestLogInfo(characterKey, i)
-				local qID = ns.GetLinkID(questLink)
+				local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(characterKey, i)
+				local qID = questLink and ns.GetLinkID(questLink)
 
 				if not isHeader and qID == questID and completed ~= 1 then
-					local progress = DataStore:GetMethodOwner('GetQuestProgressPercentage') and DataStore:GetQuestProgressPercentage(characterKey, questID) or 0
+					local progress = DataStore:GetQuestProgressPercentage(characterKey, questID) or 0
 					local characterName = ns.data.GetCharacterText(characterKey)
 					if progress == 0 then
 						table.insert(questInfo, characterName)

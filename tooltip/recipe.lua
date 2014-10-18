@@ -23,19 +23,16 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 
 	wipe(recipeKnownCharacters)
 	wipe(recipeUnknownCharacters)
-	if not DataStore:GetMethodOwner('GetProfession') or not DataStore:GetMethodOwner('GetProfessionInfo') or not DataStore:GetMethodOwner('GetCraftLineInfo') or not DataStore:GetMethodOwner('GetNumCraftLines') then
-		return recipeKnownCharacters, recipeUnknownCharacters
-	end
 
 	local selfKnown = nil
 	for _, character in ipairs(ns.data.GetCharacters()) do
 		local profession = DataStore:GetProfession(character, professionName)
 		if profession then
-			local numCrafts = DataStore:GetNumCraftLines(profession)
+			local numCrafts = DataStore:GetNumCraftLines(profession) or 0
 			local isKnown = nil
 			for i = 1, numCrafts do
 				local isHeader, _, spellID = DataStore:GetCraftLineInfo(profession, i)
-				if not isHeader then
+				if not isHeader and spellID then
 					local skillName = GetSpellInfo(spellID) or ""
 					if skillName == craftedName then
 						isKnown = true
@@ -52,7 +49,7 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 			if isKnown and not onlyUnknown then
 				table.insert(recipeKnownCharacters, charName)
 			elseif not isKnown and numCrafts > 0 then
-				local skillLevel = DataStore:GetProfessionInfo(profession)
+				local skillLevel = DataStore:GetProfessionInfo(profession) or 0
 				--[[ local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
 					or (skillLevel >= requiredSkill and GREEN_FONT_COLOR_CODE)
 					or RED_FONT_COLOR_CODE --]]

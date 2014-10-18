@@ -182,32 +182,22 @@ function data.GetLocation(characterKey)
 	end
 end
 function data.GetAuctionState(characterKey)
-	if DataStore:GetMethodOwner('GetNumAuctions') and DataStore:GetMethodOwner('GetNumBids') then
-		local auctions, bids = DataStore:GetNumAuctions(characterKey), DataStore:GetNumBids(characterKey)
-		return auctions or 0, bids or 0
-	else
-		return 0, 0
-	end
+	local auctions, bids = DataStore:GetNumAuctions(characterKey), DataStore:GetNumBids(characterKey)
+	return auctions or 0, bids or 0
 end
 function data.GetAuctionInfo(characterKey, list, index)
-	if DataStore:GetMethodOwner('GetAuctionHouseItemInfo') then
-		return DataStore:GetAuctionHouseItemInfo(characterKey, list, index)
-	end
+	-- TODO: FIXME: this is probably outdated with WoD
+	-- isGoblin, itemID, count, name, bidPrice, buyoutPrice, timeLeft
+	return DataStore:GetAuctionHouseItemInfo(characterKey, list, index)
 end
 function data.GetNumMails(characterKey)
-	if DataStore:GetMethodOwner('GetNumMails') then
-		-- returns the number of item attachments in mails
-		return DataStore:GetNumMails(characterKey) or 0
-	else
-		return 0
-	end
+	-- returns the number of item attachments in mails
+	return DataStore:GetNumMails(characterKey) or 0
 end
 function data.GetMailInfo(characterKey, index)
-	if DataStore:GetMethodOwner('GetMailExpiry') and DataStore:GetMethodOwner('GetMailSender') and DataStore:GetMethodOwner('GetMailInfo') then
-		local _, expires = DataStore:GetMailExpiry(characterKey, index)
-		local sender     = DataStore:GetMailSender(characterKey, index)
-		return sender, expires, DataStore:GetMailInfo(characterKey, index)
-	end
+	local _, expires = DataStore:GetMailExpiry(characterKey, index)
+	local sender     = DataStore:GetMailSender(characterKey, index)
+	return sender, expires, DataStore:GetMailInfo(characterKey, index)
 end
 function data.GetGuildInfo(characterKey)
 	if characterKey == thisCharacter then
@@ -219,10 +209,8 @@ function data.GetGuildInfo(characterKey)
 	end
 end
 function data.GetNumUnspentTalents(characterKey)
-	local primary, secondary
-	if DataStore:GetMethodOwner('GetNumUnspentTalents') then
-		primary, secondary = DataStore:GetNumUnspentTalents(characterKey, 1), DataStore:GetNumUnspentTalents(characterKey, 2)
-	end
+	local primary   = DataStore:GetNumUnspentTalents(characterKey, 1) or 0
+	local secondary = DataStore:GetNumUnspentTalents(characterKey, 2) or 0
 	if characterKey == thisCharacter then
 		local active = GetActiveSpecGroup()
 		if active == 1 then primary = GetNumUnspentTalents() else secondary = GetNumUnspentTalents() end

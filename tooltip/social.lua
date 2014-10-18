@@ -5,10 +5,6 @@ local addonName, ns, _ = ...
 -- ================================================
 local friendInfo = {}
 local function GetFriendsInfo(unitName)
-	if not DataStore:GetMethodOwner('GetContactInfo') then
-		return friendInfo
-	end
-
 	wipe(friendInfo)
 	for _, character in ipairs(ns.data.GetCharacters()) do
 		-- might just as well be <nil, nil, "">
