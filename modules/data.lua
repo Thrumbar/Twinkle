@@ -337,7 +337,7 @@ local containerNames = {
 	[0] = 'Bag0', -- backpack (bags main)
 	[BANK_CONTAINER]        = 'Bag100', -- bank (bank main)
 	[KEYRING_CONTAINER]     = 'Bag-2', -- keyring (unused)
-	[REAGENTBANK_CONTAINER] = '', -- reagents (reagent bank main)
+	[REAGENTBANK_CONTAINER] = 'Bag-3', -- reagents (reagent bank main)
 	[VOIDSTORAGE_CONTAINER or 'VoidStorage'] = 'VoidStorage',
 }
 for i = 1, _G.NUM_BAG_SLOTS do -- bags

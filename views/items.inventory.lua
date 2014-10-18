@@ -168,12 +168,19 @@ function reagents:OnDisable()
 end
 
 function reagents:GetNumRows(characterKey)
-	return 0
+	return addon.data.GetContainerNumSlots(characterKey, REAGENTBANK_CONTAINER)
 end
 
 function reagents:GetRowInfo(characterKey, index)
-	-- local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, true) -- reagentBank
-	return
+	local slot = index
+	local location = LibItemLocations:PackInventoryLocation(0, slot, nil, nil, nil, nil, true) -- reagentBank
+	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, REAGENTBANK_CONTAINER, slot)
+	if itemID and not itemLink then
+		_, itemLink = GetItemInfo(itemID)
+	end
+	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
+
+	return location, itemLink, count, level
 end
 
 -- ======================================
