@@ -436,7 +436,7 @@ function items:Search(query, characterKey)
 			-- gather search results without affecting current display
 			for index = 1, provider:GetNumRows(characterKey) do
 				local _, itemLink = provider:GetRowInfo(characterKey, index)
-				local matchesSearch  = self:SearchRow(query, characterKey, itemLink)
+				local matchesSearch = itemLink and self:SearchRow(query, characterKey, itemLink)
 				if matchesSearch then
 					numMatches = numMatches + 1
 				end

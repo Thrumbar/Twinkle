@@ -71,29 +71,32 @@ function search:Update()
 
 	wipe(searchResults)
 	for viewName, view in views:IterateModules() do
-		local numResults = 0
-		if newText then
-			-- gather search results
-			for _, characterKey in pairs(characters) do
-				local numMatches = view.Search and view:Search(newText, characterKey)
-				if numMatches and type(numMatches) == 'number' and numMatches > 0 then
-					numResults = numResults + numMatches
-					searchResults[characterKey] = (searchResults[characterKey] or 0) + numMatches
+		if view.Search then
+			if not view:IsEnabled() then view:Enable() end
+			local numResults = 0
+			if newText then
+				-- gather search results
+				for _, characterKey in pairs(characters) do
+					local numMatches = view:Search(newText, characterKey)
+					if numMatches and type(numMatches) == 'number' and numMatches > 0 then
+						numResults = numResults + numMatches
+						searchResults[characterKey] = (searchResults[characterKey] or 0) + numMatches
+					end
 				end
+			elseif view == views:GetActiveView() then
+				-- reset search
+				view:Update()
 			end
-		elseif view == views:GetActiveView() then
-			-- reset search
-			view:Update()
-		end
 
-		-- update tab highlight
-		local icon = view.tab:GetNormalTexture()
-		if numResults > 0 or not newText then
-			icon:SetDesaturated(false)
-			icon:SetAlpha(1)
-		else
-			icon:SetDesaturated(true)
-			icon:SetAlpha(0.5)
+			-- update tab highlight
+			local icon = view.tab:GetNormalTexture()
+			if numResults > 0 or not newText then
+				icon:SetDesaturated(false)
+				icon:SetAlpha(1)
+			else
+				icon:SetDesaturated(true)
+				icon:SetAlpha(0.5)
+			end
 		end
 	end
 

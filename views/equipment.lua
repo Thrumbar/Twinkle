@@ -65,8 +65,8 @@ local gemColorNames = {
 
 local function HideTooltip(self, btn, up)
 	local tooltip = self:GetParent()
-	tooltip:Hide()
 	tooltip.link = nil
+	tooltip:Hide()
 end
 
 local function OnItemClick(self, btn, up)
@@ -76,8 +76,8 @@ local function OnItemClick(self, btn, up)
 
 	local tooltip = self:GetParent().tooltip
 	if not self.link or tooltip.link == self.link then
-		tooltip:Hide()
 		tooltip.link = nil
+		tooltip:Hide()
 		return
 	end
 
@@ -137,8 +137,8 @@ local function SetSlotItem(slotID, itemLink)
 		ActionButton_HideOverlayGlow(slotButton)
 	else
 		local itemIcon = GetItemIcon(itemLink)
-		slotButton.icon:SetTexture(itemIcon)
 		slotButton.link = itemLink
+		slotButton.icon:SetTexture(itemIcon)
 
 		-- item level & quality
 		local _, _, quality, iLvl = GetItemInfo(itemLink)
