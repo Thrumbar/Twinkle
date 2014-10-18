@@ -37,7 +37,7 @@ function quests:GetNumRows(characterKey)
 end
 
 function quests:GetRowInfo(characterKey, index)
-	local isHeader, questLink, questTag, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
+	local isHeader, questLink, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
 	-- title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory = GetQuestLogTitle(index)
 
 
@@ -49,16 +49,8 @@ function quests:GetRowInfo(characterKey, index)
 	end
 
 	local tags = ''
+	if groupSize and groupSize > 0 then tags = '['..groupSize..']' end
 	if isComplete == 1 then tags = tags .. shortTags[_G.COMPLETE] end
-	if questTag and questTag ~= '' then
-		if questTag == _G.ITEM_QUALITY5_DESC then
-			title = RGBToColorCode(GetItemQualityColor(5)) .. title .. '|r'
-		elseif questTag == _G.GROUP then
-			tags = tags .. '['..((groupSize and groupSize > 0) and groupSize or 5)..']'
-		else
-			tags = tags .. '['..(shortTags[questTag] or questTag)..']'
-		end
-	end
 
 	local progress = questID and DataStore:GetQuestProgressPercentage(characterKey, questID)
 	if progress and isComplete ~= 1 and progress > 0 then
@@ -111,7 +103,7 @@ local linkFilters  = {
 		match     = function(self, text, operator, search)
 			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
 			local _, number = hyperlink:match('quest:(%d+):(-?%d+)')
-			         number = tonumber(level)
+			         number = tonumber(number)
 			if number then
 				return CustomSearch:Compare(operator, number, search)
 			end
@@ -146,19 +138,20 @@ local linkFilters  = {
 		end
 	},
 	group = {
+		-- TODO: rework this, since there is no more "quest tags"
 		tags      = {'g', 'group', 'party', 'raid'},
 		canSearch = function(self, operator, search) return not operator and search end,
 		match     = function(self, text, _, search)
 			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
-			local groupSize, questTag
+			local groupSize
 			for index = 1, DataStore:GetQuestLogSize(characterKey) do
-				local isHeader, questLink, tag, size = DataStore:GetQuestLogInfo(characterKey, index)
+				local isHeader, questLink, size = DataStore:GetQuestLogInfo(characterKey, index)
 				if questLink == hyperlink then
-					groupSize, questTag = size, tag
+					groupSize = size
 					break
 				end
 			end
-			return CustomSearch:Find(search, tostring(groupSize) or '', questTag or '')
+			return CustomSearch:Find(search, tostring(groupSize) or '')
 		end,
 	},
 	--[[ reward = {
@@ -168,7 +161,7 @@ local linkFilters  = {
 			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
 			-- find index in character's quest list
 			--[ [ local numRewards = DataStore:GetQuestLogNumRewards(characterKey, index)
-			local _, _, _, _, money = DataStore:GetQuestLogInfo(characterKey, index)
+			local _, _, _, money = DataStore:GetQuestLogInfo(characterKey, index)
 			local rewardsMoney = money and money > 0
 
 			local rewardIndex = itemIndex - (rewardsMoney and 1 or 0)
@@ -202,7 +195,7 @@ linkFilters.difficulty = {
 			return 4
 		end
 	end,
-	match = function(self, text, _, search)
+	match = function(self, text, operator, search)
 		local characterKey, hyperlink = text:match('^([^:]-): (.*)')
 		local _, questLevel = hyperlink:match('quest:(%d+):(-?%d+)')
 		         questLevel = tonumber(questLevel)
