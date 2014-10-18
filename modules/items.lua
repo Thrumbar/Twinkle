@@ -245,7 +245,7 @@ function items:CreateSortButtons()
 		-- adjust tab width
 		local width = sorter:GetTextWidth() + 16
 		WhoFrameColumn_SetWidth(sorter, width)
-		totalWidth = totalWidth + width
+		totalWidth = totalWidth + width - 2
 
 		-- adjust tab height
 		local sorterName = sorter:GetName()
@@ -255,7 +255,7 @@ function items:CreateSortButtons()
 	end
 	-- extend main tab to fill whole panel width
 	local tabWidth = panel.sorters[2]:GetWidth()
-	WhoFrameColumn_SetWidth(panel.sorters[2], panel:GetWidth() - (totalWidth - tabWidth))
+	WhoFrameColumn_SetWidth(panel.sorters[2], panel:GetWidth() - (totalWidth - tabWidth) -2*4)
 end
 
 local function AddItem(characterKey, baseLink, ...)

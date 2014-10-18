@@ -60,13 +60,13 @@ end
 local searchResults = {}
 function search:Update()
 	local editBox = addon.frame.search
-	local newText = editBox:GetText()
-	if newText == '' or newText == _G.SEARCH then
+	local query = editBox:GetText()
+	if query == '' then
 		editBox:clearFunc()
-		newText = nil
+		query = nil
 	end
 
-	editBox.searchString = newText
+	editBox.searchString = query
 	local views = addon:GetModule('views', true)
 	if not views then return end
 
@@ -75,10 +75,10 @@ function search:Update()
 		if view.Search then
 			if not view:IsEnabled() then view:Enable() end
 			local numResults = 0
-			if newText then
+			if query then
 				-- gather search results
 				for _, characterKey in pairs(characters) do
-					local numMatches = view:Search(newText, characterKey)
+					local numMatches = view:Search(query, characterKey)
 					if numMatches and type(numMatches) == 'number' and numMatches > 0 then
 						numResults = numResults + numMatches
 						searchResults[characterKey] = (searchResults[characterKey] or 0) + numMatches
