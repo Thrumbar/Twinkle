@@ -20,16 +20,31 @@ end
 function search:OnEnable()
 	characters = addon.data.GetCharacters()
 
+	local searchDelay, lastUpdate = 0.25, 0
+	local function SearchDelayed(self)
+		local now = GetTime()
+		if now >= lastUpdate + searchDelay then
+			lastUpdate = now
+			self:SetScript('OnUpdate', nil)
+			search:Update()
+		end
+	end
+
 	-- add search box to frame sidebar
 	local frame = addon.frame
 	local searchbox = CreateFrame('EditBox', '$parentSearchBox', frame.sidebar, 'SearchBoxTemplate')
 	      searchbox:SetPoint('BOTTOM', 4, 2)
 	      searchbox:SetSize(160, 20)
 	searchbox.clearFunc = function() self:Clear() end
-	searchbox:SetScript('OnTextChanged', function(self, userInput)
+	searchbox:SetScript('OnTextChanged', function(self, isUserInput)
 		InputBoxInstructions_OnTextChanged(self)
-		if self:GetText() == self.searchString or not userInput then return end
-		search:Update()
+		if self:GetText() == self.searchString then return end
+		if isUserInput then
+			lastUpdate = GetTime()
+			self:SetScript('OnUpdate', SearchDelayed)
+		else
+			search:Update()
+		end
 	end)
 	searchbox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
 	searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
