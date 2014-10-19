@@ -160,6 +160,20 @@ function addon:OnInitialize()
 	      content:SetBackdrop({ bgFile = 'Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg.png' })
 	frame.content = content
 
+	-- quick launcher from the character frame
+	local portraitButton = CreateFrame('Button', '$parentPortraitButton', CharacterFrame)
+	      portraitButton:SetAllPoints(CharacterFrame.portrait)
+	local highlight = portraitButton:CreateTexture(nil, 'OVERLAY')
+	      highlight:SetAtlas('bags-roundhighlight', false)
+	      highlight:SetAllPoints()
+	portraitButton:SetHighlightTexture(highlight, 'ADD')
+	CharacterFrame.portraitButton = portraitButton
+
+	portraitButton:SetScript('OnEnter', self.ShowTooltip)
+	portraitButton:SetScript('OnLeave', self.HideTooltip)
+	portraitButton:SetScript('OnClick', function(button, btn, up) ToggleFrame(self.frame) end)
+	portraitButton.tiptext = 'Click to toggle Twinkle'
+
 	-- setup ldb launcher
 	addon.ldb = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject(addonName, {
 		type  = 'launcher',
