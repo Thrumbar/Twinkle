@@ -379,11 +379,11 @@ end
 
 -- @returns nil or <int:itemID>, <string:itemLink>, <int:itemCount>
 function data.GetContainerSlotInfo(characterKey, bag, slot)
-	local container = containerNames[bag] or bag or ''
-	if container:find('^GuildBank') then
+	local container
+	if bag and type(bag) == 'string' and bag:find('^GuildBank') then
 		container = GetGuildBankContainer(characterKey, bag)
 	else
-		container = DataStore:GetContainer(characterKey, container)
+		container = DataStore:GetContainer(characterKey, containerNames[bag] or bag or '')
 	end
 	if container then
 		return DataStore:GetSlotInfo(container, slot)
