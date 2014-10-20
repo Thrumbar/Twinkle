@@ -16,6 +16,7 @@ local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 local ItemSearch     = LibStub('LibItemSearch-1.2')
 
 local collection  = {}
+FOO = collection
 local searchCache = {}
 -- note: item based sorting matches index of GetItemInfo, collection based matches property name
 local SORT_BY_NAME, SORT_BY_QUALITY, SORT_BY_LEVEL, SORT_BY_COUNT = 1, 3, 15, 16
@@ -101,19 +102,20 @@ local function OnSourceClick(button, btn, up)
 end
 
 local function SortCallback(a, b)
+	-- property/sortValue can be nil if GetItemInfo was not available when filling the cache
 	for _, sortOption in ipairs(sortOrder) do
 		local realSort, ascending = abs(sortOption), sortOption > 0
 		if sortProperties[realSort] then
 			-- sort based on collection data
 			local property = sortProperties[realSort]
-			if a[property] ~= b[property] then
+			if a[property] and b[property] and a[property] ~= b[property] then
 				return (ascending and a[property] < b[property]) or (not ascending and a[property] > b[property])
 			end
 		else
 			-- sort based on item data
 			local aValue = select(realSort, GetItemInfo(a.itemLink))
 			local bValue = select(realSort, GetItemInfo(b.itemLink))
-			if aValue ~= bValue then
+			if aValue and bValue and aValue ~= bValue then
 				return (ascending and aValue < bValue) or (not ascending and aValue > bValue)
 			end
 		end
