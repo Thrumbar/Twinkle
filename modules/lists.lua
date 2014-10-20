@@ -84,7 +84,7 @@ local function UpdateList()
 		end
 
 		if isHeader then
-			local headerLevel = isHeader and type(isHeader) == 'number' and isHeader or 0
+			local headerLevel = type(isHeader) == 'number' and isHeader or 0
 			if headerLevel <= #headerParents and nextDataRow < buttonIndex then
 				-- remove empty sibling/parent headers
 				while buttonIndex > (nextDataRow or 1) and scrollFrame[buttonIndex] do
