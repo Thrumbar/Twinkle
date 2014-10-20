@@ -194,7 +194,7 @@ local function CreateDataSourceButton(subModule)
 	local button = CreateFrame('CheckButton', '$parent'..name, items.panel, 'PopupButtonTemplate')
 	      button:SetNormalTexture(icon)
 	      button:SetScale(0.75)
-	      button:SetChecked(true)
+	      button:SetChecked(not subModule.unchecked)
 	      button.tiptext = title
 	      button.module = name
 	      button:RegisterForClicks('LeftButtonUp', 'RightButtonUp')

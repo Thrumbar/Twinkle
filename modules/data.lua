@@ -199,6 +199,11 @@ function data.GetMailInfo(characterKey, index)
 	local sender     = DataStore:GetMailSender(characterKey, index)
 	return sender, expires, DataStore:GetMailInfo(characterKey, index)
 end
+function data.GetGuild(characterKey)
+	local guildName = data.GetGuildInfo(characterKey)
+	local charAccount, charRealm = strsplit('.', characterKey)
+	return DataStore:GetGuild(guildName, charRealm, charAccount)
+end
 function data.GetGuildInfo(characterKey)
 	if characterKey == thisCharacter then
 		local guildName, guildRank, rankID, _ = GetGuildInfo('player')
@@ -333,9 +338,10 @@ local containerNames = {
 	[BANK_CONTAINER]        = 'Bag100', -- bank (bank main)
 	[KEYRING_CONTAINER]     = 'Bag-2', -- keyring (unused)
 	[REAGENTBANK_CONTAINER] = 'Bag-3', -- reagents (reagent bank main)
-	[VOIDSTORAGE_CONTAINER or 'VoidStorage'] = 'VoidStorage',
+	[VOIDSTORAGE_CONTAINER] = 'VoidStorage',
 	['VoidStorage1']        = 'VoidStorage.Tab1',
 	['VoidStorage2']        = 'VoidStorage.Tab2',
+	-- ['GuildBank1'] for guild bank tab 1
 }
 for i = 1, _G.NUM_BAG_SLOTS do -- bags
 	containerNames[i] = 'Bag'..i
@@ -347,17 +353,35 @@ for i = 1, _G.NUM_BANKBAGSLOTS do -- bank bags
 	containerNames[_G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS + i] = 'Bag'..bagIndex
 end
 
+local function GetGuildBankContainer(characterKey, container)
+	local tab = container:match('^GuildBank(%d+)')
+	      tab = tab and tonumber(tab)
+	local guildKey = data.GetGuild(characterKey)
+	return DataStore:GetGuildBankTab(guildKey, tab)
+end
+
 -- @returns <int:containerSize>, <int:numFreeSlots>, <string:itemLink>, <string:translatedTypeLabel>
 function data.GetContainerInfo(characterKey, container)
-	local containerName  = containerNames[container] or container or ''
-	local _, containerLink, numSlots, numFreeSlots, bagTypeLabel = DataStore:GetContainerInfo(characterKey, containerName)
-	return numSlots or 0, numFreeSlots or 0, containerLink, bagTypeLabel
+	if type(container) == 'string' and container:find('^GuildBank') then
+		local tab = GetGuildBankContainer(characterKey, container)
+		local numFreeSlots = tab.size and (tab.size - #tab.ids)
+		-- we have MAX_GUILDBANK_SLOTS_PER_TAB slots, but if DS doesn't know them, we can't display anything anyways
+		return tab.size or 0, numFreeSlots or 0, nil, nil
+	else
+		local containerName = containerNames[container] or container or ''
+		local _, containerLink, numSlots, numFreeSlots, bagTypeLabel = DataStore:GetContainerInfo(characterKey, containerName)
+		return numSlots or 0, numFreeSlots or 0, containerLink, bagTypeLabel
+	end
 end
 
 -- @returns nil or <int:itemID>, <string:itemLink>, <int:itemCount>
 function data.GetContainerSlotInfo(characterKey, bag, slot)
-	local bagName   = containerNames[bag]
-	local container = DataStore:GetContainer(characterKey, bagName or bag or '')
+	local container = containerNames[bag] or bag or ''
+	if container:find('^GuildBank') then
+		container = GetGuildBankContainer(characterKey, bag)
+	else
+		container = DataStore:GetContainer(characterKey, container)
+	end
 	if container then
 		return DataStore:GetSlotInfo(container, slot)
 	end

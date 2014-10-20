@@ -134,7 +134,6 @@ end
 function bank:GetRowInfo(characterKey, index)
 	-- figure out the correct container
 	local slot, container = index, _G.BANK_CONTAINER
-	-- /spew Twinkle.data.GetContainerInfo("Default.Die Aldor.Traumwächter", BANK_CONTAINER)
 	local numSlots = addon.data.GetContainerInfo(characterKey, container)
 	local offset   = _G.BANK_CONTAINER_INVENTORY_OFFSET + _G.NUM_BANKGENERIC_SLOTS
 	while container <= _G.NUM_BANKBAGSLOTS and slot > numSlots do
@@ -180,13 +179,13 @@ function reagents:OnDisable()
 end
 
 function reagents:GetNumRows(characterKey)
-	return addon.data.GetContainerInfo(characterKey, REAGENTBANK_CONTAINER)
+	return addon.data.GetContainerInfo(characterKey, _G.REAGENTBANK_CONTAINER)
 end
 
 function reagents:GetRowInfo(characterKey, index)
 	local slot = index
 	local location = LibItemLocations:PackInventoryLocation(0, slot, nil, nil, nil, nil, true) -- reagentBank
-	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, REAGENTBANK_CONTAINER, slot)
+	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, _G.REAGENTBANK_CONTAINER, slot)
 	if itemID and not itemLink then
 		_, itemLink = GetItemInfo(itemID)
 	end
@@ -284,6 +283,7 @@ end
 local guildbank       = items:NewModule('GuildBank', 'AceEvent-3.0')
       guildbank.icon  = 'INTERFACE\\ICONS\\achievement_guildperk_mobilebanking'
       guildbank.title = _G.GUILD_BANK or 'Guild Bank'
+      guildbank.unchecked = true -- don't show these items by default
 
 function guildbank:OnEnable()
 	-- self:RegisterEvent('', lists.Update, self)
@@ -293,12 +293,31 @@ function guildbank:OnDisable()
 end
 
 function guildbank:GetNumRows(characterKey)
-	return 0
+	local numRows = 0
+	for tab = 1, _G.MAX_GUILDBANK_TABS do
+		numRows = numRows + addon.data.GetContainerInfo(characterKey, 'GuildBank'..tab)
+	end
+	return numRows
 end
 
 function guildbank:GetRowInfo(characterKey, index)
-	-- local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, nil, nil, true)
-	-- return location, itemLink, count, level
+	local slot, container = index, 1
+	local numSlots = addon.data.GetContainerInfo(characterKey, 'GuildBank'..container)
+	while container <= _G.MAX_GUILDBANK_TABS and slot > numSlots do
+		-- indexed slot is not in this tab
+		container = container + 1
+		numSlots  = addon.data.GetContainerInfo(characterKey, 'GuildBank'..container)
+		slot      = slot - numSlots
+	end
+
+	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, nil, nil, true)
+	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, 'GuildBank'..container, slot)
+	if itemID and not itemLink then
+		_, itemLink = GetItemInfo(itemID)
+	end
+	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
+
+	return location, itemLink, count, level
 end
 
 
