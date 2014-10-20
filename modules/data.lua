@@ -187,6 +187,9 @@ function data.GetAuctionState(characterKey)
 end
 function data.GetAuctionInfo(characterKey, list, index)
 	-- TODO: FIXME: this is probably outdated with WoD
+	if list == 'owner' then list = 'Auctions'
+	elseif list == 'bidder' then list = 'Bids' end
+
 	-- isGoblin, itemID, count, name, bidPrice, buyoutPrice, timeLeft
 	return DataStore:GetAuctionHouseItemInfo(characterKey, list, index)
 end

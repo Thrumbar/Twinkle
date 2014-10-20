@@ -1,6 +1,6 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string, bit, math, type
 -- "interesting" constants: NUM_BAG_SLOTS:<slots>, BANK_CONTAINER:BANK_CONTAINER_INVENTORY_OFFSET + 1 / BANK_CONTAINER_INVENTORY_OFFSET + NUM_BANKGENERIC_SLOTS, NUM_BANKBAGSLOTS:<slots>, REAGENTBANK_CONTAINER:<slots>
@@ -12,7 +12,7 @@ local views = addon:GetModule('views')
 local items = views:GetModule('items')
 local inventory       = items:NewModule('Inventory', 'AceEvent-3.0')
       inventory.icon  = 'Interface\\GUILDFRAME\\GuildLogo-NoLogo'
-      inventory.title = 'Equipped Items'
+      inventory.title = _G.BAG_FILTER_EQUIPMENT
 
 function inventory:OnEnable()
 	-- self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', lists.Update, self)
@@ -52,7 +52,7 @@ end
 -- ======================================
 -- local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
@@ -102,7 +102,7 @@ end
 -- ======================================
 -- local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
@@ -161,7 +161,7 @@ end
 -- ======================================
 -- local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
@@ -169,7 +169,7 @@ end
 -- local items = views:GetModule('items')
 local reagents       = items:NewModule('ReagentBank', 'AceEvent-3.0')
       reagents.icon  = 'INTERFACE\\ICONS\\INV_Fabric_Linen_01' -- INV_Enchant_EssenceArcaneLarge, INV_Fabric_Linen_01/Silk_03/Wool_03, INV_Misc_Fish_08, INV_Misc_Food_04/08/19/Vendor_PinkTurnip
-      reagents.title = 'Reagent Bank'
+      reagents.title = _G.REAGENT_BANK
 
 function reagents:OnEnable()
 	-- self:RegisterEvent('PLAYERREAGENTBANKSLOTS_CHANGED', lists.Update, self)
@@ -197,7 +197,7 @@ end
 -- ======================================
 -- local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
@@ -205,7 +205,7 @@ end
 -- local items = views:GetModule('items')
 local voidstorage       = items:NewModule('VoidStorage', 'AceEvent-3.0')
       voidstorage.icon  = 'INTERFACE\\ICONS\\Spell_Nature_AstralRecalGroup'
-      voidstorage.title = 'Void Storage'
+      voidstorage.title = _G.VOID_STORAGE
 
 function voidstorage:OnEnable()
 	-- events: VOID_STORAGE_UPDATE, VOID_STORAGE_CONTENTS_UPDATE, VOID_TRANSFER_DONE
@@ -238,7 +238,7 @@ end
 -- ======================================
 -- local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
@@ -256,16 +256,14 @@ function mails:OnDisable()
 end
 
 function mails:GetNumRows(characterKey)
-	-- FIXME: depends on DataStore_Mails
-	return DataStore:GetNumMails(characterKey) or 0
+	return addon.data.GetNumMails(characterKey)
 end
 
 function mails:GetRowInfo(characterKey, index)
-	-- FIXME: depends on DataStore_Mails
 	local mailIndex, attachmentIndex = 0, index
 	local location = LibItemLocations:PackInventoryLocation(mailIndex, attachmentIndex, nil, nil, nil, nil, nil, true)
-	local _, count, itemLink = DataStore:GetMailInfo(characterKey, index)
-	local level    = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
+	local sender, expires, _, count, itemLink = addon.data.GetMailInfo(characterKey, index)
+	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
 
 	return location, itemLink, count, level
 end
@@ -274,7 +272,7 @@ end
 -- ======================================
 -- local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
@@ -324,7 +322,7 @@ end
 -- ======================================
 -- local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore
+-- GLOBALS: _G
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
@@ -342,10 +340,19 @@ function auction:OnDisable()
 end
 
 function auction:GetNumRows(characterKey)
-	return 0
+	local numAuctions, numBids = addon.data.GetAuctionState(characterKey)
+	return numAuctions + numBids
 end
 
 function auction:GetRowInfo(characterKey, index)
-	-- local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, nil, nil, nil, true)
-	-- return location, itemLink, count, level
+	local numAuctions, numBids = addon.data.GetAuctionState(characterKey)
+	local list = index > numAuctions and 'bidder' or 'owner'
+	if index > numAuctions then index = index - numAuctions end
+
+	local isGoblin, itemID, count, name, price1, price2, timeLeft = addon.data.GetAuctionInfo(characterKey, list, index)
+	if not itemID then return end
+	local _, itemLink, _, level = GetItemInfo(itemID)
+	local location = LibItemLocations:PackInventoryLocation(0, index, nil, nil, nil, nil, nil, nil, nil, true)
+
+	return location, itemLink, count, level
 end
