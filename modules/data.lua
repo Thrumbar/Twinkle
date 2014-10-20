@@ -230,10 +230,10 @@ local itemCountCache = setmetatable({}, {
 				local info
 				if data.IsCharacter(key) then
 					info = {}
-					info[1], info[2], info[3] = DataStore:GetContainerItemCount(key, itemID)
+					info[1], info[2], info[3], info[7] = DataStore:GetContainerItemCount(key, itemID)
 					info[4] = DataStore:GetAuctionHouseItemCount(key, itemID)
 					info[5] = DataStore:GetInventoryItemCount(key, itemID)
-					info[6] = DataStore:GetMailItemCount(key, itemID)
+					info[6] = DataStore:GetMailItemCount(key, itemID) or 0
 				else
 					-- this key identifies a guild
 					info = DataStore:GetGuildBankItemCount(key, itemID)
