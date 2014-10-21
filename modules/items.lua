@@ -16,7 +16,6 @@ local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 local ItemSearch     = LibStub('LibItemSearch-1.2')
 
 local collection  = {}
-FOO = collection
 local searchCache = {}
 -- note: item based sorting matches index of GetItemInfo, collection based matches property name
 local SORT_BY_NAME, SORT_BY_QUALITY, SORT_BY_LEVEL, SORT_BY_COUNT = 1, 3, 15, 16
