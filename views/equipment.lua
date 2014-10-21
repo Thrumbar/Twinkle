@@ -92,6 +92,7 @@ local function OnItemClick(self, btn, up)
 end
 
 local function SetSocketInfo(socket, socketColor, socketGem)
+	if not IsAddOnLoaded('Blizzard_ItemSocketingUI') then LoadAddOn('Blizzard_ItemSocketingUI') end
 	local gemInfo = _G.GEM_TYPE_INFO[socketColor]
 	if socketColor == 'Meta' or socketColor == 'Prismatic' then
 		SetDesaturation(socket.bg, 1)
@@ -380,9 +381,6 @@ function equipment.OnEnable(self)
 	      close:SetPoint('TOPRIGHT')
 	      close:SetScript('OnClick', HideTooltip)
 	panel.tooltip = tooltip
-
-	-- we need access to gem info
-	LoadAddOn('Blizzard_ItemSocketingUI')
 end
 
 function equipment.OnDisable()
