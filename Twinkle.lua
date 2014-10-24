@@ -88,7 +88,7 @@ function addon:OnInitialize()
 
 	SetPortraitToTexture(frame:GetName()..'Portrait', 'Interface\\Icons\\ACHIEVEMENT_GUILDPERK_MRPOPULARITY_RANK2')
 	frame.TitleText:SetText(addonName)
-	frame:EnableMouse()
+	frame:EnableMouse(true)
 	frame:SetWidth(563)
 
 	frame:SetAttribute('UIPanelLayout-defined', true)
@@ -171,7 +171,10 @@ function addon:OnInitialize()
 
 	portraitButton:SetScript('OnEnter', self.ShowTooltip)
 	portraitButton:SetScript('OnLeave', self.HideTooltip)
-	portraitButton:SetScript('OnClick', function(button, btn, up) ToggleFrame(self.frame) end)
+	portraitButton:SetScript('OnClick', function(button, btn, up)
+		ToggleFrame(self.frame)
+		PlaySound('igMainMenuOpen') -- 'igCharacterInfoTab')
+	end)
 	portraitButton.tiptext = 'Click to toggle Twinkle'
 
 	-- setup ldb launcher
