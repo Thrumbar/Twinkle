@@ -382,9 +382,21 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 	local container
 	if bag and type(bag) == 'string' and bag:find('^GuildBank') then
 		container = GetGuildBankContainer(characterKey, bag)
-	else
-		container = DataStore:GetContainer(characterKey, containerNames[bag] or bag or '')
+	elseif characterKey == thisCharacter then
+		-- get live data for logged in character
+		if (''..bag):find('VoidStorage') then
+			local tab = 1*(bag:match('%d+') or 1)
+			local itemID = GetVoidItemInfo(tab, slot)
+			local _, itemLink = GetItemInfo(itemID)
+			return itemID, itemLink, 1
+		elseif type(bag) == 'number' then
+			-- this works with pretty much anything :)
+			local itemLink = GetContainerItemLink(bag, slot)
+			return itemID, itemLink, count
+		end
 	end
+
+	container = container or DataStore:GetContainer(characterKey, containerNames[bag] or bag or '')
 	if container then
 		return DataStore:GetSlotInfo(container, slot)
 	end
