@@ -256,14 +256,14 @@ local itemCountCache = setmetatable({}, {
 	end
 })
 
-local function ClearCacheItemCount(itemID, key)
+local function ClearCacheItemCount(itemID, characterKey)
 	-- remove previously cached data
 	local itemData = rawget(itemCountCache, itemID)
 	if itemData then
-		if key then
+		if characterKey then
 			-- clear data for this key
-			if rawget(itemData, key) then
-				rawset(itemData, key, nil)
+			if rawget(itemData, characterKey) then
+				rawset(itemData, characterKey, nil)
 			end
 		else
 			-- clear data for all keys
@@ -274,13 +274,13 @@ local function ClearCacheItemCount(itemID, key)
 	end
 end
 
-local function ClearCache(key)
+local function ClearCache(characterKey)
 	local charData
 	for itemID, data in pairs(itemCountCache) do
-		charData = rawget(data, key)
+		charData = rawget(data, characterKey)
 		if charData then
 			wipe(charData)
-			rawset(data, key, nil)
+			rawset(data, characterKey, nil)
 		end
 	end
 end
@@ -293,6 +293,9 @@ data:RegisterEvent('CHAT_MSG_LOOT', function(self, event, message)
 	end
 end) --]]
 data:RegisterEvent('BAG_UPDATE_DELAYED', function(self, event)
+	ClearCache(thisCharacter)
+end)
+data:RegisterEvent('REAGENTBANK_UPDATE', function()
 	ClearCache(thisCharacter)
 end)
 
@@ -382,16 +385,19 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 	local container
 	if bag and type(bag) == 'string' and bag:find('^GuildBank') then
 		container = GetGuildBankContainer(characterKey, bag)
-	elseif characterKey == thisCharacter then
-		-- get live data for logged in character
+	elseif characterKey == thisCharacter and bag ~= BANK_CONTAINER then
+		-- get live data for logged in character, but bank is tricky
 		if (''..bag):find('VoidStorage') then
 			local tab = 1*(bag:match('%d+') or 1)
-			local itemID = GetVoidItemInfo(tab, slot)
-			local _, itemLink = GetItemInfo(itemID)
-			return itemID, itemLink, 1
+			local itemID = GetVoidItemInfo(tab, slot), nil
+			if itemID then
+				local _, itemLink = GetItemInfo(itemID)
+				return itemID, itemLink, 1
+			end
 		elseif type(bag) == 'number' then
 			-- this works with pretty much anything :)
-			local itemLink = GetContainerItemLink(bag, slot)
+			local _, count, _, _, _, _, itemLink = GetContainerItemInfo(bag, slot)
+			local itemID = itemLink and addon:GetLinkID(itemLink) or nil
 			return itemID, itemLink, count
 		end
 	end

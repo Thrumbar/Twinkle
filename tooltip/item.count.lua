@@ -3,7 +3,7 @@ local addonName, ns, _ = ...
 -- ================================================
 --  Item counts
 -- ================================================
-local locationLabels = { BAGSLOT, MINIMAP_TRACKING_BANKER, VOID_STORAGE, AUCTIONS, BAG_FILTER_EQUIPMENT, MAIL_LABEL, REAGENT_BANK }
+local locationLabels = { BAGSLOT, _G.BANK or 'Bank', VOID_STORAGE, AUCTIONS, BAG_FILTER_EQUIPMENT, MAIL_LABEL, REAGENT_BANK }
 function ns.AddItemCounts(tooltip, itemID)
 	local separator, showTotals, showGuilds, includeGuildCountInTotal = ', ', true, true, true -- TODO: config
 	-- TODO: use only one line if item is unique
