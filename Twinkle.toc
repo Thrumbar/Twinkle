@@ -26,7 +26,6 @@ libs\LibItemLocations\LibItemLocations.lua
 libs\LibOptionsGenerate-1.0.lua
 
 Twinkle.lua
-options.lua
 
 # modules
 modules\data.lua
@@ -70,3 +69,5 @@ views\lists.quests.lua
 views\lists.reputation.lua
 views\equipment.lua
 # views\tasks.lua
+
+config.lua

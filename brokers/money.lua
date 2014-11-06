@@ -91,17 +91,18 @@ local function MoneySort(keyA, keyB)
 	return amountA > amountB
 end
 
+local defaults = {
+	global = {
+		history = {},
+	},
+	profile = {
+		ldbFormat = 'icon',
+		tooltipFormat = 'gsc',
+	},
+}
 function broker:OnEnable()
 	self.characters = addon.data.GetCharacters()
-	self.db = addon.db:RegisterNamespace('Money', {
-		global = {
-			history = {},
-		},
-		profile = {
-			ldbFormat = 'icon',
-			tooltipFormat = 'gsc',
-		},
-	})
+	self.db = addon.db:RegisterNamespace('Money', defaults)
 	self:Prune()
 
 	local today = date('%Y-%m-%d')
@@ -119,13 +120,11 @@ function broker:OnEnable()
 		},
 	}
 	types.ldbFormat = types.tooltipFormat
-	LibStub('AceConfig-3.0'):RegisterOptionsTable(prettyConfigName, {
-		type = 'group',
-		args = {
-			main = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(self.db, types),
-		},
-	})
-	LibStub('AceConfigDialog-3.0'):AddToBlizOptions(prettyConfigName, 'Money', addonName, 'main')
+
+	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(self.db, types)
+	      optionsTable.name = addonName .. ' - Money'
+	LibStub('AceConfig-3.0'):RegisterOptionsTable(self.name, optionsTable)
+	-- added to options when options panel gets loaded
 
 	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
 	self:Update()
