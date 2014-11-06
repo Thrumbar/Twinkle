@@ -148,7 +148,7 @@ local function UpdateList()
 				-- update display row
 				local name, _, quality, _, _, _, _, _, _, texture, _ = GetItemInfo(itemData.itemLink)
 				local count   = itemData.count
-				local r, g, b = GetItemQualityColor(quality)
+				local r, g, b = GetItemQualityColor(quality or LE_ITEM_QUALITY_COMMON)
 
 				button.name:SetText(name)
 				button.name:SetTextColor(r, g, b)

@@ -197,18 +197,6 @@ end
 function addon:OnEnable()
 	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
 
-	LibStub('AceConfig-3.0'):RegisterOptionsTable(addonName, {
-		type = 'group',
-		args = {
-			main = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addonName..'.db.profile'),
-			profiles = LibStub('AceDBOptions-3.0'):GetOptionsTable(self.db),
-		},
-	})
-
-	local AceConfigDialog = LibStub('AceConfigDialog-3.0')
-	      AceConfigDialog:AddToBlizOptions(addonName, addonName, nil, 'main')
-	      AceConfigDialog:AddToBlizOptions(addonName, 'Profiles', addonName, 'profiles')
-
 	-- TODO: register events
 	self.UpdateCharacters()
 	self:Update()

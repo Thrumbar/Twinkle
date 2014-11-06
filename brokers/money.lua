@@ -122,7 +122,7 @@ function broker:OnEnable()
 	LibStub('AceConfig-3.0'):RegisterOptionsTable(prettyConfigName, {
 		type = 'group',
 		args = {
-			main = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addonName..'.db.children.Money.profile', types),
+			main = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(self.db, types),
 		},
 	})
 	LibStub('AceConfigDialog-3.0'):AddToBlizOptions(prettyConfigName, 'Money', addonName, 'main')
