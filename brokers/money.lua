@@ -110,9 +110,8 @@ function broker:OnEnable()
 	self.db.global.history[today] = self.session
 
 	-- create config ui
-	local prettyConfigName = addonName .. ': '..self:GetName()
-	local types = {
-		global = '*none*',
+	--[[ local types = {
+		history = '*none*',
 		tooltipFormat = {
 			gsc  = GetPrettyAmount(540321, 'gsc'),
 			icon = GetPrettyAmount(540321, 'icon'),
@@ -124,7 +123,7 @@ function broker:OnEnable()
 	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(self.db, types)
 	      optionsTable.name = addonName .. ' - Money'
 	LibStub('AceConfig-3.0'):RegisterOptionsTable(self.name, optionsTable)
-	-- added to options when options panel gets loaded
+	-- added to options when options panel gets loaded --]]
 
 	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
 	self:Update()
