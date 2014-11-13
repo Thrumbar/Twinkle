@@ -154,7 +154,7 @@ end
 function data.GetXPInfo(characterKey)
 	local levelProgress, restedRate
 	if characterKey == thisCharacter then
-		local restedXP = GetXPExhaustion() -- 475500
+		local restedXP = GetXPExhaustion() or 0 -- 475500
 		local currentXP, maxXP = UnitXP('player'), UnitXPMax('player')
 		levelProgress = math.floor(currentXP/maxXP + 0.5) * 100
 		restedRate = restedXP / maxXP / 1.5 * 100
@@ -334,6 +334,7 @@ function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 		-- DataStore saves equipped bags within its Containers module
 		_, _, item = data.GetContainerInfo(characterKey, slotID)
 	end
+	item = item and select(2, GetItemInfo(item))
 	return item
 end
 
