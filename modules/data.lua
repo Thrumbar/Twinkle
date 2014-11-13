@@ -156,7 +156,7 @@ function data.GetXPInfo(characterKey)
 	if characterKey == thisCharacter then
 		local restedXP = GetXPExhaustion() or 0 -- 475500
 		local currentXP, maxXP = UnitXP('player'), UnitXPMax('player')
-		levelProgress = math.floor(currentXP/maxXP + 0.5) * 100
+		levelProgress = math.floor(currentXP/maxXP * 100 + 0.5)
 		restedRate = restedXP / maxXP / 1.5 * 100
 	else
 		-- also available: GetXP, GetXPMax, GetRestXP
