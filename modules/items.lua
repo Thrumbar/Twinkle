@@ -246,7 +246,7 @@ function items:CreateSortButtons()
 		-- adjust tab width
 		local width = sorter:GetTextWidth() + 16
 		WhoFrameColumn_SetWidth(sorter, width)
-		totalWidth = totalWidth + width - 2
+		totalWidth = totalWidth + width -- - 2
 
 		-- adjust tab height
 		local sorterName = sorter:GetName()
@@ -401,6 +401,7 @@ function items:Update()
 	local characterKey = addon.GetSelectedCharacter()
 	if characterKey == addon:GetSelectedCharacter() or not collection[characterKey] then
 		-- current character's items may change, all others are static
+		-- TODO/FIXME: when item links are not available, we need to update, too!
 		self:GatherItems(characterKey)
 	end
 
