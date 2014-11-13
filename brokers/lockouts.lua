@@ -42,19 +42,18 @@ local function NOOP() end -- do nothing
 local instanceLinks = {}
 function broker:UpdateTooltip()
 	local numColumns = 4
-	self:SetColumnLayout(numColumns, 'LEFT', 'RIGHT')
+	self:SetColumnLayout(numColumns, 'LEFT')
 
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.RAID, 'LEFT', numColumns)
+
+	local instanceName = 'Schlacht um Orgrimmar'
+	lineNum = self:AddHeader(_G.CHARACTER, _G.PLAYER_DIFFICULTY1, _G.PLAYER_DIFFICULTY2, _G.PLAYER_DIFFICULTY6)
+	self:SetCell(lineNum, 1, instanceName, 'LEFT', 2)
 	self:AddSeparator(2)
 
-	-- GetNumRFDungeons(), GetRFDungeonInfo(index)
-	-- GetNumFlexRaidDungeons(), GetFlexRaidDungeonInfo(index)
-
-	lineNum = self:AddHeader('Character', 'Normal', 'Heroic', 'Mythic')
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
-		local instanceName = 'Schlacht um Orgrimmar'
-		local statusFormat, totalDefeated = '%s%d/%d|r', 0
+		local totalDefeated, statusFormat = 0, '%s%d/%d|r'
 		local numDefeated, numBosses, hasID, color, instanceLink
 		wipe(instanceLinks)
 
@@ -89,6 +88,7 @@ function broker:UpdateTooltip()
 			for column = 2, numColumns do
 				local instanceLink = instanceLinks[column - 1]
 				if instanceLink ~= '' then
+					-- add tooltip for lockout info
 					local cell = self.lines[lineNum].cells[column]
 					      cell.link = instanceLink
 					self:SetCellScript(lineNum, column, 'OnEnter', addon.ShowTooltip, self)
