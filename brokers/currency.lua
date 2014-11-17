@@ -30,15 +30,19 @@ local showCurrency = {
 	395,	-- justice
 	396,	-- valor
 	392,	-- honor
-	-- 390,	-- conquest
+	390,	-- conquest
 	738,	-- lesser coin of fortune
 	776,	-- loot coin
 	777,	-- timeless
+	824, 	-- garrison ressources
+	823, 	-- apexis shard
 }
 local showCurrencyInLDB = {
-	396, -- valor
-	776, -- warforged
-	777, -- timeless
+	-- 396, 	-- valor
+	-- 776, 	-- warforged
+	-- 777, -- timeless
+	824, 	-- garrison ressources
+	823, 	-- apexis shard
 }
 local associatedQuests = {
 	[738] = { 33133, 33134 }
