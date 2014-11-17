@@ -372,12 +372,12 @@ local CustomSearch = LibStub('CustomSearch-1.0')
 local ItemSearch   = LibStub('LibItemSearch-1.2')
 lists.filters = {
 	tooltip = {
-		tags      = ItemSearch.Filters.tooltip.tags,
-		onlyTags  = ItemSearch.Filters.tooltip.onlyTags,
-		canSearch = ItemSearch.Filters.tooltip.canSearch,
+		tags      = ItemSearch.Filters.tip.tags,
+		onlyTags  = ItemSearch.Filters.tip.onlyTags,
+		canSearch = ItemSearch.Filters.tip.canSearch,
 		match     = function(self, text, operator, search)
 			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
-			return ItemSearch.Filters.tooltip.match(self, hyperlink or text, operator, search)
+			return ItemSearch.Filters.tip.match(self, hyperlink or text, operator, search)
 		end
 	},
 	name = {
