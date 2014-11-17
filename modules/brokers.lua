@@ -23,7 +23,11 @@ local prototype = {
 			-- also update tooltip
 			local tooltip = QTip:Acquire(identifier)
 			      tooltip:Clear()
-			self.UpdateTooltip(tooltip)
+			local hide = self.UpdateTooltip(tooltip)
+			if hide then
+				QTip:Release(tooltip)
+				tooltip:Hide()
+			end
 		end
 	end,
 	OnInitialize = function(self)
@@ -43,8 +47,10 @@ local prototype = {
 				tooltip:SmartAnchorTo(frame)
 				tooltip:SetAutoHideDelay(0.25, frame)
 
-				self.UpdateTooltip(tooltip, frame, ...)
-				tooltip:Show()
+				local hide = self.UpdateTooltip(tooltip, frame, ...)
+				if not hide then
+					tooltip:Show()
+				end
 			end,
 			-- needed for e.g. NinjaPanel, though QTip handles that functionality for us
 			OnLeave = function() end,
