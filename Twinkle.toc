@@ -32,6 +32,7 @@ modules\data.lua
 modules\autocomplete.lua
 modules\brokers.lua
 modules\calendar.lua
+modules\notifications.lua
 modules\search.lua
 modules\summary.lua
 modules\tooltip.lua
@@ -44,6 +45,7 @@ brokers\characters.lua
 brokers\currency.lua
 brokers\lockouts.lua
 brokers\money.lua
+brokers\notifications.lua
 brokers\talents.lua
 brokers\weekly.lua
 

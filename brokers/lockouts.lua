@@ -47,7 +47,7 @@ function broker:UpdateTooltip()
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.RAID, 'LEFT', numColumns)
 
-	local instanceName = 'Schlacht um Orgrimmar'
+	local instanceName = 'Schlacht um Orgrimmar' -- FIXME: how do we get lockout-names of available raid instances?
 	lineNum = self:AddHeader(_G.CHARACTER, _G.PLAYER_DIFFICULTY1, _G.PLAYER_DIFFICULTY2, _G.PLAYER_DIFFICULTY6)
 	self:SetCell(lineNum, 1, instanceName, 'LEFT', 2)
 	self:AddSeparator(2)
