@@ -26,33 +26,37 @@ function broker:UpdateLDB()
 end
 
 -- old code
-local worldBosses 	= { 32099, 32098, 32518, 32519, 33117, 33118 }
-local LFRDungeons 	= { {527, 528}, {529, 530}, {526}, {610, 611, 612, 613}, {716, 717, 724, 725} }
-local weeklyQuests 	= { -- sharedID or 'allianceID|hordeID'
+local worldBosses 	= {
+	32099, 32098, 32518, 32519, 33117, 33118, -- Mists of Pandaria
+	37460, 37462, 37464, -- Warlords of Draenor TODO: check these ids!
+}
+local LFRDungeons 	= {
+	{527, 528}, {529, 530}, {526}, {610, 611, 612, 613}, {716, 717, 724, 725}, -- Mists of Pandaria
+}
+local weeklyQuests 	= { -- sharedQuestID or 'allianceID|hordeID'
 	32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
 	'32719|32718', -- lesser charms trade-in
 	33338, 33334, --32956, -- timeless isle (epoch stone, rares, pirate chest)
 }
--- CONQUEST_CURRENCY, HONOR_CURRENCY
-local currencies 	= { _G.VALOR_CURRENCY, _G.JUSTICE_CURRENCY, 738, 697, 752, 776 } -- lesser/elder/mogu/warforged charm
 
 local function tex(itemID, text)
-	local icon = GetItemIcon(itemID)
+	local icon = type(itemID) == 'numer' and GetItemIcon(itemID) or itemID
 	return icon and '|T'..icon..':0|t' or text or '?'
 end
 local returnTable = {}
 local function GetColumnHeaders(dataType)
 	if dataType == 'lfr' then
 		return _G.RAID_FINDER,
-			'MV', 'HoF', 'ToES', 'ToT', 'SoO'
+			'MV', 'HoF', 'ToES', 'ToT', 'SoO' -- Mists of Pandaria
 	elseif dataType == 'boss' then
 		return _G.BATTLE_PET_SOURCE_7, --BOSS,
-			tex(89317, 'Sha'), tex(89783, 'Galleon'), tex(85513, 'Nalak'), tex(95424, 'Oondasta'), tex(102145, 'Celestials'), tex(104297, 'Ordos')
+			-- tex(89317, 'Sha'), tex(89783, 'Galleon'), tex(85513, 'Nalak'), tex(95424, 'Oondasta'), tex(102145, 'Celestials'), tex(104297, 'Ordos'), -- Mists of Pandaria
+			tex('Interface\\Icons\\creatureportrait_fomorhand', 'Drov the Ruiner'), tex('Interface\\Icons\\creatureportrait_fomorhand', 'Tarlna the Ageless'), tex('Interface\\Icons\\achievement_dungeon_arakkoaspires', 'Rukhmar') -- Warlords of Draenor
 	elseif dataType == 'weekly' then
-		return _G.QUESTS_LABEL
-			, tex(94221, 'Stone'), tex(94222, 'Key'), tex(87391, 'Chest'), tex(93792, 'Chamberlain'), tex(90538, 'Champions')
-			, tex(90815, 'Charms')
-			, tex(105715, 'Epoch'), tex(33847, 'Rares')
+		return _G.QUESTS_LABEL,
+			tex(94221, 'Stone'), tex(94222, 'Key'), tex(87391, 'Chest'), tex(93792, 'Chamberlain'), tex(90538, 'Champions'),
+			tex(90815, 'Charms'),
+			tex(105715, 'Epoch'), tex(33847, 'Rares')
 	end
 	return ''
 end
