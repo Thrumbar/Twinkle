@@ -114,7 +114,7 @@ local function CheckGarrisonNotifications(characterKey, characterName, now)
 			if not tContains(charNotifications.shipments, data) then
 				-- remove previous notifications
 				for i = #charNotifications.shipments, 1, -1 do
-					if charNotifications.shipments[i]:find('^'..name..' (') then
+					if charNotifications.shipments[i]:find('^'..name..' %(') then
 						tremove(charNotifications.shipments, index)
 					end
 				end
@@ -162,12 +162,12 @@ function notifications:OnEnable()
 	-- and once on load
 	CheckNotifications()
 
-	hooksecurefunc(C_Garrison, 'CloseArchitect', UpdateNotifications) -- buildings might have changed
+	hooksecurefunc(C_Garrison, 'CloseArchitect',  UpdateNotifications) -- buildings might have changed
 	hooksecurefunc(C_Garrison, 'CloseMissionNPC', UpdateNotifications) -- missions might have changed
-	self:RegisterEvent('GARRISON_LANDINGPAGE_SHIPMENTS', UpdateNotifications) -- garrison shipments?
+	--[[ self:RegisterEvent('GARRISON_LANDINGPAGE_SHIPMENTS', UpdateNotifications) -- garrison shipments?
 	-- TODO: shipment collected, there is neither an event nor a function call :(
 	self:RegisterEvent('ITEM_PUSH', function(event, count, icon)
 		if not C_Garrison.IsOnGarrisonMap() then return end
 		wipe(notificationsCache[thisCharacter].shipments)
-	end)
+	end) --]]
 end
