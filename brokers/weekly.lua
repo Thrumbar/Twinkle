@@ -40,7 +40,7 @@ local weeklyQuests 	= { -- sharedQuestID or 'allianceID|hordeID'
 }
 
 local function tex(itemID, text)
-	local icon = type(itemID) == 'numer' and GetItemIcon(itemID) or itemID
+	local icon = type(itemID) == 'number' and GetItemIcon(itemID) or itemID
 	return icon and '|T'..icon..':0|t' or text or '?'
 end
 local returnTable = {}
@@ -50,7 +50,7 @@ local function GetColumnHeaders(dataType)
 			'MV', 'HoF', 'ToES', 'ToT', 'SoO' -- Mists of Pandaria
 	elseif dataType == 'boss' then
 		return _G.BATTLE_PET_SOURCE_7, --BOSS,
-			-- tex(89317, 'Sha'), tex(89783, 'Galleon'), tex(85513, 'Nalak'), tex(95424, 'Oondasta'), tex(102145, 'Celestials'), tex(104297, 'Ordos'), -- Mists of Pandaria
+			tex(89317, 'Sha'), tex(89783, 'Galleon'), tex(85513, 'Nalak'), tex(95424, 'Oondasta'), tex(102145, 'Celestials'), tex(104297, 'Ordos'), -- Mists of Pandaria
 			tex('Interface\\Icons\\creatureportrait_fomorhand', 'Drov the Ruiner'), tex('Interface\\Icons\\creatureportrait_fomorhand', 'Tarlna the Ageless'), tex('Interface\\Icons\\achievement_dungeon_arakkoaspires', 'Rukhmar') -- Warlords of Draenor
 	elseif dataType == 'weekly' then
 		return _G.QUESTS_LABEL,
