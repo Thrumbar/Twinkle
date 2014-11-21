@@ -10,6 +10,19 @@ local notifications = addon:NewModule('Notifications', 'AceEvent-3.0')
 local thisCharacter = DataStore:GetCharacter()
 local notificationsCache = {}
 
+local defaults = {
+	global = {
+		eventReminders = {
+			[ 0] = true,
+			[ 5] = true,
+			[10] = true,
+			[15] = true,
+			[30] = true,
+			[60] = true,
+		},
+	},
+}
+
 -- TODO: LibSink
 function notifications:GetSentNotifications(characterKey)
 	return characterKey and notificationsCache[characterKey] or notificationsCache
@@ -51,9 +64,12 @@ local function CheckCalendarNotifications(characterKey, characterName, now)
 							tremove(charNotifications.events, index)
 						end
 					end
-					local notification = diffMinutes == 0 and 'Event “%2$s” for %1$s has started.' or 'Event “%2$s” for %1$s will start in %3$s minutes.'
 					table.insert(charNotifications.events, eventKey)
-					notifications:Print((notification):format(characterName, title, diffMinutes))
+					if notifications.db.global.eventReminders[diffMinutes] then
+						-- user can disable printing to chat
+						local notification = diffMinutes == 0 and 'Event “%2$s” for %1$s has started.' or 'Event “%2$s” for %1$s will start in %3$s minutes.'
+						notifications:Print((notification):format(characterName, title, diffMinutes))
+					end
 				end
 			end
 		end
@@ -157,6 +173,17 @@ local function UpdateNotifications()
 end
 
 function notifications:OnEnable()
+	self.db = addon.db:RegisterNamespace('Notifications', defaults)
+
+	--[[ create config ui
+	local types = {
+		-- eventReminders = 'multiselect',
+	}
+	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(self.db, types)
+	      optionsTable.name = strjoin(' - ', addonName, self:GetName())
+	LibStub('AceConfig-3.0'):RegisterOptionsTable(self.name, optionsTable)
+	-- added to options when options panel gets loaded --]]
+
 	-- we will check for changes every 30s
 	local ticker = C_Timer.NewTicker(30, CheckNotifications)
 	-- and once on load
