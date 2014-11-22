@@ -46,7 +46,6 @@ brokers\currency.lua
 brokers\lockouts.lua
 brokers\money.lua
 brokers\notifications.lua
-brokers\talents.lua
 brokers\weekly.lua
 
 # tooltip
