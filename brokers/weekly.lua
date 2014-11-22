@@ -23,6 +23,7 @@ end
 
 function broker:UpdateLDB()
 	self.text = _G.CALENDAR_REPEAT_WEEKLY
+	self.icon = 'Interface\\FriendsFrame\\StatusIcon-Away'
 end
 
 -- old code

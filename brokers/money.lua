@@ -137,6 +137,7 @@ end
 
 function broker:UpdateLDB()
 	self.text = GetPrettyAmount(GetMoney(), broker.db.profile.ldbFormat)
+	self.icon = 'Interface\\Minimap\\Tracking\\Auctioneer'
 
 	local today = date('%Y-%m-%d')
 	broker.db.global.history[today] = broker:GetAccountMoney()

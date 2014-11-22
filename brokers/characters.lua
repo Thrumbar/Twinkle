@@ -165,6 +165,7 @@ function broker:UpdateLDB()
 		ColorByItemLevel(average),
 		'Interface\\GROUPFRAME\\UI-GROUP-MAINTANKICON'
 	)
+	-- self.icon = 'Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon'
 end
 
 local sortBy, sortReverse

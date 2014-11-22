@@ -21,7 +21,7 @@ function broker:OnClick(btn, down)
 end
 
 function broker:UpdateLDB()
-	-- self.text = 'foo'
+	self.icon = 'Interface\\FriendsFrame\\UI-Toast-BroadcastIcon'
 end
 
 local function NOOP() end -- do nothing

@@ -35,7 +35,7 @@ function broker:OnClick(btn, down)
 end
 
 function broker:UpdateLDB()
-	-- self.text = 'foo'
+	self.icon = 'Interface\\PetBattles\\PetBattle-LockIcon'
 end
 
 local function NOOP() end -- do nothing

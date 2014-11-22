@@ -171,6 +171,7 @@ function broker:UpdateLDB()
 		end
 		self.text = currenciesString
 	end
+	self.icon = 'Interface\\Minimap\\Tracking\\BattleMaster'
 end
 
 local sortCurrencyIndex, sortCurrencyReverse
