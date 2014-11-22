@@ -28,7 +28,6 @@ function ns.AddItemCounts(tooltip, itemID)
 	if showGuilds then
 		for guild, count in pairs( ns.data.GetGuildsItemCounts(itemID) ) do
 			tooltip:AddDoubleLine(guild , string.format('%s: %s%d|r', GUILD_BANK, GREEN_FONT_COLOR_CODE, count))
-			numLines = numLines + 1
 			if includeGuildCountInTotal then
 				overallCount = overallCount + count
 			end
