@@ -178,7 +178,7 @@ function addon:OnInitialize()
 	portraitButton.tiptext = 'Click to toggle Twinkle'
 
 	-- setup ldb launcher
-	addon.ldb = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject(addonName, {
+	addon.ldb = LibStub('LibDataBroker-1.1'):NewDataObject(addonName, {
 		type  = 'launcher',
 		icon  = 'Interface\\Icons\\ACHIEVEMENT_GUILDPERK_MRPOPULARITY_RANK2',
 		label = addonName,
