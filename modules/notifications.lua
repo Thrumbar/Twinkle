@@ -20,6 +20,7 @@ local defaults = {
 			[30] = true,
 			[60] = true,
 		},
+		updateInterval = 30,
 	},
 }
 
@@ -145,22 +146,45 @@ local function CheckGarrisonNotifications(characterKey, characterName, now)
 	end
 end
 
+local function CheckCraftingNotifications(characterKey, characterName, now)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey(_G.DataStore_Agenda, characterKey)
+	if not lastUpdate or now - lastUpdate > 3*24*60*60 then
+		return
+	end
+	local charNotifications = notificationsCache[characterKey]
+
+	for profName, profession in pairs(DataStore:GetProfessions(characterKey)) do
+		for index = 1, DataStore:GetNumActiveCooldowns(profession) or 0 do
+			local name, expiresIn, _, lastCheck = DataStore:GetCraftCooldownInfo(profession, index)
+			local expires = lastCheck + expiresIn
+			-- TODO
+		end
+	end
+end
+
+local handlers = {
+	missions  = CheckGarrisonNotifications,
+	shipments = false, -- handled with missions
+	builds    = false, -- handled with missions
+	events    = CheckCalendarNotifications,
+	crafts    = CheckCraftingNotifications,
+}
+
 local function CheckNotifications(charKey)
 	if type(charKey) == 'table' then charKey = nil end
 	local now = time()
 	for _, characterKey in pairs(addon.data.GetCharacters()) do
 		if not charKey or charKey == characterKey then
 			if not notificationsCache[characterKey] then
-				notificationsCache[characterKey] = {
-					missions  = {},
-					shipments = {},
-					builds    = {},
-					events    = {},
-				}
+				notificationsCache[characterKey] = {}
+				for key in pairs(handlers) do
+					notificationsCache[characterKey][key] = {}
+				end
 			end
 			local characterName = addon.data.GetCharacterText(characterKey)
-			CheckGarrisonNotifications(characterKey, characterName, now)
-			CheckCalendarNotifications(characterKey, characterName, now)
+			for tableKey, handler in pairs(handlers) do
+				if type(handler) == 'function' then handler(characterKey, characterName, now) end
+			end
 		end
 	end
 	addon:GetModule('brokers'):GetModule('Notifications'):Update()
@@ -184,13 +208,14 @@ function notifications:OnEnable()
 	LibStub('AceConfig-3.0'):RegisterOptionsTable(self.name, optionsTable)
 	-- added to options when options panel gets loaded --]]
 
-	-- we will check for changes every 30s
-	local ticker = C_Timer.NewTicker(30, CheckNotifications)
+	-- we will check for changes every few seconds
+	local ticker = C_Timer.NewTicker(notifications.db.global.updateInterval, CheckNotifications)
 	-- and once on load
 	CheckNotifications()
 
 	hooksecurefunc(C_Garrison, 'CloseArchitect',  UpdateNotifications) -- buildings might have changed
 	hooksecurefunc(C_Garrison, 'CloseMissionNPC', UpdateNotifications) -- missions might have changed
+	hooksecurefunc(C_Garrison, 'RequestShipmentCreation', UpdateNotifications) -- shipments might have changed
 	--[[ self:RegisterEvent('GARRISON_LANDINGPAGE_SHIPMENTS', UpdateNotifications) -- garrison shipments?
 	-- TODO: shipment collected, there is neither an event nor a function call :(
 	self:RegisterEvent('ITEM_PUSH', function(event, count, icon)
