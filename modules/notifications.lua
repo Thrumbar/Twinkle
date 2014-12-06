@@ -117,7 +117,7 @@ local function CheckGarrisonNotifications(characterKey, characterName, now)
 	end
 
 	local hasNewShipments = false
-	for buildingID, nextBatch, numActive, numReady, maxOrders, itemID in DataStore:IterateGarrisonShipments(characterKey) do
+	for buildingID, nextBatch, numActive, numReady, maxOrders in DataStore:IterateGarrisonShipments(characterKey) do
 		numActive = numActive - numReady
 		while nextBatch > 0 and numActive > 0 and nextBatch <= now do
 			-- additional sets that have been completed
@@ -189,11 +189,13 @@ local function CheckNotifications(charKey)
 	end
 	addon:GetModule('brokers'):GetModule('Notifications'):Update()
 end
-local function UpdateNotifications()
-	for _, group in pairs(notificationsCache[thisCharacter]) do
-		wipe(group)
+local function UpdateNotifications(groupName)
+	for group, info in pairs(notificationsCache[thisCharacter]) do
+		if not groupName or group == groupName then
+			wipe(info)
+		end
 	end
-	-- CheckNotifications(thisCharacter)
+	CheckNotifications(thisCharacter)
 end
 
 function notifications:OnEnable()
@@ -211,15 +213,11 @@ function notifications:OnEnable()
 	-- we will check for changes every few seconds
 	local ticker = C_Timer.NewTicker(notifications.db.global.updateInterval, CheckNotifications)
 	-- and once on load
-	CheckNotifications()
+	C_Timer.After(2, CheckNotifications)
 
-	hooksecurefunc(C_Garrison, 'CloseArchitect',  UpdateNotifications) -- buildings might have changed
-	hooksecurefunc(C_Garrison, 'CloseMissionNPC', UpdateNotifications) -- missions might have changed
-	hooksecurefunc(C_Garrison, 'RequestShipmentCreation', UpdateNotifications) -- shipments might have changed
-	--[[ self:RegisterEvent('GARRISON_LANDINGPAGE_SHIPMENTS', UpdateNotifications) -- garrison shipments?
-	-- TODO: shipment collected, there is neither an event nor a function call :(
-	self:RegisterEvent('ITEM_PUSH', function(event, count, icon)
-		if not C_Garrison.IsOnGarrisonMap() then return end
-		wipe(notificationsCache[thisCharacter].shipments)
-	end) --]]
+	self:RegisterMessage('DATAMORE_TIMERS_SHIPMENT_COLLECTED', UpdateNotifications, 'shipments')
+	self:RegisterEvent('GARRISON_BUILDING_ACTIVATED', UpdateNotifications, 'builds')
+	hooksecurefunc(C_Garrison, 'CloseMissionNPC', function()
+		UpdateNotifications('missions')
+	end)
 end
