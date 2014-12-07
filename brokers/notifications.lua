@@ -62,9 +62,11 @@ function broker:UpdateTooltip()
 				lineNum = self:AddLine('Work Order', (notification):format(characterName, data))
 				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
 			end
-			for i, missionLink in ipairs(notifications.missions) do
-				local notification = '“%2$s” was completed.'
-				lineNum = self:AddLine('Mission', (notification):format(characterName, missionLink))
+			-- for i, missionLink in ipairs(notifications.missions) do
+			if #notifications.missions > 0 then
+				-- local notification = '“%2$s” has been completed.'
+				local notification = '%3$d |4mission has:missions have; been completed.'
+				lineNum = self:AddLine('Mission', (notification):format(characterName, missionLink, #notifications.missions))
 				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
 			end
 		end
