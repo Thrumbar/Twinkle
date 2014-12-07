@@ -1,8 +1,8 @@
 local addonName, addon, _ = ...
 local notifications = addon:NewModule('Notifications', 'AceEvent-3.0')
 
--- GLOBALS: LibStub, DataStore, DataMore, C_Garrison, C_Timer
--- GLOBALS: tContains, table, pairs, print, time
+-- GLOBALS: _G, LibStub, DataStore, DataMore, C_Garrison, C_Timer
+-- GLOBALS: tContains, table, pairs, print, time, type, tremove, ipairs, strsplit, wipe, date, hooksecurefunc
 
 -- local QTip = LibStub('LibQTip-1.0')
 -- local LDB  = LibStub('LibDataBroker-1.1')
@@ -47,10 +47,9 @@ end
 local reminderIntervals = {0, 5, 10, 15, 30, 60}
 local function CheckCalendarNotifications(characterKey, characterName, now)
 	local lastUpdate = DataStore:GetModuleLastUpdateByKey(_G.DataStore_Agenda, characterKey)
-	if not lastUpdate or now - lastUpdate > 3*24*60*60 then
-		return
-	end
+	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 	local charNotifications = notificationsCache[characterKey]
+	local today = date('%Y-%m-%d')
 
 	for index = 1, DataStore:GetNumCalendarEvents(characterKey) do
 		local eventDate, eventTime, title, eventType, inviteStatus = DataStore:GetCalendarEventInfo(characterKey, index)
@@ -77,15 +76,11 @@ local function CheckCalendarNotifications(characterKey, characterName, now)
 	end
 end
 
-local function CheckGarrisonNotifications(characterKey, characterName, now)
-	-- FIXME: this depends on both, DataStore AND DataMore. Not good.
-	local timers = DataMore:GetModule('Timers')
-	local lastUpdate = DataStore:GetModuleLastUpdateByKey(timers, characterKey)
-	if not lastUpdate or now - lastUpdate > 3*24*60*60 then
-		return
-	end
-	local charNotifications = notificationsCache[characterKey]
+local function CheckGarrisonMissions(characterKey, characterName, now)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers'), characterKey)
+	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
+	local charNotifications = notificationsCache[characterKey]
 	local hasNewMissions = false
 	for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) do
 		if expires <= now then
@@ -96,11 +91,17 @@ local function CheckGarrisonNotifications(characterKey, characterName, now)
 			end
 		end
 	end
-	if hasNewMissions then
+	if hasNewMissions and not (GarrisonMissionFrame and GarrisonMissionFrame:IsShown()) then
 		notifications:Print(('Garrison mission completed by %s:'):format(characterName),
 			table.concat(charNotifications.missions, ', '))
 	end
+end
 
+local function CheckGarrisonBuilds(characterKey, characterName, now)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers'), characterKey)
+	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
+
+	local charNotifications = notificationsCache[characterKey]
 	local hasNewBuilds = false
 	for buildingID, expires in DataStore:IterateGarrisonBuilds(characterKey) do
 		if expires <= now then
@@ -115,7 +116,13 @@ local function CheckGarrisonNotifications(characterKey, characterName, now)
 		notifications:Print(('Garrison building completed by %s:'):format(characterName),
 			table.concat(charNotifications.builds, ', '))
 	end
+end
 
+local function CheckGarrisonShipments(characterKey, characterName, now)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers'), characterKey)
+	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
+
+	local charNotifications = notificationsCache[characterKey]
 	local hasNewShipments = false
 	for buildingID, nextBatch, numActive, numReady, maxOrders in DataStore:IterateGarrisonShipments(characterKey) do
 		numActive = numActive - numReady
@@ -132,7 +139,7 @@ local function CheckGarrisonNotifications(characterKey, characterName, now)
 				-- remove previous notifications
 				for i = #charNotifications.shipments, 1, -1 do
 					if charNotifications.shipments[i]:find('^'..name..' %(') then
-						tremove(charNotifications.shipments, index)
+						tremove(charNotifications.shipments, i)
 					end
 				end
 				hasNewShipments = true
@@ -163,14 +170,14 @@ local function CheckCraftingNotifications(characterKey, characterName, now)
 end
 
 local handlers = {
-	missions  = CheckGarrisonNotifications,
-	shipments = false, -- handled with missions
-	builds    = false, -- handled with missions
+	missions  = CheckGarrisonMissions,
+	shipments = CheckGarrisonShipments,
+	builds    = CheckGarrisonBuilds,
 	events    = CheckCalendarNotifications,
 	crafts    = CheckCraftingNotifications,
 }
 
-local function CheckNotifications(charKey)
+local function CheckNotifications(charKey, groupName)
 	if type(charKey) == 'table' then charKey = nil end
 	local now = time()
 	for _, characterKey in pairs(addon.data.GetCharacters()) do
@@ -182,8 +189,10 @@ local function CheckNotifications(charKey)
 				end
 			end
 			local characterName = addon.data.GetCharacterText(characterKey)
-			for tableKey, handler in pairs(handlers) do
-				if type(handler) == 'function' then handler(characterKey, characterName, now) end
+			for handlerName, handler in pairs(handlers) do
+				if (not groupName or groupName == handlerName) and type(handler) == 'function' then
+					handler(characterKey, characterName, now)
+				end
 			end
 		end
 	end
@@ -195,7 +204,7 @@ local function UpdateNotifications(groupName)
 			wipe(info)
 		end
 	end
-	CheckNotifications(thisCharacter)
+	CheckNotifications(thisCharacter, groupName)
 end
 
 function notifications:OnEnable()
@@ -217,7 +226,6 @@ function notifications:OnEnable()
 
 	self:RegisterMessage('DATAMORE_TIMERS_SHIPMENT_COLLECTED', UpdateNotifications, 'shipments')
 	self:RegisterEvent('GARRISON_BUILDING_ACTIVATED', UpdateNotifications, 'builds')
-	hooksecurefunc(C_Garrison, 'CloseMissionNPC', function()
-		UpdateNotifications('missions')
-	end)
+	self:RegisterEvent('GARRISON_MISSION_COMPLETE_RESPONSE', UpdateNotifications, 'missions')
+	hooksecurefunc(C_Garrison, 'CloseMissionNPC', function() UpdateNotifications('missions') end)
 end
