@@ -47,7 +47,7 @@ function broker:UpdateTooltip()
 
 			for i, event in ipairs(notifications.events) do
 				local index, startsIn = strsplit(':', event)
-				local eventDate, eventTime, title, eventType, inviteStatus = DataStore:GetCalendarEventInfo(characterKey, index)
+				local eventDate, eventTime, title, eventType, inviteStatus = DataStore:GetCalendarEventInfo(characterKey, index*1)
 				local notification = startsIn == '0' and '“%2$s” has started.' or '“%2$s” starts in %3$s minutes.'
 				lineNum = self:AddLine('Event', (notification):format(characterName, title, startsIn))
 				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
