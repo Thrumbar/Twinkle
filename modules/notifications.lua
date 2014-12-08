@@ -57,20 +57,22 @@ local function CheckCalendarNotifications(characterKey, characterName, now)
 			local eventStamp = StringToTimestamp(eventDate, eventTime)
 			for i, diffMinutes in ipairs(reminderIntervals) do
 				local eventKey = index..':'..diffMinutes
-				if eventStamp - diffMinutes*60 <= now and not tContains(charNotifications.events, eventKey) then
-					-- remove previous reminders
-					for i = #charNotifications.events, 1, -1 do
-						if charNotifications.events[i]:find('^'..index..':') then
-							tremove(charNotifications.events, index)
+				if eventStamp - diffMinutes*60 <= now then
+					if not tContains(charNotifications.events, eventKey) then
+						-- remove previous reminders
+						for i = #charNotifications.events, 1, -1 do
+							if charNotifications.events[i]:find('^'..index..':') then
+								tremove(charNotifications.events, index)
+							end
+						end
+						table.insert(charNotifications.events, eventKey)
+						if notifications.db.global.eventReminders[diffMinutes] then
+							-- user can disable printing to chat
+							local notification = diffMinutes == 0 and 'Event “%2$s” for %1$s has started.' or 'Event “%2$s” for %1$s will start in %3$s minutes.'
+							notifications:Print((notification):format(characterName, title, diffMinutes))
 						end
 					end
-					table.insert(charNotifications.events, eventKey)
-					if notifications.db.global.eventReminders[diffMinutes] then
-						-- user can disable printing to chat
-						local notification = diffMinutes == 0 and 'Event “%2$s” for %1$s has started.' or 'Event “%2$s” for %1$s will start in %3$s minutes.'
-						notifications:Print((notification):format(characterName, title, diffMinutes))
-						break
-					end
+					break
 				end
 			end
 		end
