@@ -9,6 +9,7 @@ function ns.AddItemCounts(tooltip, itemID)
 	-- TODO: use only one line if item is unique
 	-- local _, _, _, _, _, _, _, maxStack = GetItemInfo(itemID)
 
+	local linesAdded = false
 	local overallCount, hasMultiple = 0, false
 	for _, character in ipairs(ns.data.GetCharacters()) do
 		local baseCount, text = overallCount, nil
@@ -21,12 +22,14 @@ function ns.AddItemCounts(tooltip, itemID)
 		end
 
 		if overallCount - baseCount > 0 then
-			tooltip:AddDoubleLine( ns.data.GetCharacterText(character) , text)
+			if not linesAdded then ns.AddEmptyLine(tooltip, true) end
+			tooltip:AddDoubleLine(ns.data.GetCharacterText(character) , text)
 			hasMultiple = true
 		end
 	end
 	if showGuilds then
-		for guild, count in pairs( ns.data.GetGuildsItemCounts(itemID) ) do
+		for guild, count in pairs(ns.data.GetGuildsItemCounts(itemID)) do
+			if not linesAdded then ns.AddEmptyLine(tooltip, true) end
 			tooltip:AddDoubleLine(guild , string.format('%s: %s%d|r', GUILD_BANK, GREEN_FONT_COLOR_CODE, count))
 			if includeGuildCountInTotal then
 				overallCount = overallCount + count
@@ -34,7 +37,7 @@ function ns.AddItemCounts(tooltip, itemID)
 		end
 	end
 	if showTotals and hasMultiple then
-		tooltip:AddDoubleLine('  ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
+		tooltip:AddDoubleLine(' ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
 	end
 
 	return overallCount > 0

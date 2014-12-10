@@ -46,6 +46,7 @@ function ns.AddOnQuestInfo(tooltip, questID)
 		-- ERR_QUEST_ACCEPTED_S: "Quest angenommen: ..."
 		-- ERR_QUEST_PUSH_ONQUEST_S: "... hat diese Quest bereits"
 		local text = string.format(ERR_QUEST_ACCEPTED_S, table.concat(questInfo, ", "))
+		ns.AddEmptyLine(tooltip, true)
 		tooltip:AddLine(text, nil, nil, nil, true)
 		linesAdded = true
 	end

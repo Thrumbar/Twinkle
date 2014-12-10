@@ -32,11 +32,13 @@ function ns.AddGlyphInfo(tooltip, glyph)
 
 	local list = not onlyUnknown and tconcat(known, ", ")
 	if list and list ~= "" then
+		ns.AddEmptyLine(tooltip, true)
 		tooltip:AddLine(_G.RED_FONT_COLOR_CODE.._G.ITEM_SPELL_KNOWN..": ".._G.FONT_COLOR_CODE_CLOSE..list, nil, nil, nil, true)
 		linesAdded = true
 	end
 	list = tconcat(unknown, ", ")
 	if list and list ~= "" then
+		if not linesAdded then ns.AddEmptyLine(tooltip, true) end
 		tooltip:AddLine(_G.GREEN_FONT_COLOR_CODE.._G.UNKNOWN..": ".._G.FONT_COLOR_CODE_CLOSE..list, nil, nil, nil, true)
 		linesAdded = true
 	end

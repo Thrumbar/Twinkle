@@ -10,11 +10,13 @@ local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUES
 local PROFESSION_MIN_SKILL = '^' .. addon.GlobalStringToPattern(_G.ITEM_MIN_SKILL) .. '$'
 
 function addon.AddEmptyLine(tooltip, slim, force)
-	local numLines = tooltip:NumLines()
-	local lastText = _G[tooltip:GetName()..'TextLeft'..numLines]
-	      lastText = lastText and lastText:GetText()
-	-- don't create multiple blank lines
-	if force or (lastText and lastText ~= ' ') then
+	local tipName, numLines = tooltip:GetName(), tooltip:NumLines()
+	local lastLeft = _G[tipName..'TextLeft'..numLines]
+	      lastLeft = string.trim(lastLeft and lastLeft:GetText() or '')
+	local lastRight = _G[tipName..'TextRight'..numLines]
+	      lastRight = string.trim(lastRight and lastRight:GetText() or '')
+	if force or lastLeft ~= '' or lastRight ~= '' then
+		-- don't create multiple blank lines
 		tooltip:AddLine(' ')
 		numLines = numLines + 1
 	end
@@ -85,7 +87,7 @@ local function HandleTooltipItem(self)
 	end
 
 	local linesAdded = nil
-	addon.AddEmptyLine(self, true)
+	-- addon.AddEmptyLine(self, true)
 
 	if (equipSlot ~= '' and equipSlot ~= 'INVTYPE_BAG') or (quality >= 3 and itemClass == MISC) then
 		-- crafted items don't need source info - their source is the currently viewed recipe
@@ -97,13 +99,12 @@ local function HandleTooltipItem(self)
 		-- only print crafting recipe info on second run
 		linesAdded = addon.AddCraftInfo(self, professionName, craftedName, professionRequiredSkill)
 	end
-	if linesAdded then addon.AddEmptyLine(self, true) end
+	-- if linesAdded then addon.AddEmptyLine(self, true) end
 
 	if itemID and itemID ~= HEARTHSTONE_ITEM_ID and (itemClass ~= RECIPE or self.twinkleDone) then
-		local itemCountsOnSHIFT = nil -- TODO: config
-		if not itemCountsOnSHIFT or IsShiftKeyDown() then
+		if not plugin.db.global.itemCountsOnSHIFT or IsShiftKeyDown() then
 			linesAdded = addon.AddItemCounts(self, itemID)
-			if linesAdded then addon.AddEmptyLine(self, true) end
+			-- if linesAdded then addon.AddEmptyLine(self, true) end
 		else
 			self:AddLine(BATTLENET_FONT_COLOR_CODE..'<Hold down SHIFT for item counts>')
 		end
@@ -137,19 +138,19 @@ local function HandleTooltipSpell(self)
 
 		if profession == addon.GetProfessionName('Inscription') then
 			-- spell might create a glyph. tell us who knows it
-			addon.AddEmptyLine(self, true)
+			-- addon.AddEmptyLine(self, true)
 			local isGlyph = addon.AddGlyphInfo(self, spellName)
 		end
 
 		if craftedItem then
-			addon.AddEmptyLine(self, true)
+			-- addon.AddEmptyLine(self, true)
 			local itemCountsOnSHIFT = nil -- TODO: config
 			if not itemCountsOnSHIFT or IsShiftKeyDown() then
 				addon.AddItemCounts(self, craftedItem)
 			else
 				self:AddLine(BATTLENET_FONT_COLOR_CODE..'<Hold down SHIFT for item counts>')
 			end
-			addon.AddEmptyLine(self, true)
+			-- addon.AddEmptyLine(self, true)
 		end
 
 		-- displayed spell is a craft we know
@@ -164,10 +165,10 @@ local function HandleTooltipHyperlink(self, hyperlink)
 	if linkType == 'quest' then
 		-- would use OnTooltipSetQuest but that doesn't supply id
 		local linesAdded = nil
-		addon.AddEmptyLine(self, true)
+		-- addon.AddEmptyLine(self, true)
 
 		linesAdded = addon.AddOnQuestInfo(self, id)
-		if linesAdded then addon.AddEmptyLine(self, true) end
+		-- if linesAdded then addon.AddEmptyLine(self, true) end
 	elseif linkType == 'achievement' then
 		-- TODO: FIXME: conflicts with TipTacItemRef
 		addon.AddAchievementInfo(self, id)
@@ -181,7 +182,14 @@ end
 --  Events
 -- ================================================
 -- GLOBALS: GameTooltip, ItemRefTooltip, ShoppingTooltip1, ShoppingTooltip2, ShoppingTooltip3
-function plugin.OnEnable()
+local defaults = {
+	global = {
+		itemCountsOnSHIFT = false,
+	},
+}
+function plugin:OnEnable()
+	self.db = addon.db:RegisterNamespace('Tooltip', defaults)
+
 	GameTooltip:HookScript('OnTooltipCleared',       ClearTooltipItem)
 	GameTooltip:HookScript('OnTooltipSetItem',       HandleTooltipItem)
 	GameTooltip:HookScript('OnTooltipSetUnit',       addon.AddSocialInfo)
@@ -206,22 +214,26 @@ function plugin.OnEnable()
 		hooksecurefunc(ShoppingTooltip3, 'SetHyperlink', HandleTooltipHyperlink)
 	end
 
-	hooksecurefunc(GameTooltip, 'SetGlyphByID', function(self, glyphID)
+	hooksecurefunc(GameTooltip, 'SetGlyphByID', function(tooltip, glyphID)
 		-- shown when hovering a glyph in the talent ui
 		local professionName = addon.GetProfessionName('Inscription')
-		local craftedName = _G[self:GetName()..'TextLeft1']:GetText()
-		addon.AddCraftInfo(self, professionName, craftedName)
-		self:Show()
+		local craftedName = _G[tooltip:GetName()..'TextLeft1']:GetText()
+		addon.AddCraftInfo(tooltip, professionName, craftedName)
+		tooltip:Show()
 	end)
-	hooksecurefunc(GameTooltip, 'SetCurrencyByID', function(self, currencyID)
-		addon.AddCurrencyInfo(self, currencyID)
-		self:Show()
+	hooksecurefunc(GameTooltip, 'SetCurrencyByID', function(tooltip, currencyID)
+		addon.AddCurrencyInfo(tooltip, currencyID)
+		tooltip:Show()
 	end)
-	hooksecurefunc(GameTooltip, 'SetCurrencyToken', function(self, index)
+	hooksecurefunc(GameTooltip, 'SetCurrencyToken', function(tooltip, index)
 		local currencyLink = GetCurrencyListLink(index)
 		local currencyID = addon.GetLinkID(currencyLink)
-		addon.AddCurrencyInfo(self, currencyID)
-		self:Show()
+		addon.AddCurrencyInfo(tooltip, currencyID)
+		tooltip:Show()
+	end)
+	hooksecurefunc('SetTooltipMoney', function(tooltip, money, type, prefix, suffix)
+		-- we add a marker for money frames as their texts are all empty
+		_G[tooltip:GetName()..'TextRight'..tooltip:NumLines()]:SetText('*')
 	end)
 end
 

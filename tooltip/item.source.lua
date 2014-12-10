@@ -68,7 +68,9 @@ function ns.AddItemSources(tooltip, itemID)
 	local linesAdded = false
 	local sources = GetItemSources(itemID)
 	if #sources > 0 then
-		tooltip:AddLine(' ')
+		-- add a spacer
+		ns.AddEmptyLine(tooltip, true)
+
 		local lastInstance, encounters
 		for _, path in pairs(sources) do
 			local instance, encounter = path:match("(.-) | (.+)")
@@ -94,6 +96,7 @@ function ns.AddItemSources(tooltip, itemID)
 		end
 
 		local standing, faction = LPT:ItemInSet(itemID, "Reputation.Reward")
+		if standing or currency then ns.AddEmptyLine(tooltip, true) end
 		if standing then
 			faction = faction:sub(19)
 			standing = tonumber(standing)
@@ -112,8 +115,6 @@ function ns.AddItemSources(tooltip, itemID)
 			tooltip:AddLine(_G.TABARDVENDORCOST .. " ".. currency)
 			linesAdded = true
 		end
-
-		-- found sources already
 		if currency or standing then return end
 
 		local skillLevel, profession = LPT:ItemInSet(itemID, "Tradeskill.Crafted")
@@ -128,6 +129,7 @@ function ns.AddItemSources(tooltip, itemID)
 				text = string.format("|cFFFF7F00%s:|r %s", _G.TRADESKILLS, profession)
 			end
 
+			ns.AddEmptyLine(tooltip, true)
 			tooltip:AddLine(text, nil, nil, nil, true)
 			linesAdded = true
 		end
