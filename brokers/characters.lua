@@ -182,7 +182,6 @@ end
 function broker:UpdateLDB()
 	local thisCharacter = brokers:GetCharacter()
 	local average    = addon.data.GetAverageItemLevel(thisCharacter)
-	local equipment  = ('%1$s |TInterface\\GROUPFRAME\\UI-GROUP-MAINTANKICON:0|t'):format(ColorByItemLevel(average))
 
 	local level      = UnitLevel('player')
 	local levelColor = RGBTableToColorCode(GetQuestDifficultyColor(level))
@@ -190,38 +189,39 @@ function broker:UpdateLDB()
 	local classColor = RGBTableToColorCode(_G.RAID_CLASS_COLORS[class])
 
 	-- character spec
-	local specIndex = GetSpecialization()
-	local specID, name, icon, role
-	if specIndex then
-		specID, name, _, icon, _, role = GetSpecializationInfo(specIndex)
-	else
-		name = 'No specialization'
+	local specIndex  = GetSpecialization()
+	local specID, specName, _, icon, _, role = GetSpecializationInfo(specIndex or 0)
+	if not specID then
+		-- character has no active specialization
+		specName = 'No specialization'
 		icon = 'Interface\\Icons\\INV_Misc_QuestionMark'
 	end
-	local levelName  = ('%3$sL%1$s|r %4$s%2$s|r'):format(level, name, levelColor, classColor)
 
-	-- loot spec
-	local lootSpecID = GetLootSpecialization()
-	if lootSpecID ~= 0 and lootSpecID ~= specID then
-		_, name, _, icon = GetSpecializationInfoByID(lootSpecID)
-		-- lootSpec  = ('|TInterface\\Buttons\\UI-GroupLoot-Dice-Up:0|t %1$s'):format(name, icon)
-		levelName = levelName .. '|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0|t'
+	local lootSpecID, lootSpecIndicator = GetLootSpecialization(), ''
+	if lootSpecID == 0 then
+		icon = 'Interface\\Buttons\\UI-GroupLoot-Dice-Up'
+	elseif lootSpecID ~= specID then
+		_, _, _, icon = GetSpecializationInfoByID(lootSpecID)
+		lootSpecIndicator = '|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0|t'
 	end
 
-	self.text = strjoin(' ', levelName, equipment)
-	self.icon = icon -- 'Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon'
+	self.icon = icon
+	self.text = ('%sL%d|r %s%s%s|r %s%s'):format(
+		levelColor, level,
+		classColor, lootSpecIndicator, specName,
+		ColorByItemLevel(average), '|TInterface\\GROUPFRAME\\UI-GROUP-MAINTANKICON:0|t'
+	)
 end
 
 function broker:UpdateTooltip()
 	local numColumns, lineNum = 4
 	self:SetColumnLayout(numColumns, 'LEFT', 'LEFT', 'LEFT', 'RIGHT')
-	--, 'LEFT', string.split(',', string.rep('RIGHT,', numColumns-1)))
 
 	-- header
 	lineNum = self:AddHeader()
 			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CHARACTER, 'LEFT', numColumns)
 	lineNum = self:AddLine()
-	self:SetCell(lineNum, 1, GRAY_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', GameTooltipTextSmall, 'LEFT', numColumns)
+	self:SetCell(lineNum, 1, NORMAL_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', 'LEFT', numColumns)
 
 	-- sorting
 	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, '', 'iLevel')
@@ -245,8 +245,7 @@ function broker:UpdateTooltip()
 		if inactiveSpec then
 			_, _, _, inactiveSpec = GetSpecializationInfoByID(inactiveSpec)
 		end
-		activeSpec   = activeSpec or '' -- 'Interface\\Icons\\INV_MISC_QUESTIONMARK'
-		inactiveSpec = inactiveSpec or '' -- 'Interface\\Icons\\INV_MISC_QUESTIONMARK'
+		activeSpec, inactiveSpec = activeSpec or '', inactiveSpec or ''
 
 		lineNum = self:AddLine(
 			color..level..'|r',
