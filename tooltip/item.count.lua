@@ -24,13 +24,14 @@ function ns.AddItemCounts(tooltip, itemID)
 		if overallCount - baseCount > 0 then
 			if not linesAdded then ns.AddEmptyLine(tooltip, true) end
 			tooltip:AddDoubleLine(ns.data.GetCharacterText(character) , text)
-			hasMultiple = true
+			linesAdded = true
 		end
 	end
 	if showGuilds then
 		for guild, count in pairs(ns.data.GetGuildsItemCounts(itemID)) do
 			if not linesAdded then ns.AddEmptyLine(tooltip, true) end
 			tooltip:AddDoubleLine(guild , string.format('%s: %s%d|r', GUILD_BANK, GREEN_FONT_COLOR_CODE, count))
+			linesAdded = true
 			if includeGuildCountInTotal then
 				overallCount = overallCount + count
 			end
@@ -38,7 +39,8 @@ function ns.AddItemCounts(tooltip, itemID)
 	end
 	if showTotals and hasMultiple then
 		tooltip:AddDoubleLine(' ', string.format('%s: %d', TOTAL, overallCount), nil, nil, nil, 1, 1, 1)
+		linesAdded = true
 	end
 
-	return overallCount > 0
+	return linesAdded
 end
