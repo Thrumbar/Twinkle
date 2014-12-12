@@ -109,66 +109,8 @@ local function ColorByItemLevel(itemLevel)
 end
 -- FOO, BAR = itemLevelQualities, ColorByItemLevel
 
--- TODO: FIXME: does not init levels properly
-function broker:OnEnable()
-	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update, self)
-	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
-	self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', self.Update, self)
-	self:RegisterEvent('PLAYER_TALENT_UPDATE', self.Update, self)
-	self:RegisterEvent('PLAYER_ENTERING_WORLD', self.Update, self)
-
-	-- create our own characters table, so sorting doesn't influence other brokers
-	characters = addon.data.GetCharacters()
-	UpdateItemLevelQualities()
-	self:Update()
-end
-function broker:OnDisable()
-	self:UnregisterEvent('PLAYER_LEVEL_UP')
-	self:UnregisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
-	self:UnregisterEvent('PLAYER_EQUIPMENT_CHANGED')
-	self:UnregisterEvent('PLAYER_TALENT_UPDATE')
-	self:UnregisterEvent('PLAYER_ENTERING_WORLD')
-end
-
-function broker:OnClick(btn, down)
-	ToggleCharacter('TokenFrame')
-end
-
-function broker:UpdateLDB()
-	local thisCharacter = brokers:GetCharacter()
-	local average = addon.data.GetAverageItemLevel(thisCharacter)
-
-	local level      = UnitLevel('player')
-	local levelColor = RGBTableToColorCode(GetQuestDifficultyColor(level))
-	local _, class   = UnitClass('player')
-	local classColor = RGBTableToColorCode(_G.RAID_CLASS_COLORS[class])
-
-	local specID = GetSpecialization()
-	local name, icon
-	if specID then
-		_, name, _, icon = GetSpecializationInfo(specID)
-	else
-		name = 'No specialization'
-		icon = ''
-	end
-
-	local lootSpecID = GetLootSpecialization()
-	if lootSpecID ~= 0 then
-		local role
-		_, name, _, icon, _, role = GetSpecializationInfoByID(lootSpecID)
-	end
-
-	self.text = string.format('%2$sL%1$s|r %4$s%3$s %6$s |T%7$s:0|t',
-		level, levelColor,
-		name, classColor,
-		icon,
-		ColorByItemLevel(average),
-		'Interface\\GROUPFRAME\\UI-GROUP-MAINTANKICON'
-	)
-	-- self.icon = 'Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon'
-end
-
-local sortBy, sortReverse
+-- TODO/FIXME: this is not a proper sort function
+local sortBy, sortReverse = 3, false
 local function Sort(a, b)
 	local aValue, bValue
 	if sortBy == 1 then
@@ -195,6 +137,81 @@ local function SortCharacterList(self, sortType, btn, up)
 	broker:Update()
 end
 
+-- TODO: FIXME: does not init levels properly
+function broker:OnEnable()
+	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update, self)
+	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
+	self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', self.Update, self)
+	self:RegisterEvent('PLAYER_TALENT_UPDATE', self.Update, self)
+	self:RegisterEvent('PLAYER_ENTERING_WORLD', self.Update, self)
+	self:RegisterEvent('PLAYER_LOOT_SPEC_UPDATED', self.Update, self)
+
+	-- create our own characters table, so sorting doesn't influence other brokers
+	characters = addon.data.GetCharacters()
+	table.sort(characters, Sort) -- apply default sorting
+
+	UpdateItemLevelQualities()
+	self:Update()
+end
+function broker:OnDisable()
+	self:UnregisterEvent('PLAYER_LEVEL_UP')
+	self:UnregisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
+	self:UnregisterEvent('PLAYER_EQUIPMENT_CHANGED')
+	self:UnregisterEvent('PLAYER_TALENT_UPDATE')
+	self:UnregisterEvent('PLAYER_ENTERING_WORLD')
+	self:UnregisterEvent('PLAYER_LOOT_SPEC_UPDATED')
+end
+
+function broker:OnClick(btn, down)
+	if btn == 'RightButton' then
+		-- loot spec selection
+		if not self.dropDown then
+			self.dropDown = CreateFrame('Frame', addonName..'CharacterLootSpecDropDown', UIParent, 'UIDropDownMenuTemplate')
+			self.dropDown:Hide()
+			self.dropDown.displayMode = 'MENU'
+			self.dropDown.initialize = function()
+				UnitPopup_ShowMenu(_G.UIDROPDOWNMENU_OPEN_MENU, 'SELECT_LOOT_SPECIALIZATION', 'player')
+			end
+		end
+		ToggleDropDownMenu(nil, nil, self.dropDown, 'cursor')
+	else
+		ToggleCharacter('PaperDollFrame')
+	end
+end
+
+function broker:UpdateLDB()
+	local thisCharacter = brokers:GetCharacter()
+	local average    = addon.data.GetAverageItemLevel(thisCharacter)
+	local equipment  = ('%1$s |TInterface\\GROUPFRAME\\UI-GROUP-MAINTANKICON:0|t'):format(ColorByItemLevel(average))
+
+	local level      = UnitLevel('player')
+	local levelColor = RGBTableToColorCode(GetQuestDifficultyColor(level))
+	local _, class   = UnitClass('player')
+	local classColor = RGBTableToColorCode(_G.RAID_CLASS_COLORS[class])
+
+	-- character spec
+	local specIndex = GetSpecialization()
+	local specID, name, icon, role
+	if specIndex then
+		specID, name, _, icon, _, role = GetSpecializationInfo(specIndex)
+	else
+		name = 'No specialization'
+		icon = 'Interface\\Icons\\INV_Misc_QuestionMark'
+	end
+	local levelName  = ('%3$sL%1$s|r %4$s%2$s|r'):format(level, name, levelColor, classColor)
+
+	-- loot spec
+	local lootSpecID = GetLootSpecialization()
+	if lootSpecID ~= 0 and lootSpecID ~= specID then
+		_, name, _, icon = GetSpecializationInfoByID(lootSpecID)
+		-- lootSpec  = ('|TInterface\\Buttons\\UI-GroupLoot-Dice-Up:0|t %1$s'):format(name, icon)
+		levelName = levelName .. '|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0|t'
+	end
+
+	self.text = strjoin(' ', levelName, equipment)
+	self.icon = icon -- 'Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon'
+end
+
 function broker:UpdateTooltip()
 	local numColumns, lineNum = 4
 	self:SetColumnLayout(numColumns, 'LEFT', 'LEFT', 'LEFT', 'RIGHT')
@@ -203,6 +220,8 @@ function broker:UpdateTooltip()
 	-- header
 	lineNum = self:AddHeader()
 			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CHARACTER, 'LEFT', numColumns)
+	lineNum = self:AddLine()
+	self:SetCell(lineNum, 1, GRAY_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', GameTooltipTextSmall, 'LEFT', numColumns)
 
 	-- sorting
 	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, '', 'iLevel')
