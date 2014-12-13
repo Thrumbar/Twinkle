@@ -8,6 +8,7 @@ local max, floor = math.max, math.floor
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Weekly')
+local temp = {}
 
 function broker:OnEnable()
 	-- self:RegisterEvent('EVENT_NAME', self.Update, self)
@@ -27,37 +28,62 @@ function broker:UpdateLDB()
 end
 
 -- old code
-local worldBosses 	= {
-	32099, 32098, 32518, 32519, 33117, 33118, -- Mists of Pandaria
-	37460, 37462, 37464, -- Warlords of Draenor TODO: check these ids!
+local worldBosses = {
+	-- 32099, 32098, 32518, 32519, 33117, 33118, -- Mists of Pandaria
+	37460, 37462, 37464, -- Warlords of Draenor: Drov, Tarlna, Rukhmar
 }
-local LFRDungeons 	= {
-	{527, 528}, {529, 530}, {526}, {610, 611, 612, 613}, {716, 717, 724, 725}, -- Mists of Pandaria
+local weeklyQuests = { -- sharedQuestID or 'allianceID|hordeID'
+	-- 32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
+	-- '32719|32718', -- lesser charms trade-in
+	-- 33338, 33334, --32956, -- timeless isle (epoch stone, rares, pirate chest)
 }
-local weeklyQuests 	= { -- sharedQuestID or 'allianceID|hordeID'
-	32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
-	'32719|32718', -- lesser charms trade-in
-	33338, 33334, --32956, -- timeless isle (epoch stone, rares, pirate chest)
-}
+
+local LFRDungeons, LFRInstances = {}, {}
+local playerExpansion = GetAccountExpansionLevel()
+-- build raid finder groups for each instance
+for index = 1, GetNumRFDungeons() do
+	-- ingame label: GetLFGDungeonInfo(dungeonID)
+	local dungeonID, _, _, _, _, _, _, _, _, expansionLevel = GetRFDungeonInfo(index)
+	if expansionLevel == playerExpansion then
+		-- we only display the highest possible tiers
+		local _, _, instanceLink = GetDungeonInfo(dungeonID)
+		if instanceLink then
+			-- molten core has no link
+			local instanceID = instanceLink:match('journal:%d+:(%d+)')
+			      instanceID = instanceID*1
+			if not LFRInstances[instanceID] then
+				LFRInstances[instanceID] = #LFRDungeons + 1
+				-- let's assume that GetNumRFDungeons() is always << any instanceID
+				LFRInstances[ LFRInstances[instanceID] ] = instanceID
+			end
+			local index = LFRInstances[instanceID]
+			if not LFRDungeons[index] then LFRDungeons[index] = {} end
+			table.insert(LFRDungeons[index], dungeonID)
+		end
+	end
+end
 
 local function tex(itemID, text)
 	local icon = type(itemID) == 'number' and GetItemIcon(itemID) or itemID
 	return icon and '|T'..icon..':0|t' or text or '?'
 end
-local returnTable = {}
 local function GetColumnHeaders(dataType)
 	if dataType == 'lfr' then
-		return _G.RAID_FINDER,
-			'MV', 'HoF', 'ToES', 'ToT', 'SoO' -- Mists of Pandaria
+		wipe(temp)
+		for index, dungeonIDs in ipairs(LFRDungeons) do
+			local instanceName, _, _, _, _, icon = EJ_GetInstanceInfo(LFRInstances[index])
+			table.insert(temp, tex(icon, instanceName))
+		end
+		return _G.RAID_FINDER, unpack(temp)
 	elseif dataType == 'boss' then
 		return _G.BATTLE_PET_SOURCE_7, --BOSS,
-			tex(89317, 'Sha'), tex(89783, 'Galleon'), tex(85513, 'Nalak'), tex(95424, 'Oondasta'), tex(102145, 'Celestials'), tex(104297, 'Ordos'), -- Mists of Pandaria
+			-- tex(89317, 'Sha'), tex(89783, 'Galleon'), tex(85513, 'Nalak'), tex(95424, 'Oondasta'), tex(102145, 'Celestials'), tex(104297, 'Ordos'), -- Mists of Pandaria
 			tex('Interface\\Icons\\creatureportrait_fomorhand', 'Drov the Ruiner'), tex('Interface\\Icons\\creatureportrait_fomorhand', 'Tarlna the Ageless'), tex('Interface\\Icons\\achievement_dungeon_arakkoaspires', 'Rukhmar') -- Warlords of Draenor
 	elseif dataType == 'weekly' then
-		return _G.QUESTS_LABEL,
-			tex(94221, 'Stone'), tex(94222, 'Key'), tex(87391, 'Chest'), tex(93792, 'Chamberlain'), tex(90538, 'Champions'),
-			tex(90815, 'Charms'),
-			tex(105715, 'Epoch'), tex(33847, 'Rares')
+		return _G.QUESTS_LABEL
+			-- tex(94221, 'Stone'), tex(94222, 'Key'), tex(87391, 'Chest'), tex(93792, 'Chamberlain'), tex(90538, 'Champions'),
+			-- tex(90815, 'Charms'),
+			-- tex(105715, 'Epoch'), tex(33847, 'Rares')
 	end
 	return ''
 end
@@ -95,7 +121,6 @@ local function prepare(dataTable)
 	return unpack(dataTable)
 end
 
-local temp = {}
 local lockoutReturns = { lfr = {}, worldboss = {}, weekly = {} }
 local function GetLFRGroup(dungeonID)
 	for group, dungeons in ipairs(LFRDungeons) do
@@ -105,17 +130,18 @@ local function GetLFRGroup(dungeonID)
 			end
 		end
 	end
-	return #LFRDungeons + 1
 end
 local function GetCharacterLFRLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.lfr)
 	local hasData = false
 	for _, data in ipairs(addon.data.GetLFRState(characterKey, temp)) do
-		hasData = true
 		local dungeonID, name, numDefeated, completed = data.id, data.name, data.killed or 0, data.complete
 		local group = GetLFRGroup(dungeonID)
-		local text = lockoutReturns.lfr[group] and lockoutReturns.lfr[group]..' ' or ''
-		lockoutReturns.lfr[group] = text .. Colorize(numDefeated, 0, numDefeated + (completed and 0 or 1))
+		if group then
+			hasData = true
+			local text = lockoutReturns.lfr[group] and lockoutReturns.lfr[group]..' ' or ''
+			lockoutReturns.lfr[group] = text .. Colorize(numDefeated, 0, numDefeated + (completed and 0 or 1))
+		end
 	end
 	return hasData and lockoutReturns.lfr or nil
 end
