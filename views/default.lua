@@ -277,20 +277,41 @@ function view:OnEnable()
 	end
 	dailies.trigger = dailiesFrame
 
+--[[
+|cff66bbff|Hjournal:1:691:3|h[Sha des Zorns]|h|r
+|cff66bbff|Hjournal:1:725:3|h[Salyis' Kriegsmeute]|h|r
+|cff66bbff|Hjournal:1:814:3|h[Nalak, der Sturmf\195\188rst]|h|r
+|cff66bbff|Hjournal:1:826:3|h[Oondasta]|h|r
+|cff66bbff|Hjournal:1:857:3|h[Chi-Ji, der Rote Kranich]|h|r
+|cff66bbff|Hjournal:1:858:3|h[Yu'lon, die Jadeschlange]|h|r
+|cff66bbff|Hjournal:1:859:3|h[Niuzao, der Schwarze Ochse]|h|r
+|cff66bbff|Hjournal:1:860:3|h[Xuen, der Wei\195\159e Tiger]|h|r
+|cff66bbff|Hjournal:1:861:3|h[Ordos, Feuergott der Yaungol]|h|r
+--]]
+
+	local expansion = GetAccountExpansionLevel()
 	local worldBosses = {
-		'Interface\\Icons\\inv_hand_1h_shaclaw',          -- WORLD_BOSS_SHA_OF_ANGER
-		'Interface\\Icons\\inv_mushanbeastmount',         -- WORLD_BOSS_GALLEON
-		'Interface\\Icons\\inv_pet_babycloudserpent',     -- WORLD_BOSS_NALAK
-		'Interface\\Icons\\inv_zandalaribabyraptorwhite', -- WORLD_BOSS_OONDASTA
-		'Interface\\Icons\\inv_pet_cranegod',             -- WORLD_BOSS_FOUR_CELESTIALS
-		'Interface\\Icons\\spell_fire_rune',              -- WORLD_BOSS_ORDOS
+		[LE_EXPANSION_MISTS_OF_PANDARIA] = {
+			[1] = 'Interface\\Icons\\inv_hand_1h_shaclaw',          -- 691, WORLD_BOSS_SHA_OF_ANGER
+			[2] = 'Interface\\Icons\\inv_mushanbeastmount',         -- 725, WORLD_BOSS_GALLEON
+			[3] = 'Interface\\Icons\\inv_pet_babycloudserpent',     -- 814, WORLD_BOSS_NALAK
+			[4] = 'Interface\\Icons\\inv_zandalaribabyraptorwhite', -- 826, WORLD_BOSS_OONDASTA
+			[5] = 'Interface\\Icons\\inv_pet_cranegod',             -- 858, WORLD_BOSS_FOUR_CELESTIALS
+			[6] = 'Interface\\Icons\\spell_fire_rune',              -- 861, WORLD_BOSS_ORDOS
+		},
+		[LE_EXPANSION_WARLORDS_OF_DRAENOR] = {
+			-- local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, journalBossID)
+			[7] = 'Interface\\ENCOUNTERJOURNAL\\UI-EJ-BOSS-Drov the Ruiner', 		-- 1291, qid:37460
+			[8] = 'Interface\\ENCOUNTERJOURNAL\\UI-EJ-BOSS-Tarlna The Ancient', 	-- 1211, qid:37462
+			[9] = 'Interface\\ENCOUNTERJOURNAL\\UI-EJ-BOSS-Rukhmar', 				-- 1262, qid:37464
+		},
 	}
 	local worldBoss = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	worldBoss:SetJustifyH('LEFT')
 	worldBoss.update = function(self, character)
 		local character = addon.GetSelectedCharacter()
 		local lockouts, numLockouts = '', 0
-		for bossID, icon in ipairs(worldBosses) do
+		for bossID, icon in pairs(worldBosses[expansion]) do
 			local hasLockout = DataStore:IsWorldBossKilledBy(character, bossID)
 			if hasLockout then
 				numLockouts = numLockouts + 1
