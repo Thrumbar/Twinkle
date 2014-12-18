@@ -8,11 +8,24 @@ local addonName, addon, _ = ...
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Lockouts')
 
-local function GetInstanceLockouts(characterKey, difficulty, instanceName)
+-- FIXME: how do we get instanceMapIDs of available raid instances?
+-- @see: http://wow.gamepedia.com/InstanceMapID
+local instances = {
+	 996, -- Terrace of Endless Spring
+	1008, -- Mogu'shan Vaults
+	1009, -- Heart of Fear
+	1098, -- Throne of Thunder
+	1136, -- Siege of Orgrimmar
+
+	1228, -- Highmaul
+	1205, -- Blackrock Foundry
+}
+
+local function GetInstanceLockouts(characterKey, difficulty, instance)
 	local numDefeated, numBosses, hasID, link = 0, 0, nil, nil
 	for lockoutID, lockoutLink in DataStore:IterateInstanceLockouts(characterKey) do
-		local name, diff, reset, _, _, defeated, bosses = DataStore:GetInstanceLockoutInfo(characterKey, lockoutID)
-		if diff == difficulty and name == instanceName then
+		local instanceMapID, diff, reset, _, _, defeated, bosses = DataStore:GetInstanceLockoutInfo(characterKey, lockoutID)
+		if diff == difficulty and instanceMapID == instance then
 			numDefeated = numDefeated + defeated
 			numBosses   = numBosses + bosses
 			hasID       = reset ~= 0
@@ -47,52 +60,59 @@ function broker:UpdateTooltip()
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.RAID, 'LEFT', numColumns)
 
-	local instanceName = 'Schlacht um Orgrimmar' -- FIXME: how do we get lockout-names of available raid instances?
-	lineNum = self:AddHeader(_G.CHARACTER, _G.PLAYER_DIFFICULTY1, _G.PLAYER_DIFFICULTY2, _G.PLAYER_DIFFICULTY6)
-	self:SetCell(lineNum, 1, instanceName, 'LEFT', 2)
-	self:AddSeparator(2)
+	for _, instance in ipairs(instances) do
+		local hasData = false
+		for _, characterKey in ipairs(brokers:GetCharacters()) do
+			local totalDefeated, statusFormat = 0, '%s%d/%d|r'
+			local numDefeated, numBosses, hasID, color, instanceLink
+			wipe(instanceLinks)
 
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
-		local totalDefeated, statusFormat = 0, '%s%d/%d|r'
-		local numDefeated, numBosses, hasID, color, instanceLink
-		wipe(instanceLinks)
+			-- FIXME: chinese have separate lockous for 10/25
+			numDefeated, numBosses, hasID, instanceLink = GetInstanceLockouts(characterKey, 14, instance)
+			color = (not hasID and numDefeated > 0 and _G.GRAY_FONT_COLOR_CODE)
+				or (numDefeated > 0 and _G.GREEN_FONT_COLOR_CODE)
+				or _G.NORMAL_FONT_COLOR_CODE
+			local nhc = string.format(statusFormat, color, numDefeated, numBosses)
+			table.insert(instanceLinks, instanceLink or '')
+			totalDefeated = totalDefeated + numDefeated
 
-		-- FIXME: chinese have separate lockous for 10/25
-		numDefeated, numBosses, hasID, instanceLink = GetInstanceLockouts(characterKey, 14, instanceName)
-		color = (not hasID and numDefeated > 0 and _G.GRAY_FONT_COLOR_CODE)
-			or (numDefeated > 0 and _G.GREEN_FONT_COLOR_CODE)
-			or _G.NORMAL_FONT_COLOR_CODE
-		local nhc = string.format(statusFormat, color, numDefeated, numBosses)
-		table.insert(instanceLinks, instanceLink or '')
-		totalDefeated = totalDefeated + numDefeated
+			numDefeated, numBosses, hasID, instanceLink = GetInstanceLockouts(characterKey, 15, instance)
+			color = (not hasID and numDefeated > 0 and _G.GRAY_FONT_COLOR_CODE)
+				or (numDefeated > 0 and _G.GREEN_FONT_COLOR_CODE)
+				or _G.NORMAL_FONT_COLOR_CODE
+			local hc = string.format(statusFormat, color, numDefeated, numBosses)
+			table.insert(instanceLinks, instanceLink or '')
+			totalDefeated = totalDefeated + numDefeated
 
-		numDefeated, numBosses, hasID, instanceLink = GetInstanceLockouts(characterKey, 15, instanceName)
-		color = (not hasID and numDefeated > 0 and _G.GRAY_FONT_COLOR_CODE)
-			or (numDefeated > 0 and _G.GREEN_FONT_COLOR_CODE)
-			or _G.NORMAL_FONT_COLOR_CODE
-		local hc = string.format(statusFormat, color, numDefeated, numBosses)
-		table.insert(instanceLinks, instanceLink or '')
-		totalDefeated = totalDefeated + numDefeated
+			numDefeated, numBosses, hasID, instanceLink = GetInstanceLockouts(characterKey, 16, instance)
+			color = (not hasID and numDefeated > 0 and _G.GRAY_FONT_COLOR_CODE)
+				or (numDefeated > 0 and _G.GREEN_FONT_COLOR_CODE)
+				or _G.NORMAL_FONT_COLOR_CODE
+			local mc = string.format(statusFormat, color, numDefeated, numBosses)
+			table.insert(instanceLinks, instanceLink or '')
+			totalDefeated = totalDefeated + numDefeated
 
-		numDefeated, numBosses, hasID, instanceLink = GetInstanceLockouts(characterKey, 16, instanceName)
-		color = (not hasID and numDefeated > 0 and _G.GRAY_FONT_COLOR_CODE)
-			or (numDefeated > 0 and _G.GREEN_FONT_COLOR_CODE)
-			or _G.NORMAL_FONT_COLOR_CODE
-		local mc = string.format(statusFormat, color, numDefeated, numBosses)
-		table.insert(instanceLinks, instanceLink or '')
-		totalDefeated = totalDefeated + numDefeated
+			if totalDefeated > 0 then
+				if not hasData then
+					-- add header for this instance
+					local instanceName = GetRealZoneText(instance)
+					lineNum = self:AddHeader(_G.CHARACTER, _G.PLAYER_DIFFICULTY1, _G.PLAYER_DIFFICULTY2, _G.PLAYER_DIFFICULTY6)
+					self:SetCell(lineNum, 1, _G.NORMAL_FONT_COLOR_CODE .. instanceName)
+					self:AddSeparator(2)
+					hasData = true
+				end
 
-		if totalDefeated > 0 then
-			lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), nhc, hc, mc)
-			self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
-			for column = 2, numColumns do
-				local instanceLink = instanceLinks[column - 1]
-				if instanceLink ~= '' then
-					-- add tooltip for lockout info
-					local cell = self.lines[lineNum].cells[column]
-					      cell.link = instanceLink
-					self:SetCellScript(lineNum, column, 'OnEnter', addon.ShowTooltip, self)
-					self:SetCellScript(lineNum, column, 'OnLeave', addon.HideTooltip, self)
+				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), nhc, hc, mc)
+				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+				for column = 2, numColumns do
+					local instanceLink = instanceLinks[column - 1]
+					if instanceLink ~= '' then
+						-- add tooltip for lockout info
+						local cell = self.lines[lineNum].cells[column]
+						      cell.link = instanceLink
+						self:SetCellScript(lineNum, column, 'OnEnter', addon.ShowTooltip, self)
+						self:SetCellScript(lineNum, column, 'OnLeave', addon.HideTooltip, self)
+					end
 				end
 			end
 		end
