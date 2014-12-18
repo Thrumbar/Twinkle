@@ -27,10 +27,9 @@ function broker:UpdateLDB()
 	self.icon = 'Interface\\FriendsFrame\\StatusIcon-Away'
 end
 
--- old code
-local worldBosses = {
-	-- 32099, 32098, 32518, 32519, 33117, 33118, -- Mists of Pandaria
-	37460, 37462, 37464, -- Warlords of Draenor: Drov, Tarlna, Rukhmar
+local worldBosses = { -- encounter journal bossID
+	-- 691, 725, 814, 826, 858, 861, -- Mists of Pandaria: Sha of Fear (qid:32099), Galleon (qid:32098), Nalak (qid:32518), Oondasta (qid:32519), Celestials (qid:33117), Ordos (qid:33118)
+	1291, 1211, 1262, -- Warlords of Draenor: Drov (qid:37460), Tarlna (qid:37462), Rukhmar (qid:37464)
 }
 local weeklyQuests = { -- sharedQuestID or 'allianceID|hordeID'
 	-- 32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
@@ -76,9 +75,13 @@ local function GetColumnHeaders(dataType)
 		end
 		return _G.RAID_FINDER, unpack(temp)
 	elseif dataType == 'boss' then
-		return _G.BATTLE_PET_SOURCE_7, --BOSS,
-			-- tex(89317, 'Sha'), tex(89783, 'Galleon'), tex(85513, 'Nalak'), tex(95424, 'Oondasta'), tex(102145, 'Celestials'), tex(104297, 'Ordos'), -- Mists of Pandaria
-			tex('Interface\\Icons\\creatureportrait_fomorhand', 'Drov the Ruiner'), tex('Interface\\Icons\\creatureportrait_fomorhand', 'Tarlna the Ageless'), tex('Interface\\Icons\\achievement_dungeon_arakkoaspires', 'Rukhmar') -- Warlords of Draenor
+		wipe(temp)
+		for index, journalBossID in ipairs(worldBosses) do
+			-- TODO: these icons are weirdly stretched
+			local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, journalBossID)
+			table.insert(temp, tex(icon, bossName))
+		end
+		return _G.BATTLE_PET_SOURCE_7, unpack(temp)
 	elseif dataType == 'weekly' then
 		return _G.QUESTS_LABEL
 			-- tex(94221, 'Stone'), tex(94222, 'Key'), tex(87391, 'Chest'), tex(93792, 'Chamberlain'), tex(90538, 'Champions'),
@@ -190,35 +193,41 @@ function broker:UpdateTooltip()
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CALENDAR_REPEAT_WEEKLY, 'LEFT', numColumns)
 
-	self:AddHeader(GetColumnHeaders('lfr'))
-	self:AddSeparator(2)
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
-		local data = GetCharacterLFRLockouts(characterKey, true)
-		if data then
-			lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
-			self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+	if #LFRDungeons > 0 then
+		self:AddHeader(GetColumnHeaders('lfr'))
+		self:AddSeparator(2)
+		for _, characterKey in ipairs(brokers:GetCharacters()) do
+			local data = GetCharacterLFRLockouts(characterKey, true)
+			if data then
+				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
+				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+			end
 		end
 	end
 
-	self:AddLine(' ')
-	self:AddHeader(GetColumnHeaders('boss'))
-	self:AddSeparator(2)
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
-		local data = GetCharacterBossLockouts(characterKey, true)
-		if data then
-			lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
-			self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+	if #worldBosses > 0 then
+		if #LFRDungeons > 0 then self:AddLine(' ') end
+		self:AddHeader(GetColumnHeaders('boss'))
+		self:AddSeparator(2)
+		for _, characterKey in ipairs(brokers:GetCharacters()) do
+			local data = GetCharacterBossLockouts(characterKey, true)
+			if data then
+				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
+				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+			end
 		end
 	end
 
-	self:AddLine(' ')
-	self:AddHeader(GetColumnHeaders('weekly'))
-	self:AddSeparator(2)
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
-		local data = GetCharacterWeeklyLockouts(characterKey, true)
-		if data then
-			lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
-			self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+	if #weeklyQuests > 0 then
+		if #LFRDungeons > 0 or #worldBosses > 0 then self:AddLine(' ') end
+		self:AddHeader(GetColumnHeaders('weekly'))
+		self:AddSeparator(2)
+		for _, characterKey in ipairs(brokers:GetCharacters()) do
+			local data = GetCharacterWeeklyLockouts(characterKey, true)
+			if data then
+				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
+				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+			end
 		end
 	end
 end
