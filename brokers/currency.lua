@@ -27,13 +27,13 @@ local broker = brokers:NewModule('Currency')
 local characters = {}
 local currencies = {}
 local showCurrency = {
-	395, -- justice
-	396, -- valor
+	-- 395, -- justice
+	-- 396, -- valor
 	392, -- honor
 	390, -- conquest
-	738, -- lesser coin of fortune
-	776, -- loot coin
-	777, -- timeless
+	-- 738, -- lesser coin of fortune
+	-- 776, -- war emblem
+	-- 777, -- timeless
 	824, -- garrison ressources
 	823, -- apexis shard
 	994, -- seal of tempered fate
