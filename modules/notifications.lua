@@ -202,6 +202,7 @@ local function CheckNotifications(charKey, groupName)
 	addon:GetModule('brokers'):GetModule('Notifications'):Update()
 end
 local function UpdateNotifications(groupName)
+	if not notificationsCache[thisCharacter] then return end
 	for group, info in pairs(notificationsCache[thisCharacter]) do
 		if not groupName or group == groupName then
 			wipe(info)
