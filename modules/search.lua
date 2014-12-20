@@ -122,7 +122,7 @@ function search:Update()
 		if numResults and numResults > 0 then
 			button.info:SetText('('..numResults..')')
 		else
-			button.info:SetText('')
+			addon:UpdateCharacterButton(button, button.element)
 		end
 	end
 end

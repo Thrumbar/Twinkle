@@ -198,7 +198,7 @@ function addon:OnEnable()
 	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
 
 	-- TODO: register events
-	self.UpdateCharacters()
+	self:UpdateCharacters()
 	self:Update()
 end
 
@@ -206,37 +206,39 @@ function addon:OnDisable()
     -- unregister events
 end
 
-function addon.UpdateCharacters()
+local maxLevel = GetMaxPlayerLevel()
+function addon:UpdateCharacterButton(button, characterKey)
+	if not characterKey then
+		button:Hide()
+	else
+		button:SetAlpha(1)
+		button:Show()
+		button.element = characterKey
+
+		local level = addon.data.GetLevel(characterKey)
+		button.info:SetText(level < maxLevel and level or '')
+
+		local icon = addon.data.GetCharacterFactionIcon(characterKey)
+		local name = addon.data.GetCharacterText(characterKey)
+		button:SetText( (icon and icon..' ' or '') .. name )
+
+		if button.element == currentSelection then
+			-- just for proper UI state
+			OptionsList_SelectButton(scrollFrame, button)
+		end
+	end
+end
+
+function addon:UpdateCharacters()
 	local scrollFrame = addon.frame.sidebar.scrollFrame
 	local currentSelection = scrollFrame.selection
 	OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)
 
-	local maxLevel = GetMaxPlayerLevel()
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
 	for i = 1, #scrollFrame.buttons do
 		local button = scrollFrame.buttons[i]
 		local index = i + offset
-		local character = characters[index]
-
-		if character then
-			button:SetAlpha(1)
-			button:Show()
-			button.element = character
-
-			local level = addon.data.GetLevel(character)
-			button.info:SetText(level < maxLevel and level or '')
-
-			local icon = addon.data.GetCharacterFactionIcon(character)
-			local name = addon.data.GetCharacterText(character)
-			button:SetText( (icon and icon..' ' or '') .. name )
-
-			if button.element == currentSelection then
-				-- just for proper UI state
-				OptionsList_SelectButton(scrollFrame, button)
-			end
-		else
-			button:Hide()
-		end
+		addon:UpdateCharacterButton(button, characters[index])
 	end
 
 	local parent = scrollFrame:GetParent()
@@ -297,4 +299,5 @@ function addon:Update()
 	if views then views:Update() end
 
 	-- update character list (names, info, ...)
+	self:UpdateCharacters()
 end
