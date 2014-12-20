@@ -210,7 +210,7 @@ function view:OnEnable()
 				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
 				itemName,
 				timeLeft > 0 and '' or 'Interface\\FriendsFrame\\StatusIcon-Away')
-			tooltip:AddDoubleLine(text, price1)
+			tooltip:AddDoubleLine(text, GetCoinTextureString(price1))
 			numLines = numLines + 1
 			if numLines >= 10 then
 				tooltip:AddLine('...')
@@ -234,7 +234,7 @@ function view:OnEnable()
 				isGoblin and YELLOW_FONT_COLOR_CODE or GREEN_FONT_COLOR_CODE,
 				itemName,
 				timeLeft > 0 and '' or 'Interface\\FriendsFrame\\StatusIcon-Away')
-			tooltip:AddDoubleLine(text, price2)
+			tooltip:AddDoubleLine(text, GetCoinTextureString(price2))
 			numLines = numLines + 1
 			if numLines >= 10 then
 				tooltip:AddLine("...")
@@ -301,9 +301,8 @@ function view:OnEnable()
 		},
 		[LE_EXPANSION_WARLORDS_OF_DRAENOR] = {
 			-- local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, journalBossID)
-			[7] = 'Interface\\ENCOUNTERJOURNAL\\UI-EJ-BOSS-Drov the Ruiner', 		-- 1291, qid:37460
-			[8] = 'Interface\\ENCOUNTERJOURNAL\\UI-EJ-BOSS-Tarlna The Ancient', 	-- 1211, qid:37462
-			[9] = 'Interface\\ENCOUNTERJOURNAL\\UI-EJ-BOSS-Rukhmar', 				-- 1262, qid:37464
+			[7] = 'Interface\\Icons\\CreaturePortrait_FomorHand', 	-- 1291, qid:37460, drov = 1211, qid:37462, tarlna
+			[9] = 'Interface\\Icons\\inv_helm_suncrown_d_01', 		-- 1262, qid:37464, rukhmar
 		},
 	}
 	local worldBoss = contents:CreateFontString(nil, nil, 'GameFontNormal')
