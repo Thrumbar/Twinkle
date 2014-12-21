@@ -100,7 +100,8 @@ function view:OnEnable()
 	local money = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	money:SetJustifyH('LEFT')
 	money.update = function(self, character)
-		self:SetText(GetCoinTextureString( addon.data.GetMoney(character) ))
+		local moneyString = GetCoinTextureString(addon.data.GetMoney(character)):gsub('(%d%d%d+)', BreakUpLargeNumbers)
+		self:SetText(moneyString)
 	end
 	table.insert(contents.contents, money)
 
