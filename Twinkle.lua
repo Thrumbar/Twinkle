@@ -221,11 +221,6 @@ function addon:UpdateCharacterButton(button, characterKey)
 		local icon = addon.data.GetCharacterFactionIcon(characterKey)
 		local name = addon.data.GetCharacterText(characterKey)
 		button:SetText( (icon and icon..' ' or '') .. name )
-
-		if button.element == currentSelection then
-			-- just for proper UI state
-			OptionsList_SelectButton(scrollFrame, button)
-		end
 	end
 end
 
@@ -238,7 +233,13 @@ function addon:UpdateCharacters()
 	for i = 1, #scrollFrame.buttons do
 		local button = scrollFrame.buttons[i]
 		local index = i + offset
+
 		addon:UpdateCharacterButton(button, characters[index])
+
+		if button.element == currentSelection then
+			-- just for proper UI state
+			OptionsList_SelectButton(scrollFrame, button)
+		end
 	end
 
 	local parent = scrollFrame:GetParent()
