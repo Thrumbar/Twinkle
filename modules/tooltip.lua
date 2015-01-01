@@ -200,6 +200,7 @@ function plugin:OnEnable()
 	ItemRefTooltip:HookScript('OnTooltipCleared',    ClearTooltipItem)
 	ItemRefTooltip:HookScript('OnTooltipSetItem',    HandleTooltipItem)
 	ItemRefTooltip:HookScript('OnTooltipSetUnit',    addon.AddSocialInfo)
+	hooksecurefunc(ItemRefTooltip, 'SetHyperlink',   HandleTooltipHyperlink)
 
 	if ShoppingTooltip1 then
 		ShoppingTooltip1:HookScript('OnTooltipSetItem',  HandleTooltipItem)
@@ -234,6 +235,14 @@ function plugin:OnEnable()
 	hooksecurefunc('SetTooltipMoney', function(tooltip, money, type, prefix, suffix)
 		-- we add a marker for money frames as their texts are all empty
 		_G[tooltip:GetName()..'TextRight'..tooltip:NumLines()]:SetText('*')
+	end)
+	hooksecurefunc('QuestMapLogTitleButton_OnEnter', function(self)
+		local _, _, _, isHeader, _, _, _, questID = GetQuestLogTitle(self.questLogIndex)
+		local tooltip = GameTooltip
+		if not isHeader and questID and tooltip:IsShown() then
+			addon.AddOnQuestInfo(tooltip, questID)
+			tooltip:Show()
+		end
 	end)
 end
 
