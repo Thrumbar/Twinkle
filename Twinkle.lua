@@ -68,6 +68,26 @@ function addon.GetLinkID(link)
 	return tonumber(id), linkType
 end
 
+local scanTooltip = CreateFrame('GameTooltip', addonName..'ScanTooltip', nil, 'GameTooltipTemplate')
+addon.IsItemBOP = setmetatable({}, {
+	__index = function(self, itemID)
+		scanTooltip:SetOwner(UIParent, 'ANCHOR_NONE')
+		scanTooltip:SetItemByID(itemID)
+		local binding = _G[scanTooltip:GetName().."TextLeft2"]:GetText()
+		if not binding or binding:find(ITEM_LEVEL) then
+			binding = _G[scanTooltip:GetName().."TextLeft3"]:GetText()
+		end
+		scanTooltip:Hide()
+		if binding then
+			self[itemID] = binding
+			return binding
+		end
+	end ,
+	__call = function(self, itemID)
+		return self[itemID] == _G.ITEM_BIND_ON_PICKUP
+	end
+})
+
 local characters = {}
 local thisCharacter
 function addon:OnInitialize()

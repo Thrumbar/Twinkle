@@ -4,7 +4,7 @@ local addonName, addon, _ = ...
 -- GLOBALS: IsAddOnLoaded, IsShiftKeyDown, LoadAddOn, EJ_ClearSearch, EJ_SetSearch, EJ_GetNumSearchResults, EncounterJournal_GetSearchDisplay, GetItemInfo, GetSpellInfo, IsIgnored
 -- GLOBALS: string, pairs, tonumber, table, type, wipe, tContains, ipairs, strtrim, hooksecurefunc
 
-local plugin = addon:NewModule('tooltip')
+local plugin = addon:NewModule('Tooltip')
 local LPT = LibStub('LibPeriodicTable-3.1', true)
 local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = GetAuctionItemClasses()
 local PROFESSION_MIN_SKILL = '^' .. addon.GlobalStringToPattern(_G.ITEM_MIN_SKILL) .. '$'
@@ -185,6 +185,12 @@ end
 local defaults = {
 	global = {
 		itemCountsOnSHIFT = false,
+		itemCounts = {
+			showTotals = true,
+			showGuilds = true,
+			includeGuildCountInTotal = true,
+			onlyThisCharOnBOP = true,
+		},
 	},
 }
 function plugin:OnEnable()
