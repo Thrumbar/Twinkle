@@ -432,24 +432,14 @@ end
 -- identifier may be currencyID or currencyName
 function data.GetCurrencyInfo(characterKey, identifier)
 	local count, weekly, isHeader, name, icon
-	local hasData = false
 	if type(identifier) == 'number' then
-		name, _, icon = GetCurrencyInfo(identifier)
 		local weeklyMax, totalMax
 		count, weekly, weeklyMax, totalMax = DataStore:GetCurrencyTotals(characterKey, identifier)
-		if count and not (count == 0 and weekly == 0 and weeklyMax == 0 and totalMax == 0) then
-			hasData = true
-		end
-
 		if characterKey == thisCharacter then
 			name, count, icon, weekly = GetCurrencyInfo(identifier)
 			isHeader = not name
-			hasData = true
 		end
-	end
-
-	if not hasData then
-		identifier = type(identifier) == 'number' and GetCurrencyInfo(identifier) or identifier
+	else
 		for index = 1, data.GetNumCurrencies(characterKey) do
 			local _isHeader, _name, _count, _icon = data.GetCurrencyInfoByIndex(characterKey, index)
 			if _name == identifier then

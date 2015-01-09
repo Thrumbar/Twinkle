@@ -1,5 +1,17 @@
 local addonName, addon, _ = ...
 
+local function GetCurrencyLabel(currencyID)
+	local name, _, texture, _, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID)
+	if name then
+		return ('|T%2$s:0|t %3$s%1$s|r'):format(name, texture, isDiscovered and _G.NORMAL_FONT_COLOR_CODE or _G.GRAY_FONT_COLOR_CODE)
+	end
+end
+
+local function GetReminderLabel(interval)
+	-- alternative: D_MINUTES
+	return _G.PET_TIME_LEFT_MINUTES:format(interval)
+end
+
 local function OpenConfiguration(self, args)
 	-- remove placeholder configuration panel
 	for i, panel in ipairs(_G.INTERFACEOPTIONS_ADDONCATEGORIES) do
@@ -13,24 +25,32 @@ local function OpenConfiguration(self, args)
 
 	-- initialize panel
 	local types = {
-		-- brokers: money
-		history = '*none*',
-		tooltipFormat = {
-			gsc  = strjoin('', _G.HIGHLIGHT_FONT_COLOR_CODE,
-				'54', '|cffffd700g|r '.._G.HIGHLIGHT_FONT_COLOR_CODE,
-				'03', '|cffc7c7cfs|r '.._G.HIGHLIGHT_FONT_COLOR_CODE,
-				'21', '|cffeda55fc|r'
-			),
-			icon = strjoin('', '',
-				'54', '|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:2:0|t ',
-				'03', '|TInterface\\MoneyFrame\\UI-SilverIcon:0:0:2:0|t ',
-				'21', '|TInterface\\MoneyFrame\\UI-CopperIcon:0:0:2:0|t'
-			),
-			dot  = strjoin('', '|cffffd700',
-				'54', '|r.|cffc7c7cf',
-				'03', '|r.|cffeda55f',
-				'21', '|r'
-			),
+		Money = { -- brokers: money
+			history = '*none*',
+			tooltipFormat = {
+				gsc  = strjoin('', _G.HIGHLIGHT_FONT_COLOR_CODE,
+					'54', '|cffffd700g|r '.._G.HIGHLIGHT_FONT_COLOR_CODE,
+					'03', '|cffc7c7cfs|r '.._G.HIGHLIGHT_FONT_COLOR_CODE,
+					'21', '|cffeda55fc|r'
+				),
+				icon = strjoin('', '',
+					'54', '|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:2:0|t ',
+					'03', '|TInterface\\MoneyFrame\\UI-SilverIcon:0:0:2:0|t ',
+					'21', '|TInterface\\MoneyFrame\\UI-CopperIcon:0:0:2:0|t'
+				),
+				dot  = strjoin('', '|cffffd700',
+					'54', '|r.|cffc7c7cf',
+					'03', '|r.|cffeda55f',
+					'21', '|r'
+				),
+			},
+		},
+		Currency = { -- brokers: currency
+			showInTooltip = GetCurrencyLabel,
+			showInLDB =  GetCurrencyLabel,
+		},
+		Notifications = { -- module: notifications
+			eventReminders = GetReminderLabel,
 		},
 	}
 	types.ldbFormat = types.tooltipFormat

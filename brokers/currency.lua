@@ -1,54 +1,17 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: GetCoinTextureString, GetMoney
+-- GLOBALS: _G, NORMAL_FONT_COLOR, LibStub, DataStore
+-- GLOBALS: GetCurrencyInfo, ToggleCharacter, AbbreviateLargeNumbers, GetCurrencyListSize, GetCurrencyListInfo, GetCurrencyListLink, ExpandCurrencyList
+-- GLOBALS: wipe, unpack, select, pairs, ipairs, strsplit, table, math, string, nop
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Currency')
-
--- GLOBALS: _G, ipairs, string, ToggleCharacter
-
--- ==============================================================================
-
--- local addonName, ns, _ = ...
--- local moduleName = 'Currency'
-
--- GLOBALS: _G, NORMAL_FONT_COLOR, LibStub, DataStore
--- GLOBALS: GetCurrencyInfo, ToggleCharacter, AbbreviateLargeNumbers, RGBToColorCode
--- GLOBALS: wipe, unpack, select, pairs, ipairs, strsplit, table, math, string
+local characters = {}
 
 --[[
   TODO list:
-  	- [config] currency order
-  	- [config] currencies to display in LDB
-  	- [config] currencies to display in tooltip
-	[drag handle] [icon] currency name 		[x:ldb] [x:tooltip]
+  	- [config] currency order: [drag handle] [icon] currency name 	[x:ldb] [x:tooltip]
 --]]
-
-local characters = {}
-local currencies = {}
-local showCurrency = {
-	-- 395, -- justice
-	-- 396, -- valor
-	392, -- honor
-	390, -- conquest
-	-- 738, -- lesser coin of fortune
-	-- 776, -- war emblem
-	-- 777, -- timeless
-	824, -- garrison ressources
-	823, -- apexis shard
-	994, -- seal of tempered fate
-}
-local showCurrencyInLDB = {
-	-- 396, -- valor
-	-- 776, -- warforged
-	-- 777, -- timeless
-	824, -- garrison ressources
-	823, -- apexis shard
-	994, -- seal of tempered fate
-}
-local associatedQuests = {
-	[738] = { 33133, 33134 }
-}
 
 local function GetGeneralCurrencyInfo(currencyID)
 	local name, _, texture, _, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID)
@@ -56,22 +19,10 @@ local function GetGeneralCurrencyInfo(currencyID)
 		weeklyMax = weeklyMax and math.floor(weeklyMax / 100)
 		totalMax  = totalMax  and math.floor(totalMax / 100)
 	end
-
-	return name, texture, totalMax, weeklyMax, associatedQuests[currencyID]
+	return name, texture, totalMax, weeklyMax
 end
 
-local currencyReturns = {}
-local function GetCurrencyHeaders()
-	wipe(currencyReturns)
-	for i, currencyID in ipairs(showCurrency) do
-		local name, texture, _, weeklyMax = GetGeneralCurrencyInfo(currencyID)
-		table.insert(currencyReturns, texture and '|T'..texture..':0|t' or name)
-		table.insert(currencyReturns, weeklyMax > 0 and '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t' or '')
-	end
-	return unpack(currencyReturns)
-end
-
-local function GetPercentageColourGradient(percent)
+local function GetGradientColor(percent)
 	percent = percent > 1 and percent or percent * 100
     local _, x = math.modf(percent * 0.02)
     return (percent <= 50) and 1 or (percent >= 100) and 0 or (1 - x),
@@ -79,101 +30,32 @@ local function GetPercentageColourGradient(percent)
            0
 end
 
-local function PrettyPrint(characterKey, currencyID, total, weekly)
-	local name, texturePath, totalMax, weeklyMax, quests = GetGeneralCurrencyInfo(currencyID)
-
-	total = total or 0
-	local totalText = AbbreviateLargeNumbers(total)
-	if totalMax > 0 then
-		totalText = RGBToColorCode( GetPercentageColourGradient(1 - (total / totalMax)) ) .. totalText .. '|r'
-	end
-
-	weekly = weekly or 0
-	local weeklyText = AbbreviateLargeNumbers(weekly)
-	if weeklyMax == 0 then
-		weeklyText = ''
-	else
-		weeklyText = RGBToColorCode( GetPercentageColourGradient(1 - (weekly / weeklyMax)) ) .. weeklyText .. '|r'
-	end
-
-	if quests then
-		local isDone = false
-		for _, questID in pairs(quests) do
-			if DataStore:IsWeeklyQuestCompletedBy(characterKey, questID) then
-				isDone = true
-				break
-			end
-		end
-		if isDone then
-			if weeklyMax > 0 or totalMax > 0 then
-				totalText = (totalText ~= '' and totalText .. ' ' or '') .. '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t'
-			else
-				totalText = _G.GRAY_FONT_COLOR_CODE .. totalText .. '|r'
-			end
-		end
-	end
-
-	return totalText, weeklyText
-end
-
-local function GetCurrencyCounts(characterKey, prettyPrint)
-	wipe(currencyReturns)
-	local hasData
-	for index, currencyID in ipairs(showCurrency) do
-		local _, name, total, _, weekly = addon.data.GetCurrencyInfo(characterKey, currencyID)
-		if (total and total > 0) or (weekly and weekly > 0) then
-			hasData = true
-		end
-		if prettyPrint then
-			local prettyTotal, prettyWeekly = PrettyPrint(characterKey, currencyID, total, weekly)
-			table.insert(currencyReturns, prettyTotal)
-			table.insert(currencyReturns, prettyWeekly)
-		else
-			table.insert(currencyReturns, total or 0)
-			table.insert(currencyReturns, weekly or 0)
-		end
-	end
-	return hasData and currencyReturns or nil
-end
-
-function broker:OnEnable()
-	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', self.Update, self)
-	characters = brokers:GetCharacters()
-	self:Update()
-end
-function broker:OnDisable()
-	self:UnregisterEvent('CURRENCY_DISPLAY_UPDATE')
-end
-
-function broker:OnClick(btn, down)
-	ToggleCharacter('TokenFrame')
-end
-
-function broker:UpdateLDB()
-	local currencies = GetCurrencyCounts(brokers:GetCharacter(), true)
-	if currencies then
-		local currenciesString
-		for _, currencyID in ipairs(showCurrencyInLDB) do
-			local currencyIndex
-			-- get corresponding index in data
-			for index, currency in ipairs(showCurrency) do
-				if currency == currencyID then
-					currencyIndex = index
-					break
+local collapsed = {}
+local function ScanCurrencies()
+	local index = 1
+	while index <= GetCurrencyListSize() do
+		local name, isHeader, isExpanded, _, isWatched, count, icon, maximum, hasWeeklyLimit = GetCurrencyListInfo(index)
+		if isHeader and not isExpanded then
+			table.insert(collapsed, index)
+			ExpandCurrencyList(index, true)
+		elseif not isHeader then
+			local link = GetCurrencyListLink(index)
+			local currencyID = link and link:match('currency:(%d+)') * 1
+			if currencyID then
+				if broker.db.profile.showInLDB[currencyID] == nil then
+					-- new currency found, add to settings
+					broker.db.profile.showInLDB[currencyID] = false
+					broker.db.profile.showInTooltip[currencyID] = false
 				end
 			end
-
-			-- append to displayed text
-			local index = currencyIndex * 2 - 1
-			local _, _, texturePath = GetCurrencyInfo(currencyID)
-			currenciesString = (currenciesString and currenciesString .. ' ' or '')
-				.. string.format('%2$s%3$s |T%1$s:0|t', texturePath,
-					currencies[index],
-					currencies[index+1] ~= '' and ' ('..currencies[index+1]..')' or '')
 		end
-		self.text = currenciesString
+		index = index + 1
 	end
-	self.icon = 'Interface\\Minimap\\Tracking\\BattleMaster'
+	-- restore collapsed states
+	for index = #collapsed, 1, -1 do
+		ExpandCurrencyList(index, false)
+		collapsed[index] = nil
+	end
 end
 
 local sortCurrencyIndex, sortCurrencyReverse
@@ -184,11 +66,13 @@ local function SortByCharacter(a, b)
 		return addon.data.GetName(a) < addon.data.GetName(b)
 	end
 end
-local function SortByCurrency(a, b)
-	local countA = GetCurrencyCounts(a)
-	      countA = countA and countA[sortCurrencyIndex] or 0
-	local countB = GetCurrencyCounts(b)
-	      countB = countB and countB[sortCurrencyIndex] or 0
+local function SortByCurrency(charA, charB)
+	local _, _, countA, _, weeklyA = addon.data.GetCurrencyInfo(charA, sortCurrencyIndex)
+	local _, _, countB, _, weeklyB = addon.data.GetCurrencyInfo(charB, sortCurrencyIndex)
+	if sortCurrencyIndex < 0 then
+		-- sorting by weekly amounts
+		countA, countB = weeklyA, weeklyB
+	end
 	if sortCurrencyReverse then
 		return countA > countB
 	else
@@ -209,35 +93,132 @@ local function SortCurrencyList(self, sortType, btn, up)
 	end
 	broker:Update()
 end
-local function NOOP() end -- do nothing
+
+-- --------------------------------------------------------
+--  Setup LDB
+-- --------------------------------------------------------
+local defaults = {
+	profile = {
+		showInTooltip = {
+			[395] = false, -- justice
+			[396] = false, -- valor
+			[392] =  true, -- honor
+			[390] =  true, -- conquest
+			[824] =  true, -- garrison ressources
+			[823] =  true, -- apexis shard
+			[994] =  true, -- seal of tempered fate
+			[738] = false, -- lesser coin of fortune
+			[776] = false, -- war emblem
+			[777] = false, -- timeless
+		},
+		showInLDB = {
+			[824] = true, -- garrison ressources
+			[823] = true, -- apexis shard
+			[994] = true, -- seal of tempered fate
+		},
+	},
+}
+function broker:OnEnable()
+	characters = brokers:GetCharacters()
+	self.db = addon.db:RegisterNamespace('Currency', defaults)
+	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', self.Update, self)
+	self:Update()
+end
+function broker:OnDisable()
+	self:UnregisterEvent('CURRENCY_DISPLAY_UPDATE')
+end
+
+function broker:OnClick(btn, down)
+	if btn == 'RightButton' then
+		InterfaceOptionsFrame_OpenToCategory(addonName)
+	else
+		ToggleCharacter('TokenFrame')
+	end
+end
+
+function broker:UpdateLDB()
+	ScanCurrencies()
+
+	local characterKey, currenciesString = brokers:GetCharacter(), nil
+	for currencyID, isShown in pairs(broker.db.profile.showInLDB) do
+		if isShown then
+			local _, name, total, icon, weekly = addon.data.GetCurrencyInfo(characterKey, currencyID)
+			local _, _, totalMax, weeklyMax = GetGeneralCurrencyInfo(currencyID)
+
+			local text = AbbreviateLargeNumbers(total)
+			if totalMax > 0 then
+				local r, g, b = GetGradientColor(1 - (total / totalMax))
+				text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
+			end
+			if weeklyMax and weekly > 0 then
+				local r, g, b = GetGradientColor(1 - (total / totalMax))
+				local weeklyText = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
+				text = ('%s (%s%s)'):format(text, '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t', weeklyText)
+			end
+			currenciesString = (currenciesString and currenciesString .. ' ' or '') .. text .. '|T'..icon..':0|t'
+		end
+	end
+
+	self.text = currenciesString
+	self.icon = 'Interface\\Minimap\\Tracking\\BattleMaster'
+end
 
 function broker:UpdateTooltip()
-	local numColumns, lineNum = (#showCurrency * 2) + 1
-	self:SetColumnLayout(numColumns, 'LEFT', string.split(',', string.rep('RIGHT,', numColumns-1)))
-
-	lineNum = self:AddHeader()
-			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CURRENCY, 'LEFT', numColumns)
-	-- self:AddSeparator(2)
-
-	lineNum = self:AddLine(_G.CHARACTER, GetCurrencyHeaders())
-	for column = 1, numColumns do
-		-- make list sortable
-		self:SetCellScript(lineNum, column, 'OnMouseUp', SortCurrencyList, column-1)
-		if column%2 == 0 then
-			-- show self for currency headers
-			local cell = self.lines[lineNum].cells[column]
-			      cell.link = 'currency:'..showCurrency[column/2]
+	self:SetColumnLayout(1, 'LEFT')
+	local lineNum, column = self:AddHeader(_G.CHARACTER), 2
+	for currencyID, isShown in pairs(broker.db.profile.showInTooltip) do
+		if isShown then
+			local name, texture, totalMax, weeklyMax = GetGeneralCurrencyInfo(currencyID)
+			if column > #self.columns then column = self:AddColumn('RIGHT') end
+			self:SetCell(lineNum, column, texture and '|T'..texture..':0|t' or name)
+			self.lines[lineNum].cells[column].link = 'currency:'..currencyID
 			self:SetCellScript(lineNum, column, 'OnEnter', addon.ShowTooltip, self)
 			self:SetCellScript(lineNum, column, 'OnLeave', addon.HideTooltip, self)
+			self:SetCellScript(lineNum, column, 'OnMouseUp', SortCurrencyList, currencyID)
+			column = column + 1
+
+			if weeklyMax and weeklyMax > 0 then
+				if column > #self.columns then column = self:AddColumn('RIGHT') end
+				self:SetCell(lineNum, column, '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t')
+				self:SetCellScript(lineNum, column, 'OnMouseUp', SortCurrencyList, -1*currencyID)
+				column = column + 1
+			end
 		end
 	end
 	self:AddSeparator(2)
 
+	local addLine = true
 	for _, characterKey in ipairs(characters) do
-		local data = GetCurrencyCounts(characterKey, true)
-		if data then
-			lineNum = self:AddLine( addon.data.GetCharacterText(characterKey),  unpack(data))
-			self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+		if addLine then lineNum = self:AddLine(); addLine = false end
+		self:SetCell(lineNum, 1, addon.data.GetCharacterText(characterKey))
+		self:SetLineScript(lineNum, 'OnEnter', nop) -- show highlight on row
+
+		local column = 2
+		for currencyID, isShown in pairs(broker.db.profile.showInTooltip) do
+			-- FIXME: this can lead to incorrect assignment due to order
+			if isShown then
+				local _, name, total, _, weekly = addon.data.GetCurrencyInfo(characterKey, currencyID)
+				addLine = addLine or (total > 0 or weekly > 0)
+
+				local _, _, totalMax, weeklyMax = GetGeneralCurrencyInfo(currencyID)
+				local text = AbbreviateLargeNumbers(total)
+				if totalMax > 0 then
+					local r, g, b = GetGradientColor(1 - (total / totalMax))
+					text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
+				end
+				self:SetCell(lineNum, column, text, 'RIGHT')
+				column = column + 1
+
+				if weeklyMax and weeklyMax > 0 then
+					local r, g, b = GetGradientColor(1 - (weekly / weeklyMax))
+					text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
+					self:SetCell(lineNum, column, text, 'RIGHT')
+					column = column + 1
+				end
+			end
 		end
 	end
+
+	if addLine then lineNum = self:AddLine() end
+	self:SetCell(lineNum, 1, _G.GRAY_FONT_COLOR_CODE..'Left click: open token frame'..'|r', 'LEFT', #self.columns)
 end
