@@ -185,12 +185,12 @@ local function CheckNotifications(charKey, groupName)
 	local now = time()
 	for _, characterKey in pairs(addon.data.GetCharacters()) do
 		if not charKey or charKey == characterKey then
-			if not notificationsCache[characterKey] then
-				notificationsCache[characterKey] = {}
-				for key in pairs(handlers) do
-					notificationsCache[characterKey][key] = {}
-				end
+			-- make sure all tables exist
+			notificationsCache[characterKey] = notificationsCache[characterKey] or {}
+			for key in pairs(handlers) do
+				notificationsCache[characterKey][key] = notificationsCache[characterKey][key] or {}
 			end
+
 			local characterName = addon.data.GetCharacterText(characterKey)
 			for handlerName, handler in pairs(handlers) do
 				if (not groupName or groupName == handlerName) and type(handler) == 'function' then
