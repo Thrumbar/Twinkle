@@ -155,7 +155,7 @@ function broker:UpdateLDB()
 				local weeklyText = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
 				text = ('%s (%s%s)'):format(text, '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t', weeklyText)
 			end
-			currenciesString = (currenciesString and currenciesString .. ' ' or '') .. text .. '|T'..icon..':0|t'
+			currenciesString = (currenciesString and currenciesString .. ' ' or '') .. text .. ' |T'..icon..':0|t'
 		end
 	end
 
@@ -166,6 +166,8 @@ end
 function broker:UpdateTooltip()
 	self:SetColumnLayout(1, 'LEFT')
 	local lineNum, column = self:AddHeader(_G.CHARACTER), 2
+	-- sort by character name
+	self:SetCellScript(lineNum, 1, 'OnMouseUp', SortCurrencyList, 0)
 	for currencyID, isShown in pairs(broker.db.profile.showInTooltip) do
 		if isShown then
 			local name, texture, totalMax, weeklyMax = GetGeneralCurrencyInfo(currencyID)
