@@ -147,9 +147,8 @@ function broker:UpdateTooltip()
 	local numColumns, lineNum = 2
 	self:SetColumnLayout(numColumns, 'LEFT', 'RIGHT')
 
-	local lineNum
-	lineNum = self:AddHeader()
-			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.MONEY, 'LEFT', numColumns)
+	-- lineNum = self:AddHeader()
+	-- 		  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.MONEY, 'LEFT', numColumns)
 
 	local currentMoney = broker:GetAccountMoney()
 	local session, day, week, month = broker:GetHistoryValues()

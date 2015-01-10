@@ -11,7 +11,7 @@ local function UpdateItemLevelQualities() end
 
 -- iterate through loot to find dropped itemLevel
 local function GetLootItemLevel(difficulty)
-	if difficulty then
+	if difficulty and EJ_IsValidInstanceDifficulty(difficulty) then
 		EJ_SetDifficulty(difficulty)
 	end
 	for index = 1, EJ_GetNumLoot() do
@@ -218,10 +218,10 @@ function broker:UpdateTooltip()
 	self:SetColumnLayout(numColumns, 'LEFT', 'LEFT', 'LEFT', 'RIGHT')
 
 	-- header
-	lineNum = self:AddHeader()
-			  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CHARACTER, 'LEFT', numColumns)
-	lineNum = self:AddLine()
-	self:SetCell(lineNum, 1, NORMAL_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', 'LEFT', numColumns)
+	-- lineNum = self:AddHeader()
+	-- 		  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CHARACTER, 'LEFT', numColumns)
+	-- lineNum = self:AddLine()
+	-- self:SetCell(lineNum, 1, NORMAL_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', 'LEFT', numColumns)
 
 	-- sorting
 	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, '', 'iLevel')
@@ -254,4 +254,7 @@ function broker:UpdateTooltip()
 			ColorByItemLevel(addon.data.GetAverageItemLevel(characterKey))
 		)
 	end
+
+	lineNum = self:AddLine()
+	self:SetCell(lineNum, 1, NORMAL_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', 'LEFT', numColumns)
 end
