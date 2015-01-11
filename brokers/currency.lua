@@ -19,6 +19,12 @@ local function GetGeneralCurrencyInfo(currencyID)
 		weeklyMax = weeklyMax and math.floor(weeklyMax / 100)
 		totalMax  = totalMax  and math.floor(totalMax / 100)
 	end
+
+	if currencyID == 824 then
+		-- display uncollected resources as weekly
+		weeklyMax = 500
+	end
+
 	return name, texture, totalMax, weeklyMax
 end
 
@@ -104,7 +110,7 @@ local defaults = {
 			[396] = false, -- valor
 			[392] =  true, -- honor
 			[390] =  true, -- conquest
-			[824] =  true, -- garrison ressources
+			[824] =  true, -- garrison resources
 			[823] =  true, -- apexis shard
 			[994] =  true, -- seal of tempered fate
 			[738] = false, -- lesser coin of fortune
@@ -112,7 +118,7 @@ local defaults = {
 			[777] = false, -- timeless
 		},
 		showInLDB = {
-			[824] = true, -- garrison ressources
+			[824] = true, -- garrison resources
 			[823] = true, -- apexis shard
 			[994] = true, -- seal of tempered fate
 		},
@@ -151,7 +157,7 @@ function broker:UpdateLDB()
 				text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
 			end
 			if weeklyMax and weekly > 0 then
-				local r, g, b = GetGradientColor(1 - (total / totalMax))
+				local r, g, b = GetGradientColor(1 - (weekly / weeklyMax))
 				local weeklyText = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
 				text = ('%s (%s%s)'):format(text, '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t', weeklyText)
 			end

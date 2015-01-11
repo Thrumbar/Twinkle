@@ -439,7 +439,11 @@ function data.GetCurrencyInfo(characterKey, identifier)
 			name, count, icon, weekly = GetCurrencyInfo(identifier)
 			isHeader = not name
 		end
+		if identifier == 824 then
+			weekly = DataStore:GetUncollectedResources(characterKey) or 0
+		end
 	else
+		-- TODO: is this branch really needed?
 		for index = 1, data.GetNumCurrencies(characterKey) do
 			local _isHeader, _name, _count, _icon = data.GetCurrencyInfoByIndex(characterKey, index)
 			if _name == identifier then
