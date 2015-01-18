@@ -14,6 +14,7 @@ local characters = {}
 --]]
 
 local function GetGeneralCurrencyInfo(currencyID)
+	-- FIXME: for some reason, max counts are not available for undiscovered currencies
 	local name, _, texture, _, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID)
 	if currencyID == 395 or currencyID == 396 or currencyID == 392 or currencyID == 390 then
 		weeklyMax = weeklyMax and math.floor(weeklyMax / 100)
@@ -21,8 +22,11 @@ local function GetGeneralCurrencyInfo(currencyID)
 	end
 
 	if currencyID == 824 then
-		-- display uncollected resources as weekly
+		-- garrison resource: display uncollected as weekly
 		weeklyMax = 500
+	elseif currencyID == 994 then
+		-- seal of tempered fate
+		weeklyMax = 3
 	end
 
 	return name, texture, totalMax, weeklyMax
@@ -64,7 +68,7 @@ local function ScanCurrencies()
 	end
 end
 
-local sortCurrencyIndex, sortCurrencyReverse
+local sortCurrency, sortCurrencyReverse
 local function SortByCharacter(a, b)
 	if sortCurrencyReverse then
 		return addon.data.GetName(a) > addon.data.GetName(b)
@@ -73,9 +77,9 @@ local function SortByCharacter(a, b)
 	end
 end
 local function SortByCurrency(charA, charB)
-	local _, _, countA, _, weeklyA = addon.data.GetCurrencyInfo(charA, sortCurrencyIndex)
-	local _, _, countB, _, weeklyB = addon.data.GetCurrencyInfo(charB, sortCurrencyIndex)
-	if sortCurrencyIndex < 0 then
+	local _, _, countA, _, weeklyA = addon.data.GetCurrencyInfo(charA, sortCurrency)
+	local _, _, countB, _, weeklyB = addon.data.GetCurrencyInfo(charB, sortCurrency)
+	if sortCurrency < 0 then
 		-- sorting by weekly amounts
 		countA, countB = weeklyA, weeklyB
 	end
@@ -86,15 +90,16 @@ local function SortByCurrency(charA, charB)
 	end
 end
 local function SortCurrencyList(self, sortType, btn, up)
+	if sortCurrency == sortType then
+		sortCurrencyReverse = not sortCurrencyReverse
+	else
+		sortCurrency = sortType
+		sortCurrencyReverse = false
+	end
+
 	if sortType == 0 then
 		table.sort(characters, SortByCharacter)
 	else
-		if sortCurrencyIndex == sortType then
-			sortCurrencyReverse = not sortCurrencyReverse
-		else
-			sortCurrencyIndex = sortType
-			sortCurrencyReverse = false
-		end
 		table.sort(characters, SortByCurrency)
 	end
 	broker:Update()
@@ -122,12 +127,19 @@ local defaults = {
 			[823] = true, -- apexis shard
 			[994] = true, -- seal of tempered fate
 		},
+		iconFirst = true,
+		showWeeklyInLDB = true,
 	},
 }
 function broker:OnEnable()
 	characters = brokers:GetCharacters()
 	self.db = addon.db:RegisterNamespace('Currency', defaults)
 	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', self.Update, self)
+	self:RegisterEvent('SHOW_LOOT_TOAST', function(self, event, lootType, link, quantity, specID, sex, isPersonal, lootSource)
+		if lootSource == 10 then -- garrison cache
+			self:Update()
+		end
+	end, self)
 	self:Update()
 end
 function broker:OnDisable()
@@ -156,12 +168,18 @@ function broker:UpdateLDB()
 				local r, g, b = GetGradientColor(1 - (total / totalMax))
 				text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
 			end
-			if weeklyMax and weekly > 0 then
+			if addon.db.profile.showWeeklyInLDB and weeklyMax and weekly > 0 then
 				local r, g, b = GetGradientColor(1 - (weekly / weeklyMax))
 				local weeklyText = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
 				text = ('%s (%s%s)'):format(text, '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t', weeklyText)
 			end
-			currenciesString = (currenciesString and currenciesString .. ' ' or '') .. text .. ' |T'..icon..':0|t'
+
+			if broker.db.profile.iconFirst then
+				text = '|T'..icon..':0|t ' .. text
+			else
+				text = text .. ' |T'..icon..':0|t'
+			end
+			currenciesString = (currenciesString and currenciesString .. ' ' or '') .. text
 		end
 	end
 
