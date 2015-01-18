@@ -27,9 +27,18 @@ function broker:UpdateLDB()
 	self.icon = 'Interface\\FriendsFrame\\StatusIcon-Away'
 end
 
+--[[
 local worldBosses = { -- encounter journal bossID
 	-- 691, 725, 814, 826, 858, 861, -- Mists of Pandaria: Sha of Fear (qid:32099), Galleon (qid:32098), Nalak (qid:32518), Oondasta (qid:32519), Celestials (qid:33117), Ordos (qid:33118)
-	1291, 1211, 1262, -- Warlords of Draenor: Drov (qid:37460), Tarlna (qid:37462), Rukhmar (qid:37464)
+	1291, 1211, 1262, -- Warlords of Draenor: Drov (qid:37460/37462), Tarlna (qid:37462), Rukhmar (qid:37464/37474)
+} --]]
+local worldBosses = {
+	-- display order
+	37462, -- drov/tarlna
+	37474, -- rukhmar
+	-- boss data
+	[37462] = 1291, -- drov:1291, tarlna:1211
+	[37474] = 1261, -- rukhmar
 }
 local weeklyQuests = { -- sharedQuestID or 'allianceID|hordeID'
 	-- 32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
@@ -76,9 +85,13 @@ local function GetColumnHeaders(dataType)
 		return _G.RAID_FINDER, unpack(temp)
 	elseif dataType == 'boss' then
 		wipe(temp)
-		for index, journalBossID in ipairs(worldBosses) do
+		--[[ for index, journalBossID in ipairs(worldBosses) do
 			-- TODO: these icons are weirdly stretched
 			local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, journalBossID)
+			table.insert(temp, tex(icon, bossName))
+		end --]]
+		for index, questID in ipairs(worldBosses) do
+			local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, worldBosses[questID])
 			table.insert(temp, tex(icon, bossName))
 		end
 		return _G.BATTLE_PET_SOURCE_7, unpack(temp)
@@ -152,10 +165,15 @@ end
 local function GetCharacterBossLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.worldboss)
 	local showLine = characterKey == brokers:GetCharacter()
-	for index in ipairs(worldBosses) do
+	--[[ for index in ipairs(worldBosses) do
 		local expires = DataStore:IsWorldBossKilledBy(characterKey, index)
 		lockoutReturns.worldboss[index] = expires ~= nil
 		showLine = showLine or expires
+	end --]]
+	for index, questID in ipairs(worldBosses) do
+		local hasLockout = DataStore:IsQuestCompletedBy(characterKey, questID)
+		lockoutReturns.worldboss[index] = hasLockout and true or false
+		showLine = showLine or hasLockout
 	end
 	return (showLine or not hideEmpty) and lockoutReturns.worldboss or nil
 end
