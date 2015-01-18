@@ -3,7 +3,9 @@ local addonName, addon, _ = ...
 local data = addon:NewModule('data', 'AceEvent-3.0')
 addon.data = data
 
--- GLOBALS: DataStore
+-- GLOBALS: _G, DataStore, BANK_CONTAINER, BATTLENET_FONT_COLOR_CODE
+-- GLOBALS: GetRealmName, UnitName, UnitFullName, UnitRace, UnitClass, UnitLevel, UnitFactionGroup, UnitXP, UnitXPMax, GetXPExhaustion, GetItemInfo, GetNumClasses, GetClassInfo, GetMoney, GetZoneText, GetSubZoneText, GetAverageItemLevel, GetNumUnspentTalents, GetInventoryItemLink, GetActiveSpecGroup, GetContainerItemInfo, GetGuildInfo, IsResting, GetVoidItemInfo, GetCurrencyListSize, GetCurrencyListInfo, GetCurrencyInfo
+-- GLOBALS: string, math, table, wipe, pairs, select, type, tonumber, setmetatable, rawget, rawset, strjoin, strsplit
 
 local LibRealmInfo    = LibStub('LibRealmInfo')
 local thisCharacter   = DataStore:GetCharacter()
@@ -67,11 +69,11 @@ function data.GetName(characterKey)
 	end
 end
 function data.GetFullName(characterKey)
-	if character == thisCharacter then
+	if characterKey == thisCharacter then
 		local fullName = strjoin('-', UnitFullName('player'))
 	else
-		local account, realm, character = strsplit('.', characterKey)
-		return character..'-'..string.gsub(realm, ' ', '')
+		local account, realm, characterKey = strsplit('.', characterKey)
+		return characterKey..'-'..string.gsub(realm, ' ', '')
 	end
 end
 function data.GetCharacterText(characterKey)
@@ -173,7 +175,7 @@ end
 function data.GetLocation(characterKey)
 	if characterKey == thisCharacter then
 		local zone, subZone = GetZoneText(), GetSubZoneText()
-		local resting = IsResting()
+		local isResting = IsResting()
 		return zone, isResting
 	else
 		local zone, subZone = DataStore:GetLocation(characterKey)
@@ -430,29 +432,29 @@ function data.GetCurrencyInfoByIndex(characterKey, index)
 end
 
 -- identifier may be currencyID or currencyName
-function data.GetCurrencyInfo(characterKey, identifier)
-	local count, weekly, isHeader, name, icon
-	if type(identifier) == 'number' then
+function data.GetCurrencyInfo(characterKey, currencyID)
+	local name, count, icon, weekly = GetCurrencyInfo(currencyID)
+	local isHeader = not name
+	if characterKey ~= thisCharacter then
 		local weeklyMax, totalMax
-		count, weekly, weeklyMax, totalMax = DataStore:GetCurrencyTotals(characterKey, identifier)
-		if characterKey == thisCharacter then
-			name, count, icon, weekly = GetCurrencyInfo(identifier)
-			isHeader = not name
-		end
-		if identifier == 824 then
-			weekly = DataStore:GetUncollectedResources(characterKey) or 0
-		end
-	else
-		-- TODO: is this branch really needed?
-		for index = 1, data.GetNumCurrencies(characterKey) do
-			local _isHeader, _name, _count, _icon = data.GetCurrencyInfoByIndex(characterKey, index)
-			if _name == identifier then
-				isHeader, name, count, icon = _isHeader, _name, _count, _icon
-				break
-			end
+		count, weekly, weeklyMax, totalMax = DataStore:GetCurrencyTotals(characterKey, currencyID)
+		if count == 0 and weekly == 0 and weeklyMax == 0 and totalMax == 0 then
+			-- currency totals are only available for some currencies
+			_, _, count = DataStore:GetCurrencyInfoByName(characterKey, name)
 		end
 	end
-	return isHeader, name, count, icon, weekly
+
+	if currencyID == 824 then -- garrison resource
+		weekly = DataStore:GetUncollectedResources(characterKey) or 0
+	elseif currencyID == 994 then -- seal of tempered fate
+		weekly = data.GetNumQuestsCompleted(characterKey, 36058, -- war mill/dwarven bunker
+			36054, 37454, 37455, -- gold
+			36056, 37456, 37457, -- garrison resource
+			36057, 37458, 37459, -- honor
+			36055, 37452, 37453) -- apexis
+	end
+
+	return isHeader, name, count or 0, icon, weekly
 end
 
 -- ========================================
@@ -508,4 +510,14 @@ function data.GetDailyQuests(characterKey, useTable)
 		end
 	end
 	return useTable
+end
+
+function data.GetNumQuestsCompleted(characterKey, ...)
+	local count = 0
+	for i = 1, select('#', ...) do
+		local questID = select(i, ...)
+		-- TODO: does this work correctly with weekly quest resets?
+		count = count + (DataStore:IsQuestCompletedBy(characterKey, questID) and 1 or 0)
+	end
+	return count
 end
