@@ -9,6 +9,7 @@ local broker  = brokers:NewModule('Garrison')
 local DataStore_Garrisons_PublicMethods = {
 	GetFollowers = _GetFollowers,
 	GetFollowerInfo = _GetFollowerInfo,
+	GetFollowerSpellCounters = _GetFollowerSpellCounters,
 	GetFollowerLink = _GetFollowerLink,
 	GetFollowerID = _GetFollowerID,
 	GetNumFollowers = _GetNumFollowers,
@@ -39,8 +40,6 @@ function broker:UpdateLDB()
 	self.icon = 'Interface\\FriendsFrame\\UI-Toast-BroadcastIcon'
 end
 
-local function NOOP() end -- do nothing
-local instanceLinks = {}
 function broker:UpdateTooltip()
 	local numColumns = 2
 	self:SetColumnLayout(numColumns, 'LEFT')
@@ -54,7 +53,7 @@ function broker:UpdateTooltip()
 		-- self:AddSeparator(2)
 
 		-- lineNum = self:AddLine('Event', (notification):format(characterName, title, startsIn))
-		-- self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+		-- self:SetLineScript(lineNum, 'OnEnter', nop) -- show highlight on row
 	end
 	if not lineNum then return true end
 end
