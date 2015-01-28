@@ -53,7 +53,7 @@ local function OpenConfiguration(self, args)
 			eventReminders = GetReminderLabel,
 		},
 	}
-	types.ldbFormat = types.tooltipFormat
+	types.Money.ldbFormat = types.Money.tooltipFormat
 
 	LibStub('LibDualSpec-1.0'):EnhanceDatabase(addon.db, addonName)
 	local AceConfig,AceConfigDialog = LibStub('AceConfig-3.0'), LibStub('AceConfigDialog-3.0')
