@@ -16,11 +16,6 @@ local characters = {}
 local function GetGeneralCurrencyInfo(currencyID)
 	-- FIXME: for some reason, max counts are not available for undiscovered currencies
 	local name, _, texture, _, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID)
-	if currencyID == 395 or currencyID == 396 or currencyID == 392 or currencyID == 390 then
-		weeklyMax = weeklyMax and math.floor(weeklyMax / 100)
-		totalMax  = totalMax  and math.floor(totalMax / 100)
-	end
-
 	if currencyID == 824 then
 		-- garrison resource: display uncollected as weekly
 		weeklyMax = 500
@@ -28,7 +23,6 @@ local function GetGeneralCurrencyInfo(currencyID)
 		-- seal of tempered fate
 		weeklyMax = 3
 	end
-
 	return name, texture, totalMax, weeklyMax
 end
 
