@@ -40,20 +40,68 @@ function broker:UpdateLDB()
 	self.icon = 'Interface\\FriendsFrame\\UI-Toast-BroadcastIcon'
 end
 
+local COMPLETE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r'
+local COMPLETE_ACTIVE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r/'.._G.NORMAL_FONT_COLOR_CODE .. '%2$d|r'
+local COMPLETE_ACTIVE_INACTIVE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r/'.._G.NORMAL_FONT_COLOR_CODE .. '%2$d|r/'.._G.RED_FONT_COLOR_CODE .. '%3$d|r'
 function broker:UpdateTooltip()
-	local numColumns = 2
+	local numColumns = 4
 	self:SetColumnLayout(numColumns, 'LEFT')
 
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': Garrisons', 'LEFT', numColumns)
 
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
-		local characterName = addon.data.GetCharacterText(characterKey)
-		-- lineNum = self:AddHeader(characterName)
-		-- self:AddSeparator(2)
+	lineNum = self:AddHeader(_G.CHARACTER, 'Builds', 'Missions', 'Work Orders')
+	self:AddSeparator(2)
 
-		-- lineNum = self:AddLine('Event', (notification):format(characterName, title, startsIn))
-		-- self:SetLineScript(lineNum, 'OnEnter', nop) -- show highlight on row
+	-- character name, completed/active builds, completed/active missions, completed/active/inactive work orders
+
+	local now, hasData = time(), false
+	for _, characterKey in ipairs(brokers:GetCharacters()) do
+		-- shipments
+		local shipments = ''
+		for buildingID, nextBatch, active, completed, max in DataStore:IterateGarrisonShipments(characterKey) do
+			active = active - completed
+			while nextBatch > 0 and active > 0 and nextBatch <= now do
+				-- additional sets that have been completed
+				active = active - 1
+				completed  = (completed or 0) + 1
+				nextBatch = nextBatch + 4*60*60
+			end
+
+			if active > 0 or completed > 0 then
+				local _, _, _, icon = C_Garrison.GetBuildingInfo(buildingID)
+				shipments = (shipments ~= '' and shipments..' ' or '') .. '|T'..icon..':0|t ' .. COMPLETE_ACTIVE_INACTIVE:format(completed, active, max - active - completed)
+			end
+		end
+
+		-- builds
+		local numActive, numCompleted = 0, 0
+		for buildingID, expires in DataStore:IterateGarrisonBuilds(characterKey) do
+			if expires <= now then
+				numCompleted = numCompleted + 1
+			else
+				numActive = numActive + 1
+			end
+		end
+		local builds = (numActive ~= 0 or numCompleted ~= 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or ''
+
+		-- missions
+		local numActive, numCompleted = 0, 0
+		for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) do
+			if expires <= now then
+				numCompleted = numCompleted + 1
+			else
+				numActive = numActive + 1
+			end
+		end
+		local missions = (numActive ~= 0 and numCompleted ~= 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or (numCompleted > 0 and COMPLETE:format(numCompleted) or '')
+
+		if builds ~= '' or missions ~= '' or shipments ~= '' then
+			local characterName = addon.data.GetCharacterText(characterKey)
+			lineNum = self:AddLine(characterName, builds, missions, shipments)
+			          self:SetLineScript(lineNum, 'OnEnter', nop) -- show highlight on row
+			hasData = true
+		end
 	end
-	if not lineNum then return true end
+	return not hasData
 end

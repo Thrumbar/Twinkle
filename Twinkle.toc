@@ -43,6 +43,7 @@ modules\views.lua
 brokers\auctions.lua
 brokers\characters.lua
 brokers\currency.lua
+brokers\garrison.lua
 brokers\lockouts.lua
 brokers\money.lua
 brokers\notifications.lua
