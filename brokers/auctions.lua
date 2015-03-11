@@ -101,13 +101,16 @@ function broker:UpdateTooltip()
 	-- lineNum = self:AddHeader()
 	-- 		  self:SetCell(lineNum, 1, addonName .. ': ' .. _G.AUCTIONS, 'LEFT', numColumns)
 
+	local hasData = false
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		local statusText, icon = GetAuctionStatusText(characterKey)
 		if statusText or icon then
+			hasData = true
 			lineNum = self:AddLine(
 				'|T'..(icon or 'Interface\\RAIDFRAME\\ReadyCheck-Ready')..':0|t ' .. addon.data.GetCharacterText(characterKey),
 				statusText
 			)
 		end
 	end
+	return not hasData
 end
