@@ -45,7 +45,7 @@ local COMPLETE_ACTIVE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r/'.._G.NORMAL_FONT_CO
 local COMPLETE_ACTIVE_INACTIVE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r/'.._G.NORMAL_FONT_COLOR_CODE .. '%2$d|r/'.._G.RED_FONT_COLOR_CODE .. '%3$d|r'
 function broker:UpdateTooltip()
 	local numColumns = 4
-	self:SetColumnLayout(numColumns, 'LEFT')
+	self:SetColumnLayout(numColumns, 'LEFT', 'CENTER', 'CENTER', 'LEFT')
 
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': Garrisons', 'LEFT', numColumns)
