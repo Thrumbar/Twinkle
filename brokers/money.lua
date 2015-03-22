@@ -73,9 +73,21 @@ function broker:GetHistoryValues()
 	-- we only need the most recent date before each timespan
 	for dateStamp, money in pairs(self.db.global.history) do
 		-- some dates might not exist because we didn't log in
-		if dateStamp <= lastMonth and (not monthDate or dateStamp > monthDate) then monthDate = dateStamp end
-		if dateStamp <= lastWeek  and (not weekDate  or dateStamp > weekDate)  then weekDate  = dateStamp end
-		if dateStamp <= lastDay   and (not dayDate   or dateStamp > dayDate)   then dayDate   = dateStamp end
+		if not monthDate
+			or (dateStamp <= lastMonth and dateStamp > monthDate) -- valid date but more recent
+			or (dateStamp >  lastMonth and dateStamp < monthDate) -- invalid but closer to lastMonth
+		then
+			monthDate = dateStamp
+		end
+		if not weekDate
+			or (dateStamp <= lastWeek and dateStamp > weekDate) -- valid date but more recent
+			or (dateStamp >  lastWeek and dateStamp < weekDate) -- invalid but closer to lastWeek
+		then
+			weekDate = dateStamp
+		end
+		if not dayDate or (dateStamp <= lastDay and dateStamp > dayDate) then
+			dayDate = dateStamp
+		end
 	end
 
 	local session = self.session
