@@ -1,15 +1,17 @@
 local addonName, addon, _ = ...
 
-local function GetCurrencyLabel(currencyID)
+local function GetCurrencyLabel(currencyID, value)
 	local name, _, texture, _, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID)
+	local label = name or currencyID
 	if name then
-		return ('|T%2$s:0|t %3$s%1$s|r'):format(name, texture, isDiscovered and _G.NORMAL_FONT_COLOR_CODE or _G.GRAY_FONT_COLOR_CODE)
+		label = ('|T%2$s:0|t %3$s%1$s|r'):format(name, texture, isDiscovered and _G.NORMAL_FONT_COLOR_CODE or _G.GRAY_FONT_COLOR_CODE)
 	end
+	return currencyID, label
 end
 
-local function GetReminderLabel(interval)
+local function GetReminderLabel(interval, value)
 	-- alternative: D_MINUTES
-	return _G.PET_TIME_LEFT_MINUTES:format(interval)
+	return interval, _G.PET_TIME_LEFT_MINUTES:format(interval)
 end
 
 local function OpenConfiguration(self, args)
@@ -46,18 +48,28 @@ local function OpenConfiguration(self, args)
 			},
 		},
 		Currency = { -- brokers: currency
-			showInTooltip = GetCurrencyLabel,
-			showInLDB =  GetCurrencyLabel,
+			showInTooltip = 'multiselect',
+			showInLDB     = 'multiselect',
 		},
 		Notifications = { -- module: notifications
-			eventReminders = GetReminderLabel,
+			eventReminders = 'multiselect',
 		},
 	}
 	types.Money.ldbFormat = types.Money.tooltipFormat
 
+	local L = {
+		Currency = {
+			showInTooltipValues = GetCurrencyLabel,
+			showInLDBValues     = GetCurrencyLabel,
+		},
+		Notifications = {
+			eventRemindersValues = GetReminderLabel,
+		},
+	}
+
 	LibStub('LibDualSpec-1.0'):EnhanceDatabase(addon.db, addonName)
 	local AceConfig,AceConfigDialog = LibStub('AceConfig-3.0'), LibStub('AceConfigDialog-3.0')
-	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addon.db, types, nil, true)
+	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addon.db, types, L, true)
 	      optionsTable.name = addonName
 	AceConfig:RegisterOptionsTable(addonName, optionsTable)
 	AceConfigDialog:AddToBlizOptions(addonName, nil, nil)
@@ -94,6 +106,5 @@ local panel = CreateFrame('Frame')
 InterfaceOptions_AddCategory(panel)
 
 -- use slash command to toggle config
-local slashName = addonName:upper()
-_G['SLASH_'..slashName..'1'] = '/'..addonName
-_G.SlashCmdList[slashName] = function(args) OpenConfiguration(panel, args) end
+_G['SLASH_'..addonName] = '/'..addonName
+_G.SlashCmdList[addonName] = function(args) OpenConfiguration(panel, args) end
