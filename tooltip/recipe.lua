@@ -27,7 +27,7 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	local selfKnown = nil
 	for _, character in ipairs(ns.data.GetCharacters()) do
 		local profession = DataStore:GetProfession(character, professionName)
-		if profession then
+		if profession and profession.Rank > 0 then
 			local numCrafts = DataStore:GetNumCraftLines(profession) or 0
 			local isKnown = nil
 			for i = 1, numCrafts do
