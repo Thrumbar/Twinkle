@@ -9,6 +9,7 @@ local notifications = addon:NewModule('Notifications', 'AceEvent-3.0')
 
 local thisCharacter = DataStore:GetCharacter()
 local notificationsCache = {}
+local emptyTable = {}
 
 local defaults = {
 	global = {
@@ -163,7 +164,7 @@ local function CheckCraftingNotifications(characterKey, characterName, now)
 	end
 	local charNotifications = notificationsCache[characterKey]
 
-	for profName, profession in pairs(DataStore:GetProfessions(characterKey)) do
+	for profName, profession in pairs(DataStore:GetProfessions(characterKey) or emptyTable) do
 		for index = 1, DataStore:GetNumActiveCooldowns(profession) or 0 do
 			local name, expiresIn, _, lastCheck = DataStore:GetCraftCooldownInfo(profession, index)
 			local expires = lastCheck + expiresIn
