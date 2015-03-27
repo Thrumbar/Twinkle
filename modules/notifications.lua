@@ -7,7 +7,7 @@ local notifications = addon:NewModule('Notifications', 'AceEvent-3.0')
 -- local QTip = LibStub('LibQTip-1.0')
 -- local LDB  = LibStub('LibDataBroker-1.1')
 
-local thisCharacter = DataStore:GetCharacter()
+local thisCharacter = addon.data.GetCurrentCharacter()
 local notificationsCache = {}
 local emptyTable = {}
 
@@ -52,7 +52,7 @@ local function CheckCalendarNotifications(characterKey, characterName, now)
 	local charNotifications = notificationsCache[characterKey]
 	local today = date('%Y-%m-%d')
 
-	for index = 1, DataStore:GetNumCalendarEvents(characterKey) do
+	for index = 1, DataStore:GetNumCalendarEvents(characterKey) or emptyTable do
 		local eventDate, eventTime, title, eventType, inviteStatus = DataStore:GetCalendarEventInfo(characterKey, index)
 		if eventDate == today then
 			local eventStamp = StringToTimestamp(eventDate, eventTime)
@@ -86,7 +86,7 @@ local function CheckGarrisonMissions(characterKey, characterName, now)
 
 	local charNotifications = notificationsCache[characterKey]
 	local hasNewMissions = false
-	for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) do
+	for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) or nop do
 		if expires <= now then
 			local data = C_Garrison.GetMissionLink(missionID)
 			if not tContains(charNotifications.missions, data) then
@@ -107,7 +107,7 @@ local function CheckGarrisonBuilds(characterKey, characterName, now)
 
 	local charNotifications = notificationsCache[characterKey]
 	local hasNewBuilds = false
-	for buildingID, expires in DataStore:IterateGarrisonBuilds(characterKey) do
+	for buildingID, expires in DataStore:IterateGarrisonBuilds(characterKey) or nop do
 		if expires <= now then
 			local _, data = C_Garrison.GetBuildingInfo(buildingID)
 			if not tContains(charNotifications.builds, data) then
@@ -128,7 +128,7 @@ local function CheckGarrisonShipments(characterKey, characterName, now)
 
 	local charNotifications = notificationsCache[characterKey]
 	local hasNewShipments = false
-	for buildingID, nextBatch, numActive, numReady, maxOrders in DataStore:IterateGarrisonShipments(characterKey) do
+	for buildingID, nextBatch, numActive, numReady, maxOrders in DataStore:IterateGarrisonShipments(characterKey) or nop do
 		numActive = numActive - numReady
 		while nextBatch > 0 and numActive > 0 and nextBatch <= now do
 			-- additional sets that have been completed

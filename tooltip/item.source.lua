@@ -1,7 +1,9 @@
 local addonName, ns, _ = ...
 
+local emptyTable = {}
 local LPT = LibStub("LibPeriodicTable-3.1", true)
-local LBFactions = LibStub("LibBabble-Faction-3.0"):GetLookupTable()
+local LBFactions = LibStub("LibBabble-Faction-3.0", true)
+      LBFactions = LBFactions and LBFactions:GetLookupTable() or emptyTable
 
 local _, _, VALOR = GetCurrencyInfo(VALOR_CURRENCY)
 local _, _, CONQUEST = GetCurrencyInfo(CONQUEST_CURRENCY)

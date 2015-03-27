@@ -7,9 +7,18 @@ addon.data = data
 -- GLOBALS: GetRealmName, UnitName, UnitFullName, UnitRace, UnitClass, UnitLevel, UnitFactionGroup, UnitXP, UnitXPMax, GetXPExhaustion, GetItemInfo, GetNumClasses, GetClassInfo, GetMoney, GetZoneText, GetSubZoneText, GetAverageItemLevel, GetNumUnspentTalents, GetInventoryItemLink, GetActiveSpecGroup, GetContainerItemInfo, GetGuildInfo, IsResting, GetVoidItemInfo, GetCurrencyListSize, GetCurrencyListInfo, GetCurrencyInfo
 -- GLOBALS: string, math, table, wipe, pairs, select, type, tonumber, setmetatable, rawget, rawset, strjoin, strsplit
 
+local DataStore = _G.DataStore
+if not DataStore then
+	DataStore = setmetatable({}, {
+		__index = function(self, key)
+			return nop
+		end,
+	})
+end
+
 local LibRealmInfo    = LibStub('LibRealmInfo')
-local thisCharacter   = DataStore:GetCharacter()
-local realmCharacters = DataStore:GetCharacters() -- TODO: this is bsh*t
+local thisCharacter   = DataStore:GetCharacter() or UnitFullName('player')
+local realmCharacters = DataStore:GetCharacters() or {thisCharacter = UnitName('player')} -- TODO: this is bsh*t
 local emptyTable      = {}
 
 function data.GetCharacters(useTable)
@@ -34,10 +43,10 @@ function data.GetAllCharacters(useTable, realm)
 	realms[ realm or (GetRealmName()) ] = true
 
 	if useTable then wipe(useTable) else useTable = {} end
-	for account in pairs(DataStore:GetAccounts()) do
-		for realm in pairs(DataStore:GetRealms(account)) do
+	for account in pairs(DataStore:GetAccounts() or emptyTable) do
+		for realm in pairs(DataStore:GetRealms(account) or emptyTable) do
 			if realms[realm] then
-				for _, characterKey in pairs(DataStore:GetCharacters(realm, account)) do
+				for _, characterKey in pairs(DataStore:GetCharacters(realm, account) or emptyTable) do
 					table.insert(useTable, characterKey)
 				end
 			end
@@ -185,7 +194,8 @@ function data.GetLocation(characterKey)
 end
 function data.GetAuctionState(characterKey)
 	local auctions, bids = DataStore:GetNumAuctions(characterKey), DataStore:GetNumBids(characterKey)
-	return auctions or 0, bids or 0
+	local lastVisit = DataStore:GetAuctionHouseLastVisit(characterKey)
+	return auctions or 0, bids or 0, lastVisit or 0
 end
 function data.GetAuctionInfo(characterKey, list, index)
 	-- TODO: FIXME: this is probably outdated with WoD
@@ -195,9 +205,11 @@ function data.GetAuctionInfo(characterKey, list, index)
 	-- isGoblin, itemID, count, name, bidPrice, buyoutPrice, timeLeft
 	return DataStore:GetAuctionHouseItemInfo(characterKey, list, index)
 end
-function data.GetNumMails(characterKey)
+function data.GetNumMails(characterKey, expiresInDays)
 	-- returns the number of item attachments in mails
-	return DataStore:GetNumMails(characterKey) or 0
+	local numMails = DataStore:GetNumMails(characterKey) or 0
+	local numExpired = DataStore:GetNumExpiredMails(characterKey, expiresInDays or 7) or 0
+	return numMails, numExpired
 end
 function data.GetMailInfo(characterKey, index)
 	local _, expires = DataStore:GetMailExpiry(characterKey, index)
@@ -311,7 +323,7 @@ end
 local guildCounts = {}
 function data.GetGuildsItemCounts(itemID, uncached)
 	wipe(guildCounts)
-	for guild, identifier in pairs( DataStore:GetGuilds() ) do
+	for guild, identifier in pairs(DataStore:GetGuilds() or emptyTable) do
 		-- DataStore:GetGuildFaction(guild) == 'Horde' and
 		local guildText = string.format('%s%s|r', BATTLENET_FONT_COLOR_CODE,  guild)
 		local count = data.GetItemCounts(identifier, itemID)
@@ -520,4 +532,16 @@ function data.GetNumQuestsCompleted(characterKey, ...)
 		count = count + (DataStore:IsQuestCompletedBy(characterKey, questID) and 1 or 0)
 	end
 	return count
+end
+
+function data.GetNumSavedWorldBosses(characterKey)
+	return DataStore:GetNumSavedWorldBosses(characterKey) or 0
+end
+
+function data.GetSavedWorldBosses(characterKey)
+	return DataStore:GetSavedWorldBosses(characterKey) or emptyTable
+end
+
+function data.IsWorldBossKilledBy(characterKey, bossID)
+	return DataStore:IsWorldBossKilledBy(characterKey, bossID) or false
 end

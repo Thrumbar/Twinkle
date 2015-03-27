@@ -312,7 +312,7 @@ function view:OnEnable()
 		local character = addon.GetSelectedCharacter()
 		local lockouts, numLockouts = '', 0
 		for bossID, icon in pairs(worldBosses[expansion]) do
-			local hasLockout = DataStore:IsWorldBossKilledBy(character, bossID)
+			local hasLockout = addon.data.IsWorldBossKilledBy(character, bossID)
 			if hasLockout then
 				numLockouts = numLockouts + 1
 				lockouts = lockouts .. '' .. '|TInterface\\PetBattles\\DeadPetIcon:0|t'
