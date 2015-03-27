@@ -59,7 +59,7 @@ function broker:UpdateTooltip()
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		-- shipments
 		local shipments = ''
-		for buildingID, nextBatch, active, completed, max in DataStore:IterateGarrisonShipments(characterKey) do
+		for buildingID, nextBatch, active, completed, max in DataStore:IterateGarrisonShipments(characterKey) or nop do
 			active = active - completed
 			while nextBatch > 0 and active > 0 and nextBatch <= now do
 				-- additional sets that have been completed
@@ -76,7 +76,7 @@ function broker:UpdateTooltip()
 
 		-- builds
 		local numActive, numCompleted = 0, 0
-		for buildingID, expires in DataStore:IterateGarrisonBuilds(characterKey) do
+		for buildingID, expires in DataStore:IterateGarrisonBuilds(characterKey) or nop do
 			if expires <= now then
 				numCompleted = numCompleted + 1
 			else
@@ -87,7 +87,7 @@ function broker:UpdateTooltip()
 
 		-- missions
 		local numActive, numCompleted = 0, 0
-		for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) do
+		for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) or nop do
 			if expires <= now then
 				numCompleted = numCompleted + 1
 			else

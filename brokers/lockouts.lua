@@ -1,6 +1,6 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: _G
+-- GLOBALS: _G, nop
 -- TODO: sort lockouts
 -- TODO: SHIFT-click to post lockoutLink to chat
 -- TODO: display defeated/available bosses OnEnter
@@ -23,7 +23,7 @@ local instances = {
 
 local function GetInstanceLockouts(characterKey, difficulty, instance)
 	local numDefeated, numBosses, hasID, link = 0, 0, nil, nil
-	for lockoutID, lockoutLink in DataStore:IterateInstanceLockouts(characterKey) do
+	for lockoutID, lockoutLink in DataStore:IterateInstanceLockouts(characterKey) or nop do
 		local instanceMapID, diff, reset, _, _, defeated, bosses = DataStore:GetInstanceLockoutInfo(characterKey, lockoutID)
 		if diff == difficulty and instanceMapID == instance then
 			numDefeated = numDefeated + defeated
@@ -51,7 +51,6 @@ function broker:UpdateLDB()
 	self.icon = 'Interface\\PetBattles\\PetBattle-LockIcon'
 end
 
-local function NOOP() end -- do nothing
 local instanceLinks = {}
 function broker:UpdateTooltip()
 	local numColumns = 4
@@ -103,7 +102,7 @@ function broker:UpdateTooltip()
 				end
 
 				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), nhc, hc, mc)
-				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
+				self:SetLineScript(lineNum, 'OnEnter', nop) -- show highlight on row
 				for column = 2, numColumns do
 					local instanceLink = instanceLinks[column - 1]
 					if instanceLink ~= '' then
