@@ -9,7 +9,7 @@ local questInfo = {}
 local function GetOnQuestInfo(questID, onlyActive)
 	wipe(questInfo)
 	for _, characterKey in ipairs(ns.data.GetCharacters()) do
-		if characterKey ~= ns.data.GetCurrentCharacter() then
+		-- if characterKey ~= ns.data.GetCurrentCharacter() then
 			local numActiveQuests = DataStore:GetQuestLogSize(characterKey) or 0
 			for i = 1, numActiveQuests do
 				local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(characterKey, i)
@@ -27,7 +27,7 @@ local function GetOnQuestInfo(questID, onlyActive)
 					break
 				end
 			end
-		end
+		-- end
 	end
 
 	-- ERR_QUEST_PUSH_ACCEPTED_S = "%1$s hat Eure Quest angenommen."
