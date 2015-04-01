@@ -43,6 +43,8 @@ end
 local COMPLETE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r'
 local COMPLETE_ACTIVE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r/'.._G.NORMAL_FONT_COLOR_CODE .. '%2$d|r'
 local COMPLETE_ACTIVE_INACTIVE = _G.GREEN_FONT_COLOR_CODE .. '%1$d|r/'.._G.NORMAL_FONT_COLOR_CODE .. '%2$d|r/'.._G.RED_FONT_COLOR_CODE .. '%3$d|r'
+local INACTIVE = _G.GRAY_FONT_COLOR_CODE .. '%3$d|r'
+local ZERO = _G.GRAY_FONT_COLOR_CODE .. '0|r'
 function broker:UpdateTooltip()
 	local numColumns = 4
 	self:SetColumnLayout(numColumns, 'LEFT', 'CENTER', 'CENTER', 'LEFT')
@@ -68,10 +70,8 @@ function broker:UpdateTooltip()
 				nextBatch = nextBatch + 4*60*60
 			end
 
-			if active > 0 or completed > 0 then
-				local _, _, _, icon = C_Garrison.GetBuildingInfo(buildingID)
-				shipments = (shipments ~= '' and shipments..' ' or '') .. '|T'..icon..':0|t ' .. COMPLETE_ACTIVE_INACTIVE:format(completed, active, max - active - completed)
-			end
+			local _, _, _, icon = C_Garrison.GetBuildingInfo(buildingID)
+			shipments = (shipments ~= '' and shipments..' ' or '') .. '|T'..icon..':0|t ' .. (active + completed > 0 and COMPLETE_ACTIVE_INACTIVE or INACTIVE):format(completed, active, max - active - completed)
 		end
 
 		-- builds
@@ -83,7 +83,7 @@ function broker:UpdateTooltip()
 				numActive = numActive + 1
 			end
 		end
-		local builds = (numActive ~= 0 or numCompleted ~= 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or ''
+		local builds = (numActive > 0 or numCompleted > 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or ZERO
 
 		-- missions
 		local numActive, numCompleted = 0, 0
@@ -94,7 +94,7 @@ function broker:UpdateTooltip()
 				numActive = numActive + 1
 			end
 		end
-		local missions = (numActive ~= 0 and numCompleted ~= 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or (numCompleted > 0 and COMPLETE:format(numCompleted) or '')
+		local missions = (numActive > 0 or numCompleted > 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or ZERO
 
 		if builds ~= '' or missions ~= '' or shipments ~= '' then
 			local characterName = addon.data.GetCharacterText(characterKey)
