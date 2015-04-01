@@ -89,9 +89,8 @@ function quests:OnClickRow(btn, up)
 	if not self.link then return end
 	local questID, linkType = addon.GetLinkID(self.link)
 	local questIndex = GetQuestLogIndexByID(questID)
-	if linkType == 'quest' and questIndex then
-		-- ShowUIPanel(QuestLogDetailFrame)
-		QuestLog_SetSelection(QuestLogFrame.selectedIndex == questIndex and 0 or questIndex)
+	if linkType == 'quest' and questIndex > 0 then
+		QuestMapFrame_OpenToQuestDetails(questID)
 	end
 end
 
