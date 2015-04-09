@@ -1,4 +1,5 @@
 local addonName, addon, _ = ...
+local L = addon.L
 
 -- GLOBALS: _G, DataStore
 -- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_SetOffset, FauxScrollFrame_OnVerticalScroll
@@ -7,7 +8,7 @@ local addonName, addon, _ = ...
 local views = addon:GetModule('views')
 local lists = views:NewModule('lists')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
-      lists.title = 'Lists'
+      lists.title = L['Lists']
 -- views modules are disabled by default, so our modules need to do the same
 lists:SetDefaultModuleState(false)
 

@@ -6,6 +6,7 @@ _G[addonName] = addon
 -- GLOBALS: gsub, type, pairs, tonumber, table, string, hooksecurefunc
 
 LibStub('AceAddon-3.0'):NewAddon(addon, addonName, 'AceEvent-3.0')
+addon.L = LibStub('AceLocale-3.0'):GetLocale(addonName, true)
 
 -- convenient and smart tooltip handling
 function addon.ShowTooltip(self, anchor)

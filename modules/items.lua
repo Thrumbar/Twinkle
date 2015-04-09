@@ -1,4 +1,5 @@
 local addonName, addon, _ = ...
+local L = addon.L
 
 -- GLOBALS: _G, DataStore
 -- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_SetOffset, FauxScrollFrame_OnVerticalScroll, WhoFrameColumn_SetWidth, GetItemInfo, GetItemQualityColor
@@ -8,7 +9,7 @@ local tinsert, tremove, tsort, abs = table.insert, table.remove, table.sort, mat
 local views = addon:GetModule('views')
 local items = views:NewModule('items')
       items.icon  = 'Interface\\Buttons\\Button-Backpack-Up'
-      items.title = 'Items'
+      items.title = _G.ITEMS
 -- views modules are disabled by default, so our modules need to do the same
 items:SetDefaultModuleState(false)
 
@@ -26,7 +27,7 @@ local sortProperties = {
 local sortHeaders = {
 	{ id = SORT_BY_QUALITY,	label = _G.QUALITY },
 	{ id = SORT_BY_NAME,	label = _G.ITEM_NAMES },
-	{ id = SORT_BY_COUNT,	label = 'Count' },
+	{ id = SORT_BY_COUNT,	label = L['Count'] },
 	{ id = SORT_BY_LEVEL,	label = _G.LEVEL }, -- GUILDINFOTAB_INFO
 }
 local sortOrder = { SORT_BY_NAME, SORT_BY_QUALITY, SORT_BY_LEVEL, SORT_BY_COUNT }

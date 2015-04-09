@@ -7,7 +7,7 @@ local addonName, addon, _ = ...
 local views = addon:GetModule('views')
 local view  = views:NewModule('default', 'AceTimer-3.0')
       view.icon = 'Interface\\Icons\\INV_Misc_GroupLooking'
-      view.title = 'General'
+      view.title = _G.GENERAL
 
 local function UpdateFlowContainer(container)
 	local character = addon.GetSelectedCharacter()

@@ -24,6 +24,7 @@ libs\LibRealmInfo\LibRealmInfo.lua
 libs\LibItemLocations\LibItemLocations.lua
 libs\LibOptionsGenerate-1.0.lua
 
+locale.lua
 Twinkle.lua
 
 # modules

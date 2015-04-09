@@ -7,7 +7,7 @@ local addonName, addon, _ = ...
 local views = addon:GetModule('views')
 local equipment = views:NewModule('equipment', 'AceTimer-3.0')
       equipment.icon = 'Interface\\Icons\\Achievement_Arena_2v2_6' -- Achievement_Arena_3v3_6
-      -- equipment.title = 'Equipment'
+      equipment.title = _G.BAG_FILTER_EQUIPMENT
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 
@@ -41,16 +41,26 @@ local slotInfo = {
 }
 
 local enchantables = {
-	[ 3] = true, -- ShoulderSlot
-	[ 5] = true, -- ChestSlot
-	[ 7] = true, -- LegsSlot
-	[ 8] = true, -- FeetSlot
-	[ 9] = true, -- WristSlot
-	[10] = true, -- HandsSlot
+	-- [ 3] = true, -- ShoulderSlot
+	-- [ 5] = true, -- ChestSlot
+	-- [ 7] = true, -- LegsSlot
+	-- [ 8] = true, -- FeetSlot
+	-- [ 9] = true, -- WristSlot
+	-- [10] = true, -- HandsSlot
+	[11] = true, -- Finger0Slot
+	[12] = true, -- Finger1Slot
 	[15] = true, -- BackSlot
 	[16] = true, -- MainHandSlot
-	[17] = true, -- SecondaryHandSlot
+	-- [17] = true, -- SecondaryHandSlot
 }
+
+local function IsItemUnenchanted(itemLink, slotID)
+	if not itemLink then return end
+	-- TODO: this does not yet accomodate for enchanter's rings
+	-- TODO: apply pre-max level logic as well
+	local enchantID = itemLink:match('item:%d+:(%d+)')
+	return enchantables[slotID] and enchantID == '0'
+end
 
 local gemColorNames = {
 	['EMPTY_SOCKET_RED']		= 'Red',
@@ -164,14 +174,7 @@ local function SetSlotItem(slotID, itemLink)
 			slotButton.upgrade:SetTextColor(color.r, color.g, color.b)
 		end
 
-		-- enchantments
-		-- TODO: this does not yet accomodate for enchanter's rings
-		local enchantID = enchantables[slotID] and itemLink:match('item:%d+:(%d+)')
-		if enchantID and enchantID == '0' then
-			ActionButton_ShowOverlayGlow(slotButton)
-		else
-			ActionButton_HideOverlayGlow(slotButton)
-		end
+		local itemIsIncomplete = false
 
 		-- sockets
 		wipe(itemStats)
@@ -188,6 +191,7 @@ local function SetSlotItem(slotID, itemLink)
 					SetSocketInfo(slotButton[gemIndex], dataColor, gemLink)
 					slotButton[gemIndex]:Show()
 					gemIndex = gemIndex + 1
+					itemIsIncomplete = itemIsIncomplete or not gemLink
 				end
 			end
 		end
@@ -200,8 +204,18 @@ local function SetSlotItem(slotID, itemLink)
 					-- additional gem found
 					SetSocketInfo(slotButton[gemIndex], 'Prismatic', gemLink)
 					slotButton[gemIndex]:Show()
+					itemIsIncomplete = itemIsIncomplete or not gemLink
 				end
 			end
+		end
+
+		-- enchantments
+		itemIsIncomplete = itemIsIncomplete or IsItemUnenchanted(itemLink, slotID)
+
+		if itemIsIncomplete then
+			ActionButton_ShowOverlayGlow(slotButton)
+		else
+			ActionButton_HideOverlayGlow(slotButton)
 		end
 	end
 end
@@ -364,7 +378,7 @@ function equipment.OnEnable(self)
 
 		if i == 1 then
 			button:SetPoint('TOPRIGHT', -8, -10)
-			button.name:SetText('Equipped')
+			button.name:SetText(_G.BAG_FILTER_EQUIPMENT)
 			button.icon:SetTexture('Interface\\GUILDFRAME\\GuildLogo-NoLogo')
 			button.selected = true
 			button.selectedTex:Show()
