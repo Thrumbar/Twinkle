@@ -109,13 +109,16 @@ local function ColorByItemLevel(itemLevel)
 end
 -- FOO, BAR = itemLevelQualities, ColorByItemLevel
 
-local sortOrder, sortReverse = {'GetLevel', 'GetAverageItemLevel', 'GetName'}, false
+local sortColumns = {'GetLevel', 'GetName', nil, 'GetAverageItemLevel'}
+local sortOrder = {1, 4, 2}
 local function Sort(a, b)
 	local aValue, bValue
-	for _, sortType in ipairs(sortOrder) do
+	for _, column in ipairs(sortOrder) do
+		local sortType = sortColumns[math.abs(column)]
 		aValue, bValue = addon.data[sortType](a), addon.data[sortType](b)
 		if aValue ~= bValue then
-			if sortReverse then
+			if column < 0 then
+				-- reverse sorting
 				return aValue > bValue
 			else
 				return aValue < bValue
@@ -124,16 +127,16 @@ local function Sort(a, b)
 	end
 	return a < b
 end
-local function SortCharacterList(self, column, btn, up)
+local function SortCharacterList(self, columnIndex, btn, up)
 	local sortIndex
-	for index, sortType in pairs(sortOrder) do
-		if sortType == column then sortIndex = index; break end
+	for index, column in ipairs(sortOrder) do
+		if math.abs(column) == columnIndex then sortIndex = index; break end
 	end
 	if sortIndex == 1 then
-		sortReverse = not sortReverse
+		columnIndex = -1 * sortOrder[sortIndex]
 	end
 	table.remove(sortOrder, sortIndex)
-	table.insert(sortOrder, 1, column)
+	table.insert(sortOrder, 1, columnIndex)
 	table.sort(characters, Sort)
 	broker:Update()
 end
@@ -214,7 +217,6 @@ function broker:UpdateLDB()
 	)
 end
 
-local columnFuncs = {'GetLevel', 'GetName', nil, 'GetAverageItemLevel'}
 function broker:UpdateTooltip()
 	local numColumns, lineNum = 4
 	self:SetColumnLayout(numColumns, 'LEFT', 'LEFT', 'LEFT', 'RIGHT')
@@ -229,8 +231,8 @@ function broker:UpdateTooltip()
 	local iLevel = _G.GARRISON_FOLLOWER_ITEM_LEVEL:gsub('%%%d?%$?d', ''):trim()
 	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, '', iLevel)
 	for column = 1, numColumns do
-		if columnFuncs[column] then
-			self:SetCellScript(lineNum, column, 'OnMouseUp', SortCharacterList, columnFuncs[column])
+		if sortColumns[column] then
+			self:SetCellScript(lineNum, column, 'OnMouseUp', SortCharacterList, column) -- sortColumns[column])
 		end
 	end
 	self:AddSeparator(2)
