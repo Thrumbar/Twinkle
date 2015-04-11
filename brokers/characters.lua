@@ -109,30 +109,31 @@ local function ColorByItemLevel(itemLevel)
 end
 -- FOO, BAR = itemLevelQualities, ColorByItemLevel
 
--- TODO/FIXME: this is not a proper sort function
-local sortBy, sortReverse = 3, false
+local sortOrder, sortReverse = {'GetLevel', 'GetAverageItemLevel', 'GetName'}, false
 local function Sort(a, b)
 	local aValue, bValue
-	if sortBy == 1 then
-		aValue, bValue = addon.data.GetLevel(a), addon.data.GetLevel(b)
-	elseif sortBy == 2 then
-		aValue, bValue = addon.data.GetName(a), addon.data.GetName(b)
-	else
-		aValue, bValue = addon.data.GetAverageItemLevel(a), addon.data.GetAverageItemLevel(b)
+	for _, sortType in ipairs(sortOrder) do
+		aValue, bValue = addon.data[sortType](a), addon.data[sortType](b)
+		if aValue ~= bValue then
+			if sortReverse then
+				return aValue > bValue
+			else
+				return aValue < bValue
+			end
+		end
 	end
-	if sortReverse then
-		return aValue > bValue
-	else
-		return aValue < bValue
-	end
+	return a < b
 end
-local function SortCharacterList(self, sortType, btn, up)
-	if sortBy == sortType then
-		sortReverse = not sortReverse
-	else
-		sortBy = sortType
-		sortReverse = false
+local function SortCharacterList(self, column, btn, up)
+	local sortIndex
+	for index, sortType in pairs(sortOrder) do
+		if sortType == column then sortIndex = index; break end
 	end
+	if sortIndex == 1 then
+		sortReverse = not sortReverse
+	end
+	table.remove(sortOrder, sortIndex)
+	table.insert(sortOrder, 1, column)
 	table.sort(characters, Sort)
 	broker:Update()
 end
@@ -213,6 +214,7 @@ function broker:UpdateLDB()
 	)
 end
 
+local columnFuncs = {'GetLevel', 'GetName', nil, 'GetAverageItemLevel'}
 function broker:UpdateTooltip()
 	local numColumns, lineNum = 4
 	self:SetColumnLayout(numColumns, 'LEFT', 'LEFT', 'LEFT', 'RIGHT')
@@ -224,9 +226,12 @@ function broker:UpdateTooltip()
 	-- self:SetCell(lineNum, 1, NORMAL_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', 'LEFT', numColumns)
 
 	-- sorting
-	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, '', 'iLevel')
+	local iLevel = _G.GARRISON_FOLLOWER_ITEM_LEVEL:gsub('%%%d?%$?d', ''):trim()
+	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, '', iLevel)
 	for column = 1, numColumns do
-		self:SetCellScript(lineNum, column, 'OnMouseUp', SortCharacterList, column)
+		if columnFuncs[column] then
+			self:SetCellScript(lineNum, column, 'OnMouseUp', SortCharacterList, columnFuncs[column])
+		end
 	end
 	self:AddSeparator(2)
 
