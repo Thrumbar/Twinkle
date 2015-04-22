@@ -96,8 +96,9 @@ local function CheckGarrisonMissions(characterKey, characterName, now)
 		end
 	end
 	if hasNewMissions and not (GarrisonMissionFrame and GarrisonMissionFrame:IsShown()) then
-		notifications:Print(('Garrison mission completed by %s:'):format(characterName),
-			table.concat(charNotifications.missions, ', '))
+		local link = ('|Htwinkle:missions:%1$s|h[%3$d |4mission:missions;]|h'):format(characterKey, characterName, #charNotifications.missions)
+		-- notifications:Print(characterName .. ' ' .. link)
+		return link
 	end
 end
 
@@ -117,8 +118,9 @@ local function CheckGarrisonBuilds(characterKey, characterName, now)
 		end
 	end
 	if hasNewBuilds then
-		notifications:Print(('Garrison building completed by %s:'):format(characterName),
-			table.concat(charNotifications.builds, ', '))
+		local link = ('|Htwinkle:buildings:%1$s|h[%3$d |4build:builds;]|h'):format(characterKey, characterName, #charNotifications.builds)
+		-- notifications:Print(characterName .. ' ' .. link)
+		return link
 	end
 end
 
@@ -127,7 +129,7 @@ local function CheckGarrisonShipments(characterKey, characterName, now)
 	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
 	local charNotifications = notificationsCache[characterKey]
-	local hasNewShipments = false
+	local hasNewShipments, numShipments = false, 0
 	for buildingID, nextBatch, numActive, numReady, maxOrders in DataStore:IterateGarrisonShipments(characterKey) or nop do
 		numActive = numActive - numReady
 		while nextBatch > 0 and numActive > 0 and nextBatch <= now do
@@ -136,6 +138,8 @@ local function CheckGarrisonShipments(characterKey, characterName, now)
 			numReady  = (numReady or 0) + 1
 			nextBatch = nextBatch + 4*60*60
 		end
+		numShipments = numShipments + numReady
+
 		if numReady > 0 then
 			local _, name = C_Garrison.GetBuildingInfo(buildingID)
 			local data = ('%1$s (%2$d/%3$d of %4$s)'):format(name, numReady, numReady+numActive, maxOrders)
@@ -152,8 +156,9 @@ local function CheckGarrisonShipments(characterKey, characterName, now)
 		end
 	end
 	if hasNewShipments then
-		notifications:Print(('Garrison shipment has arrived for %s:'):format(characterName),
-			table.concat(charNotifications.shipments, ', '))
+		local link = ('|Htwinkle:shipments:%1$s|h[%3$d |4work order:work orders;]|h'):format(characterKey, characterName, numShipments)
+		-- notifications:Print(characterName .. ' ' .. link)
+		return link
 	end
 end
 
@@ -181,22 +186,31 @@ local handlers = {
 	crafts    = CheckCraftingNotifications,
 }
 
+local messages = {}
 local function CheckNotifications(charKey, groupName)
 	if type(charKey) == 'table' then charKey = nil end
 	local now = time()
 	for _, characterKey in pairs(addon.data.GetCharacters()) do
 		if not charKey or charKey == characterKey then
+			wipe(messages)
+			local characterName = addon.data.GetCharacterText(characterKey)
+
 			-- make sure all tables exist
 			notificationsCache[characterKey] = notificationsCache[characterKey] or {}
 			for key in pairs(handlers) do
 				notificationsCache[characterKey][key] = notificationsCache[characterKey][key] or {}
 			end
 
-			local characterName = addon.data.GetCharacterText(characterKey)
 			for handlerName, handler in pairs(handlers) do
 				if (not groupName or groupName == handlerName) and type(handler) == 'function' then
-					handler(characterKey, characterName, now)
+					local notification = handler(characterKey, characterName, now)
+					if notification and notification ~= '' then
+						table.insert(messages, notification)
+					end
 				end
+			end
+			if #messages > 0 then
+				notifications:Print(characterName .. ' has completed ' .. table.concat(messages, ', '))
 			end
 		end
 	end
@@ -233,4 +247,49 @@ function notifications:OnEnable()
 	self:RegisterEvent('GARRISON_BUILDING_ACTIVATED', UpdateNotifications, 'builds')
 	self:RegisterEvent('GARRISON_MISSION_COMPLETE_RESPONSE', UpdateNotifications, 'missions')
 	hooksecurefunc(C_Garrison, 'CloseMissionNPC', function() UpdateNotifications('missions') end)
+
+	local SetHyperlink = ItemRefTooltip.SetHyperlink
+	function ItemRefTooltip:SetHyperlink(link)
+		if link:match('^twinkle') then
+			local _, subType, characterKey = strsplit(':', link)
+			if subType == 'missions' then
+				local missions
+				for _, missionLink in pairs(notificationsCache[characterKey].missions) do
+					missions = missions and missions .. ', ' or ''
+					-- add mission rewards
+					local missionID = missionLink:match('garrmission:(%d+)') * 1
+					for key, reward in pairs(C_Garrison.GetMissionRewardInfo(missionID)) do
+						local icon, count = reward.icon, reward.quantity
+						if reward.itemID then
+							icon = GetItemIcon(reward.itemID)
+						-- elseif reward.currencyID == 0 then
+						-- 	count = BreakUpLargeNumbers(count/_G.COPPER_PER_GOLD)
+						end
+						if not reward.followerXP and reward.currencyID ~= 0 then
+							-- don't display gold or follower XP rewards
+							missions = missions .. ('|T%1$s:0|t '):format(icon)
+							--[[ if count and count > 1 then
+								missions = missions .. 'x'..count
+							end --]]
+						end
+					end
+					-- add mission name w/ link
+					missions = missions .. missionLink
+				end
+
+				local characterName = addon.data.GetCharacterText(characterKey)
+				notifications:Print(('Garrison missions completed by %s: %s'):format(characterName, missions))
+			elseif subType == 'buildings' then
+				local characterName = addon.data.GetCharacterText(characterKey)
+				local buildings = table.concat(notificationsCache[characterKey].builds, ', ')
+				notifications:Print(('Garrison buildings completed by %s: %s'):format(characterName, buildings))
+			elseif subType == 'shipments' then
+				local characterName = addon.data.GetCharacterText(characterKey)
+				local shipments = table.concat(notificationsCache[characterKey].shipments, ', ')
+				notifications:Print(('Garrison shipment has arrived for %s: %s'):format(characterName, shipments))
+			end
+		else
+			SetHyperlink(self, link)
+		end
+	end
 end
