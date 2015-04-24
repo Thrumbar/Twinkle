@@ -7,7 +7,7 @@ local L = addon.L
 local tinsert, tremove, tsort, abs = table.insert, table.remove, table.sort, math.abs
 
 local views = addon:GetModule('views')
-local items = views:NewModule('items')
+local items = views:NewModule('items', 'AceEvent-3.0')
       items.icon  = 'Interface\\Buttons\\Button-Backpack-Up'
       items.title = _G.ITEMS
 -- views modules are disabled by default, so our modules need to do the same
@@ -204,6 +204,7 @@ function items:UpdateDataSources()
 
 		-- init data selector
 		local button = _G[panel:GetName()..name] or CreateDataSourceButton(subModule)
+		      button:GetNormalTexture():SetDesaturated(false)
 		      button:ClearAllPoints()
 		if not previous then
 			button:SetPoint('TOPLEFT', 10, -12)
@@ -302,7 +303,7 @@ end
 
 function items:OnEnable()
 	local panel = self.panel
-	self:UpdateDataSources()
+	-- self:UpdateDataSources()
 	self:CreateSortButtons()
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
@@ -396,12 +397,16 @@ function items:OnEnable()
 
 		scrollFrame[index] = row
 	end
+
+	self:RegisterMessage('TWINKLE_SEARCH_RESULTS')
 end
 
 function items:Update()
+	self:UpdateDataSources()
+
 	-- gather data
-	local characterKey = addon.GetSelectedCharacter()
-	if characterKey == addon:GetSelectedCharacter() or not collection[characterKey] then
+	local characterKey = addon:GetSelectedCharacter()
+	if characterKey == addon.data:GetCurrentCharacter() or not collection[characterKey] then
 		-- current character's items may change, all others are static
 		-- TODO/FIXME: when item links are not available, we need to update, too!
 		self:GatherItems(characterKey)
@@ -410,6 +415,13 @@ function items:Update()
 	-- display data
 	local numRows = UpdateList()
 	return numRows
+end
+
+function items:TWINKLE_SEARCH_RESULTS(event, searchResults, characterKey)
+	-- characterKey = characterKey or addon:GetSelectedCharacter()
+	for i, button in ipairs(self.panel) do
+		button:GetNormalTexture():SetDesaturated(button.searchResults == 0)
+	end
 end
 
 function items:SearchRow(query, characterKey, itemLink)
@@ -429,7 +441,7 @@ end
 
 function items:Search(query, characterKey)
 	local isActiveView = characterKey == addon:GetSelectedCharacter() and views:GetActiveView() == self
-	local hasMatch = 0
+	local numResults = 0
 	for name, provider in self:IterateModules() do
 		local numMatches = 0
 		if isActiveView then
@@ -447,12 +459,10 @@ function items:Search(query, characterKey)
 			end
 		end
 
-		if isActiveView then
-			-- desaturate when data source has no data
-			local button = _G[self.panel:GetName()..name]
-			      button:GetNormalTexture():SetDesaturated(numMatches == 0)
-		end
-		hasMatch = hasMatch + numMatches
+		-- desaturate when data source has no data
+		-- _G[self.panel:GetName() .. name]:GetNormalTexture():SetDesaturated(numMatches == 0)
+		_G[self.panel:GetName() .. name].searchResults = numMatches
+		numResults = numResults + numMatches
 	end
-	return hasMatch
+	return numResults
 end

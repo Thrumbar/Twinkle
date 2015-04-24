@@ -219,6 +219,7 @@ function lists:UpdateDataSources()
 		-- init data selector
 		index = index + 1
 		local button = _G[panel:GetName()..subModule:GetName()] or CreateDataSourceButton(subModule, index)
+		      button:GetNormalTexture():SetDesaturated(false)
 		      button:ClearAllPoints()
 		      button:SetChecked(self.provider == subModule)
 		panel[index] = button
@@ -365,8 +366,9 @@ function lists:OnDisable()
 end
 
 function lists:Update()
+	self:UpdateDataSources()
 	local numRows = UpdateList()
-	lists.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
+	self.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
 	return numRows
 end
 
@@ -422,7 +424,7 @@ end
 
 function lists:Search(query, characterKey)
 	local isActiveView = characterKey == addon:GetSelectedCharacter() and views:GetActiveView() == self
-	local hasMatch = 0
+	local numResults = 0
 	for name, provider in self:IterateModules() do
 		local numMatches = 0
 		if isActiveView and provider == self.provider then
@@ -439,12 +441,9 @@ function lists:Search(query, characterKey)
 			end
 		end
 
-		if isActiveView then
-			-- desaturate when data source has no data
-			local button = _G[self.panel:GetName()..name]
-			      button:GetNormalTexture():SetDesaturated(numMatches == 0)
-		end
-		hasMatch = hasMatch + numMatches
+		-- desaturate when data source has no data
+		_G[self.panel:GetName() .. name]:GetNormalTexture():SetDesaturated(numMatches == 0)
+		numResults = numResults + numMatches
 	end
-	return hasMatch
+	return numResults
 end

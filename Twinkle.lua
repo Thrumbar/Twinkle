@@ -219,7 +219,6 @@ function addon:OnEnable()
 	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
 
 	-- TODO: register events
-	self:UpdateCharacters()
 	self:Update()
 end
 
@@ -309,17 +308,26 @@ function addon.SelectCharacter(button)
 	addon:SendMessage('TWINKLE_CHARACTER_CHANGED', button.element)
 end
 
+local autoUpdateModules = {'views'}
+function addon:AutoUpdateModule(moduleName)
+	if tContains(autoUpdateModules, moduleName) then return end
+	table.insert(autoUpdateModules, moduleName)
+end
+function addon:RemoveAutoUpdateModule(moduleName)
+	tDeleteItem(autoUpdateModules, moduleName)
+end
+
 function addon:Update()
-	-- TODO: FIXME: this is ugly, do something like this:
-	--[[ for name, subModule in self:IterateModules() do
-		if subModule.Update then
-			subModule:Update()
-		end
-	end --]]
-
-	local views = self:GetModule('views', true)
-	if views then views:Update() end
-
 	-- update character list (names, info, ...)
 	self:UpdateCharacters()
+
+	for _, moduleName in pairs(autoUpdateModules) do
+		local plugin = self:GetModule(moduleName, true)
+		if plugin and plugin.Update then
+			plugin:Update()
+		end
+	end
+
+	-- local views = self:GetModule('views', true)
+	-- if views then views:Update() end
 end

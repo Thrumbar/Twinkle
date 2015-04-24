@@ -5,19 +5,16 @@ local addonName, addon, _ = ...
 -- GLOBALS: hooksecurefunc, pairs, type
 
 local search = addon:NewModule('Search', 'AceEvent-3.0')
+local searchResults, emptyTable = {}, {}
 local characters
 
-local function SearchCurrentView(event, ...)
-	local views = addon:GetModule('views')
-	local view  = views:GetActiveView()
-	local characterKey = addon:GetSelectedCharacter()
-	local searchString = addon:GetSearch()
-
-	if not searchString or not view.Search then return end
-	view:Search(searchString, characterKey)
-end
-
 function search:OnEnable()
+	-- views module is a requirement
+	if not addon:GetModule('views', true) then
+		self:Disable()
+		return
+	end
+
 	characters = addon.data.GetCharacters()
 
 	local searchDelay, lastUpdate = 0.25, 0
@@ -35,7 +32,11 @@ function search:OnEnable()
 	local searchbox = CreateFrame('EditBox', '$parentSearchBox', frame.sidebar, 'SearchBoxTemplate')
 	      searchbox:SetPoint('BOTTOM', 4, 2)
 	      searchbox:SetSize(160, 20)
-	searchbox.clearFunc = function() self:Clear() end
+	frame.search = searchbox
+
+	searchbox.clearButton:HookScript('OnClick', function(button, btn, up) button:Hide() end)
+	searchbox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
+	searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
 	searchbox:SetScript('OnTextChanged', function(self, isUserInput)
 		InputBoxInstructions_OnTextChanged(self)
 		if self:GetText() == self.searchString then return end
@@ -46,84 +47,73 @@ function search:OnEnable()
 			search:Update()
 		end
 	end)
-	searchbox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
-	searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
-	frame.search = searchbox
 
 	-- slightly reposition sidebar scrollFrame
 	frame.sidebar.scrollFrame:SetPoint('BOTTOMRIGHT', searchbox, 'TOPRIGHT', -22, 0)
 
-	self:RegisterMessage('TWINKLE_VIEW_CHANGED', SearchCurrentView)
-	self:RegisterMessage('TWINKLE_CHARACTER_CHANGED', SearchCurrentView)
+	self:RegisterMessage('TWINKLE_VIEW_CHANGED', self.UpdateSearch)
+	self:RegisterMessage('TWINKLE_CHARACTER_CHANGED', self.UpdateSearch)
+	self:RegisterMessage('TWINKLE_SEARCH_RESULTS')
+	addon:AutoUpdateModule(self.moduleName)
 end
 
 function search:Clear()
-	local views = addon:GetModule('views', true)
-	if not views then return end
-
-	for name, view in views:IterateModules() do
-		local icon = view.tab:GetNormalTexture()
-		icon:SetDesaturated(false)
-		icon:SetAlpha(1)
-	end
-
-	addon.frame.search.searchString = nil
-	addon:UpdateCharacters()
+	local editBox = addon.frame.search
+	editBox.searchString = nil
+	-- restore UI state
 	addon:Update()
 end
 
-local searchResults = {}
+function search:UpdateSearch()
+	local editBox = addon.frame.search
+	if editBox.searchString then
+		addon:SendMessage('TWINKLE_SEARCH_RESULTS', searchResults)
+	end
+end
 function search:Update()
 	local editBox = addon.frame.search
-	local query = editBox:GetText()
-	if query == '' then
-		editBox:clearFunc()
-		query = nil
-	end
+	local query   = editBox:GetText():trim()
+	      query   = query ~= '' and query or nil
 
-	editBox.searchString = query
-	local views = addon:GetModule('views', true)
-	if not views then return end
+	if query == editBox.searchString then
+		-- nothing has changed
+	elseif not query then
+		-- search terms were removed
+		self:Clear()
+		return
+	else
+		-- search terms have changed
+		editBox.searchString = query
 
-	wipe(searchResults)
-	for viewName, view in views:IterateModules() do
-		if view.Search then
-			if not view:IsEnabled() then view:Enable() end
-			local numResults = 0
-			if query then
+		for characterKey, resultCounts in pairs(searchResults) do
+			wipe(resultCounts)
+		end
+		for viewName, view in addon:GetModule('views'):IterateModules() do
+			if view.Search then
+				-- also searching unloaded views
+				if not view:IsEnabled() then view:Enable() end
 				-- gather search results
 				for _, characterKey in pairs(characters) do
 					local numMatches = view:Search(query, characterKey)
-					if numMatches and type(numMatches) == 'number' and numMatches > 0 then
-						numResults = numResults + numMatches
-						searchResults[characterKey] = (searchResults[characterKey] or 0) + numMatches
+					if (numMatches or 0) > 0 then
+						searchResults[characterKey] = searchResults[characterKey] or {}
+						searchResults[characterKey][viewName] = numMatches
 					end
 				end
-			elseif view == views:GetActiveView() then
-				-- reset search
-				view:Update()
-			end
-
-			-- update tab highlight
-			local icon = view.tab:GetNormalTexture()
-			if numResults > 0 or not newText then
-				icon:SetDesaturated(false)
-				icon:SetAlpha(1)
-			else
-				icon:SetDesaturated(true)
-				icon:SetAlpha(0.5)
 			end
 		end
+		addon:SendMessage('TWINKLE_SEARCH_RESULTS', searchResults)
 	end
+end
 
-	-- add result counter/indicator
+function search:TWINKLE_SEARCH_RESULTS(event, searchResults)
+	-- update character result counters
 	for index, button in pairs(addon.frame.sidebar.scrollFrame.buttons) do
-		local numResults = searchResults[button.element]
-		if numResults and numResults > 0 then
-			button.info:SetText('('..numResults..')')
-		else
-			addon:UpdateCharacterButton(button, button.element)
+		local numResults = 0
+		for viewName, resultCount in pairs(searchResults[button.element] or emptyTable) do
+			numResults = numResults + resultCount
 		end
+		button.info:SetText(numResults > 0 and '('..numResults..')' or nil)
 	end
 end
 
