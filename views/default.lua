@@ -314,12 +314,9 @@ function view:OnEnable()
 		local lockouts, numLockouts = '', 0
 		for bossID, icon in pairs(worldBosses[expansion]) do
 			local hasLockout = addon.data.IsWorldBossKilledBy(character, bossID)
-			if hasLockout then
-				numLockouts = numLockouts + 1
-				lockouts = lockouts .. '' .. '|TInterface\\PetBattles\\DeadPetIcon:0|t'
-			else
-				lockouts = lockouts .. '' .. '|T'..icon..':0|t'
-			end
+			numLockouts = numLockouts + (hasLockout and 1 or 0)
+			lockouts = lockouts .. '' .. ('|T%2$s:%1$d|t '):format(16,
+				hasLockout and 'Interface\\PetBattles\\DeadPetIcon' or icon)
 		end
 		self:SetText('|TInterface\\Scenarios\\ScenarioIcon-Boss:0|t '..lockouts or '')
 	end
