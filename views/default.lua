@@ -8,6 +8,7 @@ local views = addon:GetModule('views')
 local view  = views:NewModule('default', 'AceTimer-3.0')
       view.icon = 'Interface\\Icons\\INV_Misc_GroupLooking'
       view.title = _G.GENERAL
+views:SetEnabledState(true) -- default view must be available
 
 local function UpdateFlowContainer(container)
 	local character = addon.GetSelectedCharacter()
