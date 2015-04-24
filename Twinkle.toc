@@ -67,6 +67,7 @@ views\items.inventory.lua
 # FIXME: depends on views, inserted here for ordering
 modules\lists.lua
 views\lists.currencies.lua
+views\lists.glyphs.lua
 views\lists.quests.lua
 views\lists.reputation.lua
 views\equipment.lua
