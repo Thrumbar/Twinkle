@@ -211,6 +211,7 @@ function items:UpdateDataSources()
 		else
 			button:SetPoint('TOPLEFT', '$parent'..previous, 'TOPRIGHT', 12, 0)
 		end
+		subModule.button = button
 		panel[index] = button
 		index = index + 1
 		previous = name
@@ -303,7 +304,7 @@ end
 
 function items:OnEnable()
 	local panel = self.panel
-	-- self:UpdateDataSources()
+	self:UpdateDataSources()
 	self:CreateSortButtons()
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
@@ -460,8 +461,7 @@ function items:Search(query, characterKey)
 		end
 
 		-- desaturate when data source has no data
-		-- _G[self.panel:GetName() .. name]:GetNormalTexture():SetDesaturated(numMatches == 0)
-		_G[self.panel:GetName() .. name].searchResults = numMatches
+		provider.button.searchResults = numMatches
 		numResults = numResults + numMatches
 	end
 	return numResults
