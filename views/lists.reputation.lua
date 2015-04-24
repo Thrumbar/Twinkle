@@ -9,6 +9,7 @@ local lists  = views:GetModule('lists')
 local reputation = lists:NewModule('Reputation', 'AceEvent-3.0')
       reputation.icon = 'Interface\\Icons\\Achievement_Reputation_01'
       reputation.title = 'Reputations'
+      reputation.excludeItemSearch = true
 
 -- taken from wowpedia.org/reputation also see _G.FACTION_BAR_COLORS
 local standingColors = {

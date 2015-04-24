@@ -407,7 +407,7 @@ function lists:SearchRow(provider, query, characterKey, index)
 	local searchString = characterKey..': '..(hyperlink or title)
 	if CustomSearch:Matches(searchString, query, provider.filters or self.filters) then
 		cache[key] = true
-	else -- check items
+	elseif not provider.excludeItemSearch then -- check items
 		for itemIndex = 1, NUM_ITEMS_PER_ROW do
 			local itemName, itemLink, tiptext, count = provider:GetItemInfo(characterKey, index, itemIndex)
 			if itemLink and ItemSearch:Matches(itemLink, query) then
