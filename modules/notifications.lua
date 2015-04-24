@@ -274,7 +274,7 @@ function notifications:OnEnable()
 						end
 					end
 					-- add mission name w/ link
-					missions = missions .. missionLink
+					missions = missions:trim() .. missionLink
 				end
 
 				local characterName = addon.data.GetCharacterText(characterKey)
