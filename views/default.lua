@@ -80,10 +80,12 @@ function view:OnEnable()
 	panel.xp = xp
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
-		  background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
-		  background:SetTexCoord(0, 0.76, 0, 0.86)
+		  background:SetTexture('Interface\\EncounterJournal\\UI-EJ-JournalBG')
+	      background:SetTexCoord(395/1024, 782/1024, 3/512, 426/512)
+	      -- background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
+		  -- background:SetTexCoord(0, 0.76, 0, 0.86)
 		  background:SetPoint('TOPLEFT', 0, -40 -20)
-		  background:SetPoint("BOTTOMRIGHT")
+		  background:SetPoint('BOTTOMRIGHT')
 
 	-- flowcontainer that'll hold all our precious data
 	local contents = CreateFrame('Frame', nil, panel)

@@ -276,8 +276,8 @@ function lists:OnEnable()
 	panel.resultCount = count
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
-	      background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
-	      background:SetTexCoord(0, 0.76, 0, 0.86)
+	      background:SetTexture('Interface\\EncounterJournal\\UI-EJ-JournalBG')
+	      background:SetTexCoord(395/1024, 782/1024, 3/512, 426/512)
 	      background:SetPoint('TOPLEFT', 0, -40 -20)
 		  background:SetPoint('BOTTOMRIGHT')
 
@@ -333,7 +333,8 @@ function lists:OnEnable()
 		      prefix:SetPoint('BOTTOMRIGHT', label, 'BOTTOMLEFT')
 		row.prefix = prefix
 
-		local suffix = row:CreateFontString(nil, nil, 'GameFontNormalRight')
+		local suffix = row:CreateFontString(nil, nil, 'GameFontBlack') -- GameFontNormalRight
+		      suffix:SetJustifyH('RIGHT')
 		      suffix:SetPoint('TOPLEFT', label, 'TOPRIGHT', 4, 0)
 		      suffix:SetPoint('BOTTOMRIGHT', -80, 0)
 		row.suffix = suffix
