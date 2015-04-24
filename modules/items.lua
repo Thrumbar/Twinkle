@@ -48,9 +48,6 @@ local function GetBaseLink(hyperlink)
 		..'[^:]+:)[^:]+(.+)$', 'item:%10%2')
 end
 
-local function OnRowEnter(self) self.shadow:SetAlpha(1) end
-local function OnRowLeave(self) self.shadow:SetAlpha(0.5) end
-
 -- TODO: choose one, row -or- button!
 -- click handler for list rows
 local function OnRowClick(self, btn, up)
@@ -124,6 +121,10 @@ local function SortCallback(a, b)
 	return a.locations[1] < b.locations[1]
 end
 
+local qualityAlpha = {
+	[_G.LE_ITEM_QUALITY_COMMON] = 0.5,
+	[_G.LE_ITEM_QUALITY_UNCOMMON] = 0.5,
+}
 local function UpdateList()
 	local self = items
 	local query = addon.GetSearch and addon:GetSearch()
@@ -149,26 +150,15 @@ local function UpdateList()
 				-- update display row
 				local name, _, quality, _, _, _, _, _, _, texture, _ = GetItemInfo(itemData.itemLink)
 				local count   = itemData.count
-				local r, g, b = GetItemQualityColor(quality or LE_ITEM_QUALITY_COMMON)
+				local r, g, b = GetItemQualityColor(quality or _G.LE_ITEM_QUALITY_COMMON)
 
 				button.name:SetText(name)
-				button.name:SetTextColor(r, g, b)
+				-- button.name:SetTextColor(r, g, b)
 				button.count:SetText(itemData.count > 1 and itemData.count or nil)
 				button.level:SetText(itemData.level)
 				button.icon:SetTexture(texture)
+				button.iconBorder:SetVertexColor(r, g, b, quality and qualityAlpha[quality] or 1)
 				button.item.link = itemData.itemLink
-
-				--[[ if timeLeft then
-					if timeLeft <= 7*24*60*60 then
-						item.level:SetTextColor(1, 0, 0)
-					else
-						item.level:SetTextColor(1, 0.82, 0)
-					end
-					item.level:SetFormattedText(SecondsToTimeAbbrev(timeLeft))
-				else
-					item.level:SetTextColor(1, 1, 1)
-					item.level:SetFormattedText("%4d", iLevel or 0)
-				end --]]
 
 				button:Show()
 				buttonIndex = buttonIndex + 1
@@ -316,8 +306,8 @@ function items:OnEnable()
 	self:CreateSortButtons()
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
-	      background:SetTexture('Interface\\TALENTFRAME\\spec-paper-bg')
-	      background:SetTexCoord(0, 0.76, 0, 0.86)
+	      background:SetTexture('Interface\\EncounterJournal\\UI-EJ-JournalBG')
+	      background:SetTexCoord(395/1024, 782/1024, 3/512, 426/512)
 	      background:SetPoint('TOPLEFT', 0, -40 -20)
 		  background:SetPoint('BOTTOMRIGHT')
 
@@ -335,12 +325,9 @@ function items:OnEnable()
 
 	for index = 1, 11 do
 		local row = CreateFrame('Button', nil, panel, nil, index)
+		      row:SetScript('OnClick', OnRowClick)
 		      row:SetHeight(30)
 		      row:Hide()
-
-		row:SetScript('OnEnter', OnRowEnter)
-		row:SetScript('OnLeave', OnRowLeave)
-		row:SetScript('OnClick', OnRowClick)
 
 		row:SetPoint('RIGHT', scrollFrame, 'RIGHT', 0, 0)
 		if index == 1 then
@@ -349,44 +336,58 @@ function items:OnEnable()
 			row:SetPoint('TOPLEFT', scrollFrame[index - 1], 'BOTTOMLEFT', 0, 0)
 		end
 
-		local shadow = row:CreateTexture(nil, 'BACKGROUND')
-		      shadow:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
-		      shadow:SetTexCoord(50/512, 322/512, 633/1024, (678-10)/1024)
-		      shadow:SetPoint('TOPLEFT', 26, 0)
-		      shadow:SetPoint('BOTTOMRIGHT', 0, 0)
-		      shadow:SetAlpha(0.5)
-		row.shadow = shadow
-		local level = row:CreateFontString(nil, nil, 'GameFontHighlight')
+    	local shadow = row:CreateTexture(nil, 'BACKGROUND') -- UI-EJ-Header-Overview
+    	      shadow:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
+    	      shadow:SetTexCoord(0.359375, 0.99609375, 0.8525390625, 0.880859375)
+    	      shadow:SetSize(320, 10)
+    	      shadow:SetPoint('BOTTOM')
+    	      shadow:SetAlpha(0.5)
+
+		local highlight = row:CreateTexture(nil, 'HIGHLIGHT') -- UI-EJ-SearchBarHighlightSm
+		      highlight:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
+		      highlight:SetTexCoord(0.63085938, 0.88085938, 0.58886719, 0.61523438)
+		      highlight:SetDesaturated(true)
+		      highlight:SetVertexColor(146/255, 86/255, 37/255)
+		      highlight:SetAllPoints()
+		row:SetHighlightTexture(highlight, 'BLEND')
+
+		local item = CreateFrame('Button', nil, row)
+		      item:SetSize(30, 30)
+		      item:SetPoint('LEFT', 0, 0)
+		row.item = item
+
+		item:SetHighlightTexture('Interface\\Buttons\\ButtonHilight-Square', 'ADD')
+		item:SetScript('OnEnter', addon.ShowTooltip)
+		item:SetScript('OnLeave', addon.HideTooltip)
+		item:SetScript('OnClick', OnButtonClick)
+
+		local iconBorder = item:CreateTexture(nil, 'OVERLAY', nil, 2) -- UI-EJ-SearchIconFrameLg
+		      iconBorder:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
+		      iconBorder:SetTexCoord(0.89843750, 0.97265625, 0.21386719, 0.25097656)
+		      iconBorder:SetAllPoints()
+		local icon = item:CreateTexture(nil, 'OVERLAY')
+		      icon:SetPoint('TOPLEFT', item, 1, -2)
+		      icon:SetPoint('BOTTOMRIGHT', item, -1, 1)
+		row.icon = icon
+
+		local quality = item:CreateTexture(nil, 'OVERLAY', nil, 3)
+		      quality:SetTexture('Interface\\Buttons\\CheckButtonHilight')
+		      quality:SetDesaturated(true)
+		      quality:SetBlendMode('ADD')
+		      quality:SetAllPoints()
+		row.iconBorder = quality
+
+		local level = row:CreateFontString(nil, nil, 'GameFontBlack')
 			  level:SetPoint('RIGHT', 0, 0)
 			  level:SetWidth(40)
 			  level:SetJustifyH('RIGHT')
 		row.level = level
-		local count = row:CreateFontString(nil, nil, 'GameFontHighlight')
+		local count = row:CreateFontString(nil, nil, 'GameFontBlack')
 		      count:SetWidth(40)
 		      count:SetPoint('RIGHT', level, 'LEFT', -4, 0)
 		      count:SetJustifyH('RIGHT')
 		row.count = count
-
-		local item = CreateFrame('Button', nil, row)
-		      item:SetSize(26, 26)
-		      item:SetPoint('LEFT', 0, 0)
-		      item:SetScript('OnEnter', addon.ShowTooltip)
-		      item:SetScript('OnLeave', addon.HideTooltip)
-		      item:SetScript('OnClick', OnButtonClick)
-		row.item = item
-		local icon = item:CreateTexture(nil, 'BORDER')
-		      icon:SetAllPoints()
-		row.icon = icon
-
-		local normalTexture = item:CreateTexture()
-		      normalTexture:SetTexture('Interface\\Buttons\\UI-Quickslot2')
-		      normalTexture:SetSize(42, 42)
-		      normalTexture:SetPoint('CENTER')
-		item:SetNormalTexture(normalTexture)
-		item:SetPushedTexture('Interface\\Buttons\\UI-Quickslot-Depress')
-		item:SetHighlightTexture('Interface\\Buttons\\ButtonHilight-Square', 'ADD')
-
-		local name = row:CreateFontString(nil, nil, 'GameFontHighlight')
+		local name = row:CreateFontString(nil, nil, 'GameFontNormal') -- SystemFont_Shadow_Med1
 			  name:SetPoint('LEFT', item, 'RIGHT', 6, 0)
 			  name:SetPoint('RIGHT', level, 'LEFT', -4)
 			  name:SetHeight(row:GetHeight())
