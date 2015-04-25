@@ -344,14 +344,18 @@ function items:OnEnable()
     	      shadow:SetSize(320, 10)
     	      shadow:SetPoint('BOTTOM')
     	      shadow:SetAlpha(0.5)
+    	row.shadow = shadow
 
 		local highlight = row:CreateTexture(nil, 'HIGHLIGHT') -- UI-EJ-SearchBarHighlightSm
 		      highlight:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
 		      highlight:SetTexCoord(0.63085938, 0.88085938, 0.58886719, 0.61523438)
 		      highlight:SetDesaturated(true)
-		      highlight:SetVertexColor(146/255, 86/255, 37/255)
+		      highlight:SetVertexColor(230/255, 100/255, 60/255, 0.66)
 		      highlight:SetAllPoints()
 		row:SetHighlightTexture(highlight, 'BLEND')
+
+		row:SetScript('OnEnter', function(self) self.name:SetFontObject('GameFontHighlight') end)
+		row:SetScript('OnLeave', function(self) self.name:SetFontObject('GameFontNormal') end)
 
 		local item = CreateFrame('Button', nil, row)
 		      item:SetSize(30, 30)
