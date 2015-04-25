@@ -106,7 +106,7 @@ local function UpdateList()
 			end
 		elseif matchesSearch then
 			-- this row matches, even though it may not be displayed
-			numRows = numRows + 1
+			numRows     = numRows + (isHidden and 0 or 1)
 			numDataRows = numDataRows + 1
 			nextDataRow = buttonIndex + (isHidden and 0 or 1)
 		end
@@ -237,7 +237,7 @@ function lists:OnEnable()
 
 	local collapseAll = CreateFrame('Button', '$parentCollapseAll', panel)
 	      collapseAll:SetSize(270, 20)
-	      collapseAll:SetPoint('TOPLEFT', panel, 'TOPLEFT', 4, -40-4)
+	      collapseAll:SetPoint('TOPLEFT', panel, 'TOPLEFT', 4, -40-1)
 	local label = collapseAll:CreateFontString('$parentText', 'ARTWORK', 'GameFontNormalLeft')
 	      label:SetPoint('LEFT', 20, 0)
 	      label:SetHeight(collapseAll:GetHeight())
@@ -272,8 +272,7 @@ function lists:OnEnable()
 	panel.toggleAll = collapseAll
 
 	local count = panel:CreateFontString('$parentText', 'ARTWORK', 'GameFontNormalRight')
-	      count:SetSize(300, collapseAll:GetHeight())
-	      count:SetPoint('TOPRIGHT', panel, 'TOPRIGHT', -4, -40-4)
+	      count:SetPoint('TOPRIGHT', panel, 'TOPRIGHT', -4, -40-4.5)
 	panel.resultCount = count
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
