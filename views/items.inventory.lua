@@ -5,7 +5,6 @@ local addonName, addon, _ = ...
 -- GLOBALS: string, bit, math, type
 -- "interesting" constants: NUM_BAG_SLOTS:<slots>, BANK_CONTAINER:BANK_CONTAINER_INVENTORY_OFFSET + 1 / BANK_CONTAINER_INVENTORY_OFFSET + NUM_BANKGENERIC_SLOTS, NUM_BANKBAGSLOTS:<slots>, REAGENTBANK_CONTAINER:<slots>
 
-local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 local LibItemLocations = LibStub('LibItemLocations', true)
 
 local views = addon:GetModule('views')
@@ -43,10 +42,9 @@ function inventory:GetRowInfo(characterKey, index)
 	end
 
 	local location = LibItemLocations:PackInventoryLocation(nil, index, true)
-	local level    = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
 	local count    = 1
 
-	return location, itemLink, count, level
+	return location, itemLink, count
 end
 
 -- ======================================
@@ -94,9 +92,8 @@ function bags:GetRowInfo(characterKey, index)
 	if itemID and not itemLink then
 		_, itemLink = GetItemInfo(itemID)
 	end
-	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
 
-	return location, itemLink, count, level
+	return location, itemLink, count
 end
 
 -- ======================================
@@ -152,9 +149,7 @@ function bank:GetRowInfo(characterKey, index)
 	if itemID and not itemLink then
 		_, itemLink = GetItemInfo(itemID)
 	end
-	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
-
-	return location, itemLink, count, level
+	return location, itemLink, count
 end
 
 
@@ -189,9 +184,8 @@ function reagents:GetRowInfo(characterKey, index)
 	if itemID and not itemLink then
 		_, itemLink = GetItemInfo(itemID)
 	end
-	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
 
-	return location, itemLink, count, level
+	return location, itemLink, count
 end
 
 -- ======================================
@@ -229,130 +223,7 @@ function voidstorage:GetRowInfo(characterKey, index)
 	-- void storage removes enchants, gems etc
 	local itemID, _, count = addon.data.GetContainerSlotInfo(characterKey, 'VoidStorage'..container, slot)
 	if not itemID then return end
-	local _, itemLink, _, level = GetItemInfo(itemID)
+	local _, itemLink = GetItemInfo(itemID)
 
-	return location, itemLink, count, level
-end
-
-
--- ======================================
--- local addonName, addon, _ = ...
-
--- GLOBALS: _G
--- GLOBALS: GetItemInfo
--- GLOBALS: string
-
--- local views = addon:GetModule('views')
--- local items = views:GetModule('items')
-local mails       = items:NewModule('Mails', 'AceEvent-3.0')
-      mails.icon  = 'Interface\\MINIMAP\\TRACKING\\Mailbox'
-      mails.title = _G.INBOX or 'Mails'
-
-function mails:OnEnable()
-	-- self:RegisterEvent('MAIL_INBOX_UPDATE', lists.Update, self)
-end
-function mails:OnDisable()
-	-- self:UnregisterEvent('MAIL_INBOX_UPDATE')
-end
-
-function mails:GetNumRows(characterKey)
-	return addon.data.GetNumMails(characterKey)
-end
-
-function mails:GetRowInfo(characterKey, index)
-	local mailIndex, attachmentIndex = 0, index
-	local location = LibItemLocations:PackInventoryLocation(mailIndex, attachmentIndex, nil, nil, nil, nil, nil, true)
-	local sender, expires, _, count, itemLink = addon.data.GetMailInfo(characterKey, index)
-	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
-
-	return location, itemLink, count, level
-end
-
-
--- ======================================
--- local addonName, addon, _ = ...
-
--- GLOBALS: _G
--- GLOBALS: GetItemInfo
--- GLOBALS: string
-
--- local views = addon:GetModule('views')
--- local items = views:GetModule('items')
-local guildbank       = items:NewModule('GuildBank', 'AceEvent-3.0')
-      guildbank.icon  = 'INTERFACE\\ICONS\\achievement_guildperk_mobilebanking'
-      guildbank.title = _G.GUILD_BANK or 'Guild Bank'
-      guildbank.unchecked = true -- don't show these items by default
-
-function guildbank:OnEnable()
-	-- self:RegisterEvent('', lists.Update, self)
-end
-function guildbank:OnDisable()
-	-- self:UnregisterEvent('')
-end
-
-function guildbank:GetNumRows(characterKey)
-	local numRows = 0
-	for tab = 1, _G.MAX_GUILDBANK_TABS do
-		numRows = numRows + addon.data.GetContainerInfo(characterKey, 'GuildBank'..tab)
-	end
-	return numRows
-end
-
-function guildbank:GetRowInfo(characterKey, index)
-	local slot, container = index, 1
-	local numSlots = addon.data.GetContainerInfo(characterKey, 'GuildBank'..container)
-	while container <= _G.MAX_GUILDBANK_TABS and slot > numSlots do
-		-- indexed slot is not in this tab
-		container = container + 1
-		numSlots  = addon.data.GetContainerInfo(characterKey, 'GuildBank'..container)
-		slot      = slot - numSlots
-	end
-
-	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, nil, nil, true)
-	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, 'GuildBank'..container, slot)
-	if itemID and not itemLink then
-		_, itemLink = GetItemInfo(itemID)
-	end
-	local level = itemLink and LibItemUpgrade:GetUpgradedItemLevel(itemLink)
-
-	return location, itemLink, count, level
-end
-
-
--- ======================================
--- local addonName, addon, _ = ...
-
--- GLOBALS: _G
--- GLOBALS: GetItemInfo
--- GLOBALS: string
-
--- local views = addon:GetModule('views')
--- local items = views:GetModule('items')
-local auction       = items:NewModule('AuctionHouse', 'AceEvent-3.0')
-      auction.icon  = 'INTERFACE\\ICONS\\INV_Misc_Coin_02'
-      auction.title = _G.BUTTON_LAG_AUCTIONHOUSE or 'Auction House'
-
-function auction:OnEnable()
-	-- self:RegisterEvent('', lists.Update, self)
-end
-function auction:OnDisable()
-	-- self:UnregisterEvent('')
-end
-
-function auction:GetNumRows(characterKey)
-	local numAuctions, numBids = addon.data.GetAuctionState(characterKey)
-	return numAuctions + numBids
-end
-
-function auction:GetRowInfo(characterKey, index)
-	local numAuctions, numBids = addon.data.GetAuctionState(characterKey)
-	local list = index > numAuctions and 'bidder' or 'owner'
-	if index > numAuctions then index = index - numAuctions end
-
-	local isGoblin, itemID, count, name, price1, price2, timeLeft = addon.data.GetAuctionInfo(characterKey, list, index)
-	if not itemID then return end
-	local _, itemLink, _, level = GetItemInfo(itemID)
-	local location = LibItemLocations:PackInventoryLocation(0, index, nil, nil, nil, nil, nil, nil, nil, true)
-
-	return location, itemLink, count, level
+	return location, itemLink, count
 end
