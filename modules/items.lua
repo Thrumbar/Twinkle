@@ -18,19 +18,16 @@ local ItemSearch     = LibStub('LibItemSearch-1.2')
 
 local collection  = {}
 local searchCache = {}
+
 -- note: item based sorting matches index of GetItemInfo, collection based matches property name
 local SORT_BY_NAME, SORT_BY_QUALITY, SORT_BY_LEVEL, SORT_BY_COUNT = 1, 3, 15, 16
-local sortProperties = {
-	[SORT_BY_LEVEL] = 'level',
-	[SORT_BY_COUNT] = 'count'
-}
+local sortOrder = { SORT_BY_NAME, SORT_BY_QUALITY, SORT_BY_LEVEL, SORT_BY_COUNT }
 local sortHeaders = {
 	{ id = SORT_BY_QUALITY,	label = _G.QUALITY },
 	{ id = SORT_BY_NAME,	label = _G.ITEM_NAMES },
 	{ id = SORT_BY_COUNT,	label = L['Count'] },
 	{ id = SORT_BY_LEVEL,	label = _G.LEVEL }, -- GUILDINFOTAB_INFO
 }
-local sortOrder = { SORT_BY_NAME, SORT_BY_QUALITY, SORT_BY_LEVEL, SORT_BY_COUNT }
 
 -- returns an normalized itemlink while keeping enchants etc intact
 local function GetBaseLink(hyperlink)
@@ -48,26 +45,65 @@ local function GetBaseLink(hyperlink)
 		..'[^:]+:)[^:]+(.+)$', 'item:%10%2')
 end
 
--- TODO: choose one, row -or- button!
 -- click handler for list rows
 local function OnRowClick(self, btn, up)
-	if not self.link then
-		return
-	elseif IsModifiedClick() and HandleModifiedItemClick(self.link) then
-		return
+	if self.link and IsModifiedClick() then
+		return HandleModifiedItemClick(self.link)
+	end
+end
+local function ItemOnEnter(self) addon.ShowTooltip(self:GetParent()) end
+local function ItemOnClick(self, btn, up) return OnRowClick(self:GetParent(), btn, up) end
+
+-- --------------------------------------------------------
+--  Source Provider Selection
+-- --------------------------------------------------------
+-- left click: regular toggle. right click: show only this one
+local function SourceOnClick(button, btn, up)
+	if btn == 'RightButton' then
+		for name, provider in items:IterateModules() do
+			provider.button:SetChecked(provider.button == button)
+		end
+	end
+	items:Update()
+end
+
+function items:UpdateDataSources()
+	local query = addon.GetSearch and addon:GetSearch()
+	local previous
+	for providerName, provider in self:IterateModules() do
+		if not provider:IsEnabled() then provider:Enable() end
+
+		local button = provider.button
+		if not button then
+			-- TODO: show slot count (13/97) on icons
+			button = CreateFrame('CheckButton', '$parent'..providerName, self.panel, 'PopupButtonTemplate', providerName)
+			button:SetNormalTexture(provider.icon)
+			button:SetScale(0.75)
+			button:SetChecked(not provider.unchecked)
+			button.tiptext = provider.title
+			button:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
+			button:SetScript('OnClick', SourceOnClick)
+			button:SetScript('OnEnter', addon.ShowTooltip)
+			button:SetScript('OnLeave', addon.HideTooltip)
+			provider.button = button
+		end
+
+		if not previous then
+			button:SetPoint('TOPLEFT', 10, -12)
+		else
+			button:SetPoint('TOPLEFT', previous, 'TOPRIGHT', 12, 0)
+		end
+		if not query then
+			button:GetNormalTexture():SetDesaturated(false)
+		end
+		previous = button
 	end
 end
 
--- click handler for item buttons
-local function OnButtonClick(self, btn, up)
-	if not self.link then
-		return
-	elseif IsModifiedClick() and HandleModifiedItemClick(self.link) then
-		return
-	end
-end
-
-local function OnSorterClick(button, btn)
+-- --------------------------------------------------------
+--  Sorting
+-- --------------------------------------------------------
+local function SorterOnClick(button, btn)
 	local newSort, index = button:GetID(), nil
 	for sortIndex, sortOption in ipairs(sortOrder) do
 		if sortOption == newSort or sortOption == -1*newSort then
@@ -87,146 +123,15 @@ local function OnSorterClick(button, btn)
 	items:Update()
 end
 
--- left click: regular toggle. right click: show only this one
-local function OnSourceClick(button, btn, up)
-	if btn == 'RightButton' then
-		for index, sourceButton in ipairs(items.panel) do
-			-- show button eclusively
-			sourceButton:SetChecked(sourceButton == button)
-		end
-	end
-	items:Update()
-end
-
-local function SortCallback(a, b)
-	-- property/sortValue can be nil if GetItemInfo was not available when filling the cache
-	for _, sortOption in ipairs(sortOrder) do
-		local realSort, ascending = abs(sortOption), sortOption > 0
-		if sortProperties[realSort] then
-			-- sort based on collection data
-			local property = sortProperties[realSort]
-			if a[property] and b[property] and a[property] ~= b[property] then
-				return (ascending and a[property] < b[property]) or (not ascending and a[property] > b[property])
-			end
-		else
-			-- sort based on item data
-			local aValue = select(realSort, GetItemInfo(a.itemLink))
-			local bValue = select(realSort, GetItemInfo(b.itemLink))
-			if aValue and bValue and aValue ~= bValue then
-				return (ascending and aValue < bValue) or (not ascending and aValue > bValue)
-			end
-		end
-	end
-	-- fallback if everything goes wrong
-	return a.locations[1] < b.locations[1]
-end
-
-local qualityAlpha = {
-	[_G.LE_ITEM_QUALITY_COMMON] = 0.5,
-	[_G.LE_ITEM_QUALITY_UNCOMMON] = 0.5,
-}
-local function UpdateList()
-	local self = items
-	local query = addon.GetSearch and addon:GetSearch()
-
-	local characterKey = addon:GetSelectedCharacter()
-	local scrollFrame  = self.panel.scrollFrame
-	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
-	tsort(collection[characterKey], SortCallback)
-
-	-- numRows: including headers (=> scroll frame), numDataRows: excluding headers (=> result count)
-	local buttonIndex, numRows, numDataRows = 1, 0, 0
-	for index, itemData in ipairs(collection[characterKey]) do
-		local matchesSearch = self:SearchRow(query, characterKey, itemData.itemLink)
-		if matchesSearch then
-			-- this row matches, even though it may not be displayed
-			numRows = numRows + 1
-			numDataRows = numDataRows + 1
-		end
-
-		if index >= offset+1 and matchesSearch then
-			local button = scrollFrame[buttonIndex]
-			if button then
-				-- update display row
-				local name, _, quality, _, _, _, _, _, _, texture, _ = GetItemInfo(itemData.itemLink)
-				local count   = itemData.count
-				local r, g, b = GetItemQualityColor(quality or _G.LE_ITEM_QUALITY_COMMON)
-
-				button.name:SetText(name)
-				-- button.name:SetTextColor(r, g, b)
-				button.count:SetText(itemData.count > 1 and itemData.count or nil)
-				button.level:SetText(itemData.level)
-				button.icon:SetTexture(texture)
-				button.iconBorder:SetVertexColor(r, g, b, quality and qualityAlpha[quality] or 1)
-				button.item.link = itemData.itemLink
-
-				button:Show()
-				buttonIndex = buttonIndex + 1
-			end
-		end
-	end
-
-	-- hide empty rows
-	for index = buttonIndex, #scrollFrame do
-		local button = scrollFrame[index]
-		      button.link = nil
-		      button:Hide()
-	end
-
-	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numRows, #scrollFrame, scrollFrame[1]:GetHeight())
-	-- adjustments so rows have decent padding with and without scroll bar
-	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
-
-	return numDataRows
-end
-
-local function CreateDataSourceButton(subModule)
-	-- TODO: show slot count (13/97) on icons
-	local name, title, icon = subModule:GetName(), subModule.title, subModule.icon
-	local button = CreateFrame('CheckButton', '$parent'..name, items.panel, 'PopupButtonTemplate')
-	      button:SetNormalTexture(icon)
-	      button:SetScale(0.75)
-	      button:SetChecked(not subModule.unchecked)
-	      button.tiptext = title
-	      button.module = name
-	      button:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
-	      button:SetScript('OnClick', OnSourceClick)
-	      button:SetScript('OnEnter', addon.ShowTooltip)
-	      button:SetScript('OnLeave', addon.HideTooltip)
-	return button
-end
-
-function items:UpdateDataSources()
-	local panel, index = self.panel, 1
-	local previous = nil
-	for name, subModule in self:IterateModules() do
-		if not subModule:IsEnabled() then subModule:Enable() end
-
-		-- init data selector
-		local button = _G[panel:GetName()..name] or CreateDataSourceButton(subModule)
-		      button:GetNormalTexture():SetDesaturated(false)
-		      button:ClearAllPoints()
-		if not previous then
-			button:SetPoint('TOPLEFT', 10, -12)
-		else
-			button:SetPoint('TOPLEFT', '$parent'..previous, 'TOPRIGHT', 12, 0)
-		end
-		subModule.button = button
-		panel[index] = button
-		index = index + 1
-		previous = name
-	end
-end
-
 function items:CreateSortButtons()
 	local panel      = self.panel
-	panel.sorters    = {}
+	      panel.sorters    = {}
 	local tabRegions = {'', 'Left', 'Middle', 'Right'}
 	local totalWidth = 0
 	for index, data in ipairs(sortHeaders) do
 		local sorter = CreateFrame('Button', '$parentSorter'..index, panel, 'WhoFrameColumnHeaderTemplate', data.id)
 			  sorter:SetText(data.label)
-			  sorter:SetScript('OnClick', OnSorterClick)
+			  sorter:SetScript('OnClick', SorterOnClick)
 		      -- sorter:SetNormalFontObject(GameFontNormalSmall)
 		panel.sorters[index] = sorter
 
@@ -252,13 +157,49 @@ function items:CreateSortButtons()
 	WhoFrameColumn_SetWidth(panel.sorters[2], panel:GetWidth() - (totalWidth - tabWidth) -2*4)
 end
 
-local function AddItem(characterKey, baseLink, ...)
-	local identifier, count, level = ...
+local function Sort(a, b)
+	-- property/sortValue can be nil if GetItemInfo was not available when filling the cache
+	for _, sortOption in ipairs(sortOrder) do
+		local realSort, ascending = abs(sortOption), sortOption > 0
+		local aValue, bValue
+		if realSort == SORT_BY_LEVEL then
+			aValue = LibItemUpgrade:GetUpgradedItemLevel(a.link)
+			bValue = LibItemUpgrade:GetUpgradedItemLevel(b.link)
+		elseif realSort == SORT_BY_COUNT then
+			aValue, bValue = 0, 0
+			for providerName, provider in items:IterateModules() do
+				if provider.button:GetChecked() then
+					aValue = aValue + (a[providerName] or 0)
+					bValue = bValue + (b[providerName] or 0)
+				end
+			end
+		else
+			-- sort based on item data
+			aValue = select(realSort, GetItemInfo(a.link))
+			bValue = select(realSort, GetItemInfo(b.link))
+		end
 
+		if aValue and bValue and aValue ~= bValue then
+			if ascending then
+				return aValue < bValue
+			else
+				return aValue > bValue
+			end
+		end
+	end
+	-- fallback if everything goes wrong
+	return a.link < b.link
+end
+
+-- --------------------------------------------------------
+--  Item Data Gathering
+-- --------------------------------------------------------
+local function AddItem(characterKey, providerName, baseLink, identifier, count)
+	-- TODO: do not duplicate guild bank items
 	-- do we already know this item?
 	local collectionIndex
 	for compareIndex, compareData in ipairs(collection[characterKey]) do
-		local compareBaseLink = GetBaseLink(compareData.itemLink)
+		local compareBaseLink = GetBaseLink(compareData.link)
 		-- TODO: don't group (expiring) mail items with permanent bag items
 		if compareBaseLink == baseLink then
 			collectionIndex = compareIndex
@@ -266,19 +207,15 @@ local function AddItem(characterKey, baseLink, ...)
 		end
 	end
 
-	-- add all items, regardless of search query. those will be filtered in UpdateList
+	-- add all items, regardless of search query and filters, they will be filtered in UpdateList
 	if collectionIndex then
 		local collectionItem = collection[characterKey][collectionIndex]
-		collectionItem.count = collectionItem.count + (count or 1)
-		tinsert(collectionItem.locations, location)
+		collectionItem[providerName] = (collectionItem[providerName] or 0) + (count or 1)
 	else
+		-- providers must not be names 'link' for obvious reasons
 		tinsert(collection[characterKey], {
-			itemLink = baseLink,
-			count    = count or 1,
-			level    = level,
-			locations = {
-				identifier,
-			},
+			link = baseLink,
+			[providerName] = count or 1,
 		})
 	end
 end
@@ -286,22 +223,106 @@ end
 function items:GatherItems(characterKey)
 	if not collection[characterKey] then collection[characterKey] = {} end
 	wipe(collection[characterKey])
-	for name, subModule in self:IterateModules() do
-		local filterButton = _G[self.panel:GetName()..name]
-		if filterButton:GetChecked() then
-			for index = 1, subModule:GetNumRows(characterKey) or 0 do
-				local location, hyperlink, count, level = subModule:GetRowInfo(characterKey, index)
-				local baseLink = hyperlink and GetBaseLink(hyperlink)
-
-				local collectionIndex
-				if baseLink then
-					AddItem(characterKey, baseLink, location, count, level)
-				end
+	for providerName, provider in self:IterateModules() do
+		for index = 1, provider:GetNumRows(characterKey) or 0 do
+			local location, hyperlink, count = provider:GetRowInfo(characterKey, index)
+			-- TODO/FIXME: when item links are not available, we need to update, too!
+			if hyperlink then
+				AddItem(characterKey, providerName, GetBaseLink(hyperlink), location, count)
 			end
 		end
 	end
 end
 
+-- --------------------------------------------------------
+--  View Update
+-- --------------------------------------------------------
+-- tone down some quality colors
+local qualityAlpha = {
+	[_G.LE_ITEM_QUALITY_COMMON] = 0.5,
+	[_G.LE_ITEM_QUALITY_UNCOMMON] = 0.5,
+}
+function items:UpdateList()
+	local query = addon.GetSearch and addon:GetSearch()
+
+	local characterKey = addon:GetSelectedCharacter()
+	local scrollFrame  = self.panel.scrollFrame
+	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
+	tsort(collection[characterKey], Sort)
+
+	-- numRows: including headers (=> scroll frame), numDataRows: excluding headers (=> result count)
+	local buttonIndex, numRows, numDataRows = 1, 0, 0
+	for index, itemData in ipairs(collection[characterKey]) do
+		local matchesSearch = self:SearchRow(query, characterKey, itemData.link)
+		local itemCount = 0
+		if matchesSearch then
+			-- this row matches, even though it might not be displayed
+			numDataRows = numDataRows + 1
+
+			-- only actually show row if provider is enabled
+			for providerName, provider in self:IterateModules() do
+				if provider.button:GetChecked() then
+					itemCount = itemCount + (itemData[providerName] or 0)
+				end
+			end
+			matchesSearch = itemCount > 0
+		end
+
+		if matchesSearch then numRows = numRows + 1 end
+		if matchesSearch and numRows > offset then
+			local button = scrollFrame[buttonIndex]
+			if button then
+				-- update display row
+				local name, _, quality, _, _, _, _, _, _, texture, _ = GetItemInfo(itemData.link)
+				local r, g, b = GetItemQualityColor(quality or _G.LE_ITEM_QUALITY_COMMON)
+				local itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemData.link)
+
+				button.name:SetText(name)
+				-- button.name:SetTextColor(r, g, b)
+				button.count:SetText(itemCount > 1 and itemCount or nil)
+				button.level:SetText(itemLevel)
+				button.icon:SetTexture(texture)
+				button.iconBorder:SetVertexColor(r, g, b, quality and qualityAlpha[quality] or 1)
+				button.link = itemData.link
+				button:Show()
+				buttonIndex = buttonIndex + 1
+			end
+		end
+	end
+
+	-- hide empty rows
+	for index = buttonIndex, #scrollFrame do
+		local button = scrollFrame[index]
+		      button.link = nil
+		      button:Hide()
+	end
+
+	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numRows, #scrollFrame, scrollFrame[1]:GetHeight())
+	-- adjustments so rows have decent padding with and without scroll bar
+	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
+
+	return numDataRows
+end
+
+function items:Update()
+	self:UpdateDataSources()
+
+	-- gather data
+	local characterKey = addon:GetSelectedCharacter()
+	-- TODO: wipe collection[characterKey] when eq/items/... change
+	if characterKey == addon.data:GetCurrentCharacter() or not collection[characterKey] then
+		-- logged in character's items may change, all others are static
+		self:GatherItems(characterKey)
+	end
+
+	-- display data
+	local numRows = self:UpdateList()
+	return numRows
+end
+
+-- --------------------------------------------------------
+--  Plugin Setup
+-- --------------------------------------------------------
 function items:OnEnable()
 	local panel = self.panel
 	self:UpdateDataSources()
@@ -322,12 +343,11 @@ function items:OnEnable()
 
 	scrollFrame:SetScript('OnVerticalScroll', function(self, offset)
 		local buttonHeight = self[1]:GetHeight()
-		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, UpdateList)
+		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, function() items:UpdateList() end)
 	end)
 
 	for index = 1, 11 do
 		local row = CreateFrame('Button', nil, panel, nil, index)
-		      row:SetScript('OnClick', OnRowClick)
 		      row:SetHeight(30)
 		      row:Hide()
 
@@ -356,6 +376,7 @@ function items:OnEnable()
 
 		row:SetScript('OnEnter', function(self) self.name:SetFontObject('GameFontHighlight') end)
 		row:SetScript('OnLeave', function(self) self.name:SetFontObject('GameFontNormal') end)
+		row:SetScript('OnClick', OnRowClick)
 
 		local item = CreateFrame('Button', nil, row)
 		      item:SetSize(30, 30)
@@ -363,9 +384,9 @@ function items:OnEnable()
 		row.item = item
 
 		item:SetHighlightTexture('Interface\\Buttons\\ButtonHilight-Square', 'ADD')
-		item:SetScript('OnEnter', addon.ShowTooltip)
+		item:SetScript('OnEnter', ItemOnEnter)
 		item:SetScript('OnLeave', addon.HideTooltip)
-		item:SetScript('OnClick', OnButtonClick)
+		item:SetScript('OnClick', ItemOnClick)
 
 		local iconBorder = item:CreateTexture(nil, 'OVERLAY', nil, 2) -- UI-EJ-SearchIconFrameLg
 		      iconBorder:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
@@ -406,29 +427,13 @@ function items:OnEnable()
 	self:RegisterMessage('TWINKLE_SEARCH_RESULTS')
 end
 
-function items:Update()
-	self:UpdateDataSources()
-
-	-- gather data
-	local characterKey = addon:GetSelectedCharacter()
-	if characterKey == addon.data:GetCurrentCharacter() or not collection[characterKey] then
-		-- current character's items may change, all others are static
-		-- TODO/FIXME: when item links are not available, we need to update, too!
-		self:GatherItems(characterKey)
-	end
-
-	-- display data
-	local numRows = UpdateList()
-	return numRows
+function items:OnDisable()
+	-- TODO
 end
 
-function items:TWINKLE_SEARCH_RESULTS(event, searchResults, characterKey)
-	-- characterKey = characterKey or addon:GetSelectedCharacter()
-	for i, button in ipairs(self.panel) do
-		button:GetNormalTexture():SetDesaturated(button.searchResults == 0)
-	end
-end
-
+-- --------------------------------------------------------
+--  Search Support
+-- --------------------------------------------------------
 function items:SearchRow(query, characterKey, itemLink)
 	if not query then return true end
 	if not searchCache[characterKey] then searchCache[characterKey] = {} end
@@ -469,4 +474,13 @@ function items:Search(query, characterKey)
 		numResults = numResults + numMatches
 	end
 	return numResults
+end
+
+function items:TWINKLE_SEARCH_RESULTS(event, searchResults, characterKey)
+	for name, provider in self:IterateModules() do
+		if provider.button then
+			local desaturate = provider.button.searchResults == 0
+			provider.button:GetNormalTexture():SetDesaturated(desaturate)
+		end
+	end
 end
