@@ -299,7 +299,7 @@ function equipment.OnEnable(self)
 		end
 
 		-- item level
-		local level = slotButton:CreateFontString(nil, nil, 'NumberFontNormal')
+		local level = slotButton:CreateFontString(nil, nil, 'GameFontNormalMed3')
 		      level:SetPoint('TOPLEFT', '$parent', 'TOPRIGHT', 4, 0)
 		slotButton.level = level
 
