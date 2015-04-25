@@ -400,8 +400,8 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 	local container
 	if bag and type(bag) == 'string' and bag:find('^GuildBank') then
 		container = GetGuildBankContainer(characterKey, bag)
-	elseif characterKey == thisCharacter and bag ~= BANK_CONTAINER then
-		-- get live data for logged in character, but bank is tricky
+	elseif characterKey == thisCharacter then
+		-- get live data for logged in character where possible
 		if (''..bag):find('VoidStorage') then
 			local tab = 1*(bag:match('%d+') or 1)
 			local itemID = GetVoidItemInfo(tab, slot), nil
@@ -409,8 +409,8 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 				local _, itemLink = GetItemInfo(itemID)
 				return itemID, itemLink, 1
 			end
-		elseif type(bag) == 'number' then
-			-- this works with pretty much anything :)
+		elseif type(bag) == 'number' and bag ~= BANK_CONTAINER and bag <= NUM_BAG_SLOTS then
+			-- note: bank and bank bags are not readily available, use db for those
 			local _, count, _, _, _, _, itemLink = GetContainerItemInfo(bag, slot)
 			local itemID = itemLink and addon:GetLinkID(itemLink) or nil
 			return itemID, itemLink, count
