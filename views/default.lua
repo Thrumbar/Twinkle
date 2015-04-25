@@ -252,13 +252,24 @@ function view:OnEnable()
 	local dailies = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	dailies:SetJustifyH('LEFT')
 	dailies.update = function(self, character)
-		local character = addon.GetSelectedCharacter()
 		dailyQuestTable = addon.data.GetDailyQuests(character, dailyQuestTable)
 		table.sort(dailyQuestTable)
 
 		self:SetFormattedText('|T%s:0|t %d', 'Interface\\GossipFrame\\DailyActiveQuestIcon', #dailyQuestTable)
 	end
 	table.insert(contents.contents, dailies)
+
+	local garrisonResources = contents:CreateFontString(nil, nil, 'GameFontNormal')
+	garrisonResources:SetJustifyH('LEFT')
+	garrisonResources.update = function(self, character)
+		if DataStore:GetBuildingInfo(character, 'TownHall') then
+			local _, _, total, icon, collectible = addon.data.GetCurrencyInfo(character, 824)
+			self:SetFormattedText('|T%s:0|t %s+%s', icon, BreakUpLargeNumbers(total), collectible)
+		else
+			self:SetText(nil)
+		end
+	end
+	table.insert(contents.contents, garrisonResources)
 
 	local dailiesFrame = CreateFrame('Frame', nil, contents)
 	dailiesFrame:SetAllPoints(mail)
