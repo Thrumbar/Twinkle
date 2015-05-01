@@ -5,6 +5,8 @@ local L = addon.L
 -- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_SetOffset, FauxScrollFrame_OnVerticalScroll
 -- GLOBALS: ipairs, wipe, strjoin, type
 
+-- TODO: return all sub-roww when parent matches search?
+
 local views = addon:GetModule('views')
 local lists = views:NewModule('lists')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
@@ -12,7 +14,7 @@ local lists = views:NewModule('lists')
 -- views modules are disabled by default, so our modules need to do the same
 lists:SetDefaultModuleState(false)
 
-local NUM_ITEMS_PER_ROW = 5
+local NUM_ITEMS_PER_ROW = 6
 local INDENT_WIDTH = 20
 local collapsed, searchResultCache = {}, {}
 
@@ -203,7 +205,7 @@ function lists:SelectDataSource(button, btn, up)
 			sourceButton:SetChecked(false)
 		end
 	end
-	lists:Update()
+	self:Update()
 end
 
 function lists:UpdateDataSources()

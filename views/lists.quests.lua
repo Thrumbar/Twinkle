@@ -182,6 +182,7 @@ local linkFilters  = {
 linkFilters.difficulty = {
 	tags      = {'q', 'quality', 'difficulty', 'diff'},
 	canSearch = function(self, operator, search)
+		if type(search) == 'number' then return (search >= 0 and search <= 4) and search or nil end
 		if search == 'trivial' or search == 'gray' or search == 'grey' then
 			return 0
 		elseif search == 'standard' or search == 'green' then

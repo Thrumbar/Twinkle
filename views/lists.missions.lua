@@ -18,7 +18,7 @@ local missions  = lists:NewModule('Missions', 'AceEvent-3.0')
       missions.excludeItemSearch = true
 
 function missions:OnEnable()
-	-- self:RegisterEvent('USE_GLYPH', lists.Update)
+	-- self:RegisterEvent('USE_GLYPH', lists.Update, lists)
 end
 function missions:OnDisable()
 	-- self:UnregisterEvent('USE_GLYPH')

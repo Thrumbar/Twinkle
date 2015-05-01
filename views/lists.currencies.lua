@@ -10,7 +10,7 @@ local currencies = lists:NewModule('Currencies', 'AceEvent-3.0')
       currencies.title = 'Currencies'
 
 function currencies:OnEnable()
-	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', lists.Update)
+	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', lists.Update, lists)
 end
 function currencies:OnDisable()
 	self:UnregisterEvent('CURRENCY_DISPLAY_UPDATE')
