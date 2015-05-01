@@ -278,7 +278,7 @@ function notifications:OnEnable()
 				end
 
 				local characterName = addon.data.GetCharacterText(characterKey)
-				notifications:Print(('Garrison missions completed by %s: %s'):format(characterName, missions))
+				notifications:Print(('Garrison missions completed by %s: %s'):format(characterName, missions or ''))
 			elseif subType == 'buildings' then
 				local characterName = addon.data.GetCharacterText(characterKey)
 				local buildings = table.concat(notificationsCache[characterKey].builds, ', ')
