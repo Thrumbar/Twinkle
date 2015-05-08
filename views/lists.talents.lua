@@ -41,11 +41,20 @@ function specializations:GetRowInfo(characterKey, index)
 			tipText = description
 		end
 
-		text = ('|T%s:0|t %s'):format(icon, specName)
+		if specNum == DataStore:GetActiveTalents(characterKey) then
+			specName = specName .. ' - ' .. _G.ACTIVE_PETS
+		end
+
+		text = ('|T%s:18|t %s'):format(icon, specName)
 		-- specNum == 1 and _G.SPECIALIZATION_PRIMARY or _G.SPECIALIZATION_SECONDARY
 	elseif talentIndex <= 2 then
 		local glyphType = talentIndex == 1 and 'MAJOR' or 'MINOR'
 		text = _G[glyphType .. '_GLYPHS']
+
+		local _, class = DataStore:GetCharacterClass(characterKey)
+		if class then
+			text = '|TInterface\\Icons\\INV_Glyph_' .. glyphType .. class .. ':18|t ' .. text
+		end
 	else
 		talentIndex = talentIndex - 2 -- adjust for glyph rows
 		local talentID = DataStore:GetTalentSelection(characterKey, talentIndex, specNum)
