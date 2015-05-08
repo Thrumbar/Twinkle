@@ -28,7 +28,7 @@ end
 
 -- click handler for list rows
 local function OnRowClick(self, btn, up)
-	if not self.link then
+	if self.isHeader then
 		-- collapse/expand this category
 		local providerName  = lists.provider:GetName()
 		local characterKey  = addon:GetSelectedCharacter()
@@ -136,6 +136,7 @@ local function UpdateList()
 					button.prefix:SetText(prefix or '')
 					button.suffix:SetText(suffix or '')
 				end
+				button.isHeader = isHeader
 
 				-- we can display associated icons, e.g. quest rewards or crafting reagents
 				for itemIndex, itemButton in ipairs(button) do
