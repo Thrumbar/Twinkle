@@ -212,11 +212,11 @@ local function SetSlotItem(slotID, itemLink)
 		-- enchantments
 		itemIsIncomplete = itemIsIncomplete or IsItemUnenchanted(itemLink, slotID)
 
-		if itemIsIncomplete then
+		--[[ if itemIsIncomplete then
 			ActionButton_ShowOverlayGlow(slotButton)
 		else
 			ActionButton_HideOverlayGlow(slotButton)
-		end
+		end --]]
 	end
 end
 
