@@ -8,6 +8,19 @@ _G[addonName] = addon
 LibStub('AceAddon-3.0'):NewAddon(addon, addonName, 'AceEvent-3.0')
 addon.L = LibStub('AceLocale-3.0'):GetLocale(addonName, true)
 
+-- see link types here: http://www.townlong-yak.com/framexml/19033/ItemRef.lua#162
+local linkTypes = {
+	item = true,
+	spell = true,
+	enchant = true,
+	talent = true,
+	glyph = true,
+	achievement = true,
+	unit = true,
+	quest = true,
+	instancelock = true,
+}
+
 -- convenient and smart tooltip handling
 function addon.ShowTooltip(self, anchor)
 	if not self.tiptext and not self.link then return end
@@ -19,6 +32,10 @@ function addon.ShowTooltip(self, anchor)
 	GameTooltip:ClearLines()
 
 	if self.link then
+		-- not all links display in GameTooltip
+		local _, linkType = addon.GetLinkID(self.link)
+		if not linkTypes[linkType] then return end
+
 		GameTooltip:SetHyperlink(self.link)
 	elseif type(self.tiptext) == "string" and self.tiptext ~= "" then
 		GameTooltip:SetText(self.tiptext, nil, nil, nil, nil, true)
