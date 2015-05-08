@@ -96,7 +96,7 @@ local function UpdateList()
 				end
 			end
 			headerParents[headerLevel] = identifier
-			numRows = numRows + 1
+			numRows = numRows + (isHidden and 0 or 1)
 
 			-- compare state for "toggle all" button
 			isCollapsed = collapsed[providerName][identifier]
