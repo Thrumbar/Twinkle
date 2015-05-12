@@ -4,25 +4,7 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker  = brokers:NewModule('Garrison')
-
---[[
-local DataStore_Garrisons_PublicMethods = {
-	GetFollowers = _GetFollowers,
-	GetFollowerInfo = _GetFollowerInfo,
-	GetFollowerSpellCounters = _GetFollowerSpellCounters,
-	GetFollowerLink = _GetFollowerLink,
-	GetFollowerID = _GetFollowerID,
-	GetNumFollowers = _GetNumFollowers,
-	GetNumFollowersAtLevel100 = _GetNumFollowersAtLevel100,
-	GetNumFollowersAtiLevel615 = _GetNumFollowersAtiLevel615,
-	GetNumFollowersAtiLevel630 = _GetNumFollowersAtiLevel630,
-	GetNumFollowersAtiLevel645 = _GetNumFollowersAtiLevel645,
-	GetNumRareFollowers = _GetNumRareFollowers,
-	GetNumEpicFollowers = _GetNumEpicFollowers,
-	GetBuildingInfo = _GetBuildingInfo,
-	GetUncollectedResources = _GetUncollectedResources,
-}
---]]
+local emptyTable = {}
 
 function broker:OnEnable()
 	-- self:RegisterEvent('EVENT_NAME', self.Update, self)
@@ -61,7 +43,7 @@ function broker:UpdateTooltip()
 	for _, characterKey in ipairs(brokers:GetCharacters()) do
 		-- shipments
 		local shipments = ''
-		for buildingID, nextBatch, active, completed, max in DataStore:IterateGarrisonShipments(characterKey) or nop do
+		for buildingID, max, active, completed, nextBatch in DataStore:IterateShipments(characterKey) or nop do
 			active = active - completed
 			while nextBatch > 0 and active > 0 and nextBatch <= now do
 				-- additional sets that have been completed
@@ -87,7 +69,7 @@ function broker:UpdateTooltip()
 
 		-- missions
 		local numActive, numCompleted = 0, 0
-		for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) or nop do
+		for missionID, expires in pairs(DataStore:GetMissions(characterKey, 'active') or emptyTable) do
 			if expires <= now then
 				numCompleted = numCompleted + 1
 			else
@@ -98,7 +80,7 @@ function broker:UpdateTooltip()
 
 		if builds ~= '' or missions ~= '' or shipments ~= '' then
 			local characterName = addon.data.GetCharacterText(characterKey)
-			lineNum = self:AddLine(characterName, builds, missions, shipments)
+			lineNum = self:AddLine(characterName, builds, missions, shipments .. '\32\32')
 			          self:SetLineScript(lineNum, 'OnEnter', nop) -- show highlight on row
 			hasData = true
 		end

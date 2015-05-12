@@ -81,13 +81,13 @@ local function CheckCalendarNotifications(characterKey, characterName, now)
 end
 
 local function CheckGarrisonMissions(characterKey, characterName, now)
-	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers'), characterKey)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers', true), characterKey)
 	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
 	local charNotifications = notificationsCache[characterKey]
 	local hasNewMissions = false
-	for missionID, expires in DataStore:IterateGarrisonMissions(characterKey) or nop do
-		if expires <= now then
+	for missionID, expires in pairs(DataStore:GetMissions(characterKey, 'active') or emptyTable) do
+		if expires and expires <= now then
 			local data = C_Garrison.GetMissionLink(missionID)
 			if not tContains(charNotifications.missions, data) then
 				hasNewMissions = true
@@ -103,7 +103,7 @@ local function CheckGarrisonMissions(characterKey, characterName, now)
 end
 
 local function CheckGarrisonBuilds(characterKey, characterName, now)
-	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers'), characterKey)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers', true), characterKey)
 	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
 	local charNotifications = notificationsCache[characterKey]
@@ -125,12 +125,12 @@ local function CheckGarrisonBuilds(characterKey, characterName, now)
 end
 
 local function CheckGarrisonShipments(characterKey, characterName, now)
-	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers'), characterKey)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers', true), characterKey)
 	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
 	local charNotifications = notificationsCache[characterKey]
 	local hasNewShipments, numShipments = false, 0
-	for buildingID, nextBatch, numActive, numReady, maxOrders in DataStore:IterateGarrisonShipments(characterKey) or nop do
+	for buildingID, maxOrders, numActive, numReady, nextBatch in DataStore:IterateShipments(characterKey) or nop do
 		numActive = numActive - numReady
 		while nextBatch > 0 and numActive > 0 and nextBatch <= now do
 			-- additional sets that have been completed
@@ -243,7 +243,7 @@ function notifications:OnEnable()
 	-- and once on load
 	C_Timer.After(2, CheckNotifications)
 
-	self:RegisterMessage('DATAMORE_TIMERS_SHIPMENT_COLLECTED', UpdateNotifications, 'shipments')
+	self:RegisterMessage('DATAMORE_GARRISON_SHIPMENT_COLLECTED', UpdateNotifications, 'shipments')
 	self:RegisterEvent('GARRISON_BUILDING_ACTIVATED', UpdateNotifications, 'builds')
 	self:RegisterEvent('GARRISON_MISSION_COMPLETE_RESPONSE', UpdateNotifications, 'missions')
 	hooksecurefunc(C_Garrison, 'CloseMissionNPC', function() UpdateNotifications('missions') end)
