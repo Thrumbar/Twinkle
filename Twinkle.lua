@@ -10,15 +10,16 @@ addon.L = LibStub('AceLocale-3.0'):GetLocale(addonName, true)
 
 -- see link types here: http://www.townlong-yak.com/framexml/19033/ItemRef.lua#162
 local linkTypes = {
-	item = true,
-	spell = true,
-	enchant = true,
-	talent = true,
-	glyph = true,
 	achievement = true,
-	unit = true,
-	quest = true,
+	currency = true,
+	enchant = true,
+	glyph = true,
 	instancelock = true,
+	item = true,
+	quest = true,
+	spell = true,
+	talent = true,
+	unit = true,
 }
 
 -- convenient and smart tooltip handling
