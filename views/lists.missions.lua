@@ -100,8 +100,7 @@ function missions:GetRowInfo(characterKey, index)
 	if component == COMPONENT_ACTIVE then
 		if missionID == 0 then
 			headerLevel = 1
-			-- GARRISON_LANDING_AVAILABLE
-			name = 'Active Missions'
+			name = _G.WINTERGRASP_IN_PROGRESS -- GARRISON_LANDING_IN_PROGRESS, 'Active Missions'
 		else
 			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance = DataStore:GetActiveMissionInfo(characterKey, missionID)
 			link = C_Garrison.GetMissionLink(missionID)
@@ -114,8 +113,7 @@ function missions:GetRowInfo(characterKey, index)
 	elseif component == COMPONENT_AVAILABLE then
 		if missionID == 0 then
 			headerLevel = 1
-			-- GARRISON_LANDING_IN_PROGRESS
-			name = 'Available Missions'
+			name = AVAILABLE -- GARRISON_LANDING_AVAILABLE. 'Available Missions'
 		else
 			-- missionType, typeAtlas, level, ilevel, cost, duration = DataStore:GetAvailableMissionInfo(characterKey, missionID)
 			name = C_Garrison.GetMissionName(missionID)
