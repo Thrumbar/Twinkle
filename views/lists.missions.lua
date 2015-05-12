@@ -6,8 +6,8 @@ local addonName, addon, _ = ...
 local _, class = UnitClass('player')
 local views    = addon:GetModule('views')
 local lists    = views:GetModule('lists')
-local missions  = lists:NewModule('Missions', 'AceEvent-3.0')
-      missions.icon = 'Interface/ICONS/Achievement_Arena_2v2_6'
+local missions = lists:NewModule('Missions', 'AceEvent-3.0')
+      missions.icon  = 'Interface/ICONS/Achievement_Arena_2v2_6'
       missions.title = _G.GARRISON_MISSIONS -- _TITLE
       missions.excludeItemSearch = false
 
@@ -28,6 +28,7 @@ local function GetNumRows(characterKey)
 	local numActiveMissions    = DataStore:GetNumActiveMissions(characterKey) or 0
 	local numAvailableMissions = DataStore:GetNumAvailableMissions(characterKey) or 0
 	local historySize = 0
+	-- TODO: fix lua error when character has no garrison
 	for missionID, numHistoryMissions in DataStore:IterateHistoryMissions(characterKey) do
 		historySize = historySize + 1 + numHistoryMissions -- also adds a sub header
 	end
@@ -99,15 +100,21 @@ function missions:GetRowInfo(characterKey, index)
 	if component == COMPONENT_ACTIVE then
 		if missionID == 0 then
 			headerLevel = 1
+			-- GARRISON_LANDING_AVAILABLE
 			name = 'Active Missions'
 		else
-			-- missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance = DataStore:GetActiveMissionInfo(characterKey, missionID)
-			name = C_Garrison.GetMissionName(missionID)
+			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance = DataStore:GetActiveMissionInfo(characterKey, missionID)
 			link = C_Garrison.GetMissionLink(missionID)
+			name = C_Garrison.GetMissionName(missionID)
+			local timeInfo = remainingTime <= 0 and _G.COMPLETE
+				or SecondsToTime(remainingTime, true)
+			suffix = timeInfo
+			-- prefix = successChance
 		end
 	elseif component == COMPONENT_AVAILABLE then
 		if missionID == 0 then
 			headerLevel = 1
+			-- GARRISON_LANDING_IN_PROGRESS
 			name = 'Available Missions'
 		else
 			-- missionType, typeAtlas, level, ilevel, cost, duration = DataStore:GetAvailableMissionInfo(characterKey, missionID)
@@ -125,8 +132,8 @@ function missions:GetRowInfo(characterKey, index)
 				link = C_Garrison.GetMissionLink(missionID)
 			else
 				local startTime, collectTime, successChance, success, followers, speedFactor, goldFactor, resourceFactor = DataStore:GetMissionHistoryInfo(characterKey, missionID, subIndex)
-				name   = ('%s - %s'):format(date('%m-%d-%Y', startTime), date('%m-%d-%Y', collectTime))
-				suffix = ('%d%% - %s'):format(successChance, success and 'Success' or 'Failed')
+				name   = ('%s'):format(date('%Y-%m-%d %H:%M', startTime))
+				suffix = ('%s%3d%%'):format(success and GREEN_FONT_COLOR_CODE or RED_FONT_COLOR_CODE, successChance)
 			end
 		end
 	end
