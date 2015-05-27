@@ -81,7 +81,7 @@ local function CheckCalendarNotifications(characterKey, characterName, now)
 end
 
 local function CheckGarrisonMissions(characterKey, characterName, now)
-	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers', true), characterKey)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey('DataStore_Garrisons', characterKey)
 	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
 	local charNotifications = notificationsCache[characterKey]
@@ -103,7 +103,7 @@ local function CheckGarrisonMissions(characterKey, characterName, now)
 end
 
 local function CheckGarrisonBuilds(characterKey, characterName, now)
-	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers', true), characterKey)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey('DataStore_Garrisons', characterKey)
 	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
 	local charNotifications = notificationsCache[characterKey]
@@ -125,7 +125,7 @@ local function CheckGarrisonBuilds(characterKey, characterName, now)
 end
 
 local function CheckGarrisonShipments(characterKey, characterName, now)
-	local lastUpdate = DataStore:GetModuleLastUpdateByKey(DataMore:GetModule('Timers', true), characterKey)
+	local lastUpdate = DataStore:GetModuleLastUpdateByKey('DataStore_Garrisons', characterKey)
 	if not lastUpdate or now - lastUpdate > 3*24*60*60 then return end
 
 	local charNotifications = notificationsCache[characterKey]
