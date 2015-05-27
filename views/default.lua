@@ -262,8 +262,8 @@ function view:OnEnable()
 	local garrisonResources = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	garrisonResources:SetJustifyH('LEFT')
 	garrisonResources.update = function(self, character)
-		if DataStore:GetBuildingInfo(character, 'TownHall') then
-			local _, _, total, icon, collectible = addon.data.GetCurrencyInfo(character, 824)
+		local _, _, total, icon, collectible = addon.data.GetCurrencyInfo(character, 824)
+		if addon.data.GetGarrisonLevel(character) > 0 then
 			self:SetFormattedText('|T%s:0|t %s+%s', icon, BreakUpLargeNumbers(total), collectible)
 		else
 			self:SetText(nil)
