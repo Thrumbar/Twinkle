@@ -218,7 +218,7 @@ function broker:UpdateTooltip()
 			-- FIXME: this can lead to incorrect assignment due to order
 			if isShown then
 				local _, name, total, _, weekly = addon.data.GetCurrencyInfo(characterKey, currencyID)
-				addLine = addLine or (total > 0 or weekly > 0)
+				addLine = addLine or ((total or 0) > 0 or (weekly or 0) > 0)
 
 				local _, _, totalMax, weeklyMax = GetGeneralCurrencyInfo(currencyID)
 				local text = AbbreviateLargeNumbers(total)
