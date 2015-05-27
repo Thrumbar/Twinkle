@@ -156,10 +156,10 @@ end
 function data.GetAverageItemLevel(characterKey)
 	if characterKey == thisCharacter then
 		local total, equipped = GetAverageItemLevel()
-		return math.floor(total + 0.5)
+		return math.floor(total)
 	else
 		local equipped, total = DataStore:GetAverageItemLevel(characterKey)
-		return math.floor((total or 0) + 0.5)
+		return math.floor(total or 0)
 	end
 end
 function data.GetXPInfo(characterKey)
@@ -385,9 +385,9 @@ end
 function data.GetContainerInfo(characterKey, container)
 	if type(container) == 'string' and container:find('^GuildBank') then
 		local tab = GetGuildBankContainer(characterKey, container)
-		local numFreeSlots = tab.size and (tab.size - #tab.ids)
+		local numFreeSlots = tab and tab.size and (tab.size - #tab.ids)
 		-- we have MAX_GUILDBANK_SLOTS_PER_TAB slots, but if DS doesn't know them, we can't display anything anyways
-		return tab.size or 0, numFreeSlots or 0, nil, nil
+		return tab and tab.size or 0, numFreeSlots or 0, nil, nil
 	else
 		local containerName = containerNames[container] or container or ''
 		local _, containerLink, numSlots, numFreeSlots, bagTypeLabel = DataStore:GetContainerInfo(characterKey, containerName)
@@ -535,6 +535,10 @@ end
 -- ========================================
 --  Garrison
 -- ========================================
+function data.GetGarrisonLevel(characterKey)
+	local id, rank = DataStore:GetBuildingInfo(characterKey, 'TownHall')
+	return rank or 0
+end
 
 -- ========================================
 --  Activity
