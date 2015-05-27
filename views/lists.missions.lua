@@ -28,8 +28,7 @@ local function GetNumRows(characterKey)
 	local numActiveMissions    = DataStore:GetNumActiveMissions(characterKey) or 0
 	local numAvailableMissions = DataStore:GetNumAvailableMissions(characterKey) or 0
 	local historySize = 0
-	-- TODO: fix lua error when character has no garrison
-	for missionID, numHistoryMissions in DataStore:IterateHistoryMissions(characterKey) do
+	for missionID, numHistoryMissions in DataStore:IterateHistoryMissions(characterKey) or nop do
 		historySize = historySize + 1 + numHistoryMissions -- also adds a sub header
 	end
 	return numActiveMissions, numAvailableMissions, historySize
@@ -130,7 +129,7 @@ function missions:GetRowInfo(characterKey, index)
 				link = C_Garrison.GetMissionLink(missionID)
 			else
 				local startTime, collectTime, successChance, success, followers, speedFactor, goldFactor, resourceFactor = DataStore:GetMissionHistoryInfo(characterKey, missionID, subIndex)
-				name   = ('%s'):format(date('%Y-%m-%d %H:%M', startTime))
+				name   = ('%s'):format(date('%Y-%m-%d %H:%M', collectTime))
 				suffix = ('%s%3d%%'):format(success and GREEN_FONT_COLOR_CODE or RED_FONT_COLOR_CODE, successChance)
 			end
 		end
