@@ -48,7 +48,7 @@ function reputation:GetRowInfo(characterKey, index)
 
 	local info
 	-- local prefix = hasBonus and '|TInterface\\COMMON\\ReputationStar:16:16:0:0:32:32:16:32:16:32|t' or nil
-	local tiptext = description
+	local tiptext = description or _G.UNKNOWN
 	if standingID then
 		local lowBoundary, highBoundary = reputation - low, high - low
 		info = RGBTableToColorCode(color) .. (standingText or '?') .. '|r'
