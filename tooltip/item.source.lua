@@ -40,20 +40,25 @@ end
 --  Item Sources
 -- ================================================
 local itemSources = {}
-local function GetItemSources(item)
+local function GetItemSources(item, link)
 	wipe(itemSources)
-	LoadAddOn("Blizzard_EncounterJournal")
 
-	local itemName, link, quality, iLevel = GetItemInfo(item)
-	itemName = type(item) == "string" and item or itemName
-	-- local exactMatch = type(item) == "number" -- TODO: causes issues with thunderforged etc
+	if link then
+		local itemID, context = GetItemCreationContext(link)
+		if context ~= '' and not context:match('^raid') then
+			-- item is not dropped in a raid, don't have to ask the journal
+			return itemSources
+		end
+	end
+
+	LoadAddOn('Blizzard_EncounterJournal')
+	itemName = type(item) == 'string' and item or GetItemInfo(item)
 	if not itemName then return itemSources end
 
 	EJ_SetSearch(itemName)
 	for index = 1, EJ_GetNumSearchResults() do
 		local resultName, _, path, _, _, resultItemID = EncounterJournal_GetSearchDisplay(index)
 		if resultItemID == item or resultName == itemName then
-			-- print('search for', item, link, 'result', resultName, resultItemID, path)
 			if not tContains(itemSources, path) then
 				table.insert(itemSources, path)
 			end
@@ -66,9 +71,9 @@ local function GetItemSources(item)
 end
 
 -- TODO: mapping item -> token -> source
-function ns.AddItemSources(tooltip, itemID)
+function ns.AddItemSources(tooltip, itemID, link)
 	local linesAdded = false
-	local sources = GetItemSources(itemID)
+	local sources = GetItemSources(itemID, link)
 	if #sources > 0 then
 		-- add a spacer
 		ns.AddEmptyLine(tooltip, true)

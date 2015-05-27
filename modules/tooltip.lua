@@ -6,8 +6,9 @@ local addonName, addon, _ = ...
 
 local plugin = addon:NewModule('Tooltip')
 local LPT = LibStub('LibPeriodicTable-3.1', true)
-local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = GetAuctionItemClasses()
 local PROFESSION_MIN_SKILL = '^' .. addon.GlobalStringToPattern(_G.ITEM_MIN_SKILL) .. '$'
+local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = GetAuctionItemClasses()
+local PLUNDER, REAGENT, PET, HOLIDAY, OTHER, MOUNT = GetAuctionItemSubClasses(9)
 
 function addon.AddEmptyLine(tooltip, slim, force)
 	local tipName, numLines = tooltip:GetName(), tooltip:NumLines()
@@ -89,9 +90,12 @@ local function HandleTooltipItem(self)
 	local linesAdded = nil
 	-- addon.AddEmptyLine(self, true)
 
-	if (equipSlot ~= '' and equipSlot ~= 'INVTYPE_BAG') or (quality >= 3 and itemClass == MISC) then
+	local isEquipment = IsEquippableItem(link) and equipSlot ~= 'INVTYPE_BAG'
+	local isEquipmentToken = not isEquipment and (quality and quality >= 3) and itemClass == MISC and subClass == PLUNDER
+	-- local isEquipmentToken = not isEquipment and not IsHelpfulItem(link) and not IsHarmfulItem(link)
+	if isEquipment or isEquipmentToken then
 		-- crafted items don't need source info - their source is the currently viewed recipe
-		linesAdded = addon.AddItemSources(self, itemID or name)
+		linesAdded = addon.AddItemSources(self, itemID or name, link)
 	elseif itemClass == GLYPH or (itemClass == RECIPE and not self.twinkleDone) then
 		-- glyphs can be shown on recipes, too
 		linesAdded = addon.AddGlyphInfo(self, itemID or name)
