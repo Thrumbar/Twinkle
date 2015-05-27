@@ -35,10 +35,10 @@ local worldBosses = { -- encounter journal bossID
 local worldBosses = {
 	-- display order
 	37462, -- drov/tarlna
-	37474, -- rukhmar
+	37464, -- rukhmar
 	-- boss data
-	[37462] = 1291, -- drov:1291, tarlna:1211
-	[37474] = 1261, -- rukhmar
+	[37462] = 1291, -- drov:1291, tarlna:1211, spell:172612
+	[37464] = 1262, -- rukhmar, id:9, item:116771
 }
 local weeklyQuests = { -- sharedQuestID or 'allianceID|hordeID'
 	-- 32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
@@ -186,7 +186,7 @@ local function GetCharacterQuestState(characterKey, questID)
 		return DataStore:IsWeeklyQuestCompletedBy(characterKey, questID) or false
 	end
 end
-local function GetCharacterWeeklyLockouts(characterKey, hideEmpty)
+local function GetCharacterQuestLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.weekly)
 	local showLine = characterKey == brokers:GetCharacter()
 	local questState, alliance, horde
@@ -241,7 +241,7 @@ function broker:UpdateTooltip()
 		self:AddHeader(GetColumnHeaders('weekly'))
 		self:AddSeparator(2)
 		for _, characterKey in ipairs(brokers:GetCharacters()) do
-			local data = GetCharacterWeeklyLockouts(characterKey, true)
+			local data = GetCharacterQuestLockouts(characterKey, true)
 			if data then
 				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
 				self:SetLineScript(lineNum, 'OnEnter', NOOP) -- show highlight on row
