@@ -30,11 +30,11 @@ function search:OnEnable()
 	-- add search box to frame sidebar
 	local frame = addon.frame
 	local searchbox = CreateFrame('EditBox', '$parentSearchBox', frame.sidebar, 'SearchBoxTemplate')
-	      searchbox:SetPoint('BOTTOM', 4, 2)
+	      searchbox:SetPoint('TOPLEFT', 9, -46)
 	      searchbox:SetSize(160, 20)
 	frame.search = searchbox
 
-	searchbox.clearButton:HookScript('OnClick', function(button, btn, up) button:Hide() end)
+	searchbox.clearButton:HookScript('OnClick', searchbox.clearButton.Hide)
 	searchbox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
 	searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
 	searchbox:SetScript('OnTextChanged', function(self, isUserInput)
@@ -47,9 +47,6 @@ function search:OnEnable()
 			search:Update()
 		end
 	end)
-
-	-- slightly reposition sidebar scrollFrame
-	frame.sidebar.scrollFrame:SetPoint('BOTTOMRIGHT', searchbox, 'TOPRIGHT', -22, 0)
 
 	self:RegisterMessage('TWINKLE_VIEW_CHANGED', self.UpdateSearch)
 	self:RegisterMessage('TWINKLE_CHARACTER_CHANGED', self.UpdateSearch)
@@ -108,7 +105,7 @@ end
 
 function search:TWINKLE_SEARCH_RESULTS(event, searchResults)
 	-- update character result counters
-	for index, button in pairs(addon.frame.sidebar.scrollFrame.buttons) do
+	for _, button in ipairs(addon.frame.sidebar.scrollFrame) do
 		local numResults = 0
 		for viewName, resultCount in pairs(searchResults[button.element] or emptyTable) do
 			numResults = numResults + resultCount
