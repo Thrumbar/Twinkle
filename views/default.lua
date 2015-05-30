@@ -11,7 +11,7 @@ local view  = views:NewModule('default', 'AceTimer-3.0')
 views:SetEnabledState(true) -- default view must be available
 
 local function UpdateFlowContainer(container)
-	local character = addon.GetSelectedCharacter()
+	local character = addon:GetSelectedCharacter()
 	local containerWidth = container:GetWidth()
 
 	FlowContainer_PauseUpdates(container)
@@ -130,7 +130,7 @@ function view:OnEnable()
 	mailFrame:SetScript('OnLeave', addon.HideTooltip)
 	mailFrame.tiptext = function(self, tooltip)
 		tooltip:ClearLines()
-		local character = addon.GetSelectedCharacter()
+		local character = addon:GetSelectedCharacter()
 		local groupIndex, groupCount
 		local numLines = 0
 
@@ -195,7 +195,7 @@ function view:OnEnable()
 	auctionsFrame:SetScript('OnEnter', addon.ShowTooltip)
 	auctionsFrame:SetScript('OnLeave', addon.HideTooltip)
 	auctionsFrame.tiptext = function(self, tooltip)
-		local character = addon.GetSelectedCharacter()
+		local character = addon:GetSelectedCharacter()
 		local auctions, bids = addon.data.GetAuctionState(character)
 
 		local numLines = 0
@@ -323,7 +323,7 @@ function view:OnEnable()
 	local worldBoss = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	worldBoss:SetJustifyH('LEFT')
 	worldBoss.update = function(self, character)
-		local character = addon.GetSelectedCharacter()
+		local character = addon:GetSelectedCharacter()
 		local lockouts, numLockouts = '', 0
 		for bossID, icon in pairs(worldBosses[expansion]) do
 			local hasLockout = addon.data.IsWorldBossKilledBy(character, bossID)
@@ -386,10 +386,10 @@ end
 
 function view:Update()
 	local panel = self.panel
-	local character = addon.GetSelectedCharacter()
+	local character = addon:GetSelectedCharacter()
 
 	local name = addon.data.GetName(character)
-	local className, class = addon.data.GetClass(character)
+	local _, class = addon.data.GetClass(character)
 	panel.name:SetFormattedText('|c%s%s|r', RAID_CLASS_COLORS[class].colorStr, name)
 	panel.portrait.icon:SetTexture('Interface\\TargetingFrame\\UI-Classes-Circles')
 	panel.portrait.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[class]))
