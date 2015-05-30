@@ -24,7 +24,7 @@ local standingColors = {
 }
 
 function reputation:OnEnable()
-	-- self:RegisterEvent('UNIT_FACTION', lists.Update, self)
+	-- self:RegisterEvent('UNIT_FACTION', lists.Update, lists)
 end
 function reputation:OnDisable()
 	-- self:UnregisterEvent('UNIT_FACTION')
