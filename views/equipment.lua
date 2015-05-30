@@ -221,7 +221,7 @@ local function SetSlotItem(slotID, itemLink)
 end
 
 local function SetGearSet(setName)
-	local characterKey = addon.GetSelectedCharacter()
+	local characterKey = addon:GetSelectedCharacter()
 	local items = setName and DataStore:GetEquipmentSetItems(characterKey, setName)
 
 	for slotID = _G.INVSLOT_FIRST_EQUIPPED, _G.INVSLOT_LAST_EQUIPPED do
@@ -402,8 +402,7 @@ function equipment.OnDisable()
 end
 
 function equipment.Update()
-	local characterKey = addon.GetSelectedCharacter()
-
+	local characterKey = addon:GetSelectedCharacter()
 	local equipmentSets = DataStore:GetEquipmentSetNames(characterKey)
 	local buttons = equipment.panel.setButtons
 
