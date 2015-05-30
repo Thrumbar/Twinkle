@@ -162,10 +162,11 @@ function broker:UpdateLDB()
 				local r, g, b = GetGradientColor(1 - (total / totalMax))
 				text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
 			end
-			if addon.db.profile.showWeeklyInLDB and weeklyMax and weekly > 0 then
+			if broker.db.profile.showWeeklyInLDB and weeklyMax and weekly > 0 then
+				local weeklyIcon = '' -- '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t'
 				local r, g, b = GetGradientColor(1 - (weekly / weeklyMax))
 				local weeklyText = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
-				text = ('%s (%s%s)'):format(text, '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t', weeklyText)
+				text = ('%s (%s%s)'):format(text, weeklyIcon, weeklyText)
 			end
 
 			if broker.db.profile.iconFirst then
