@@ -68,7 +68,7 @@ local function OpenConfiguration(self, args)
 	}
 
 	LibStub('LibDualSpec-1.0'):EnhanceDatabase(addon.db, addonName)
-	local AceConfig,AceConfigDialog = LibStub('AceConfig-3.0'), LibStub('AceConfigDialog-3.0')
+	local AceConfig, AceConfigDialog = LibStub('AceConfig-3.0'), LibStub('AceConfigDialog-3.0')
 	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addon.db, types, L, true)
 	      optionsTable.name = addonName
 	AceConfig:RegisterOptionsTable(addonName, optionsTable)
@@ -95,7 +95,7 @@ local function OpenConfiguration(self, args)
 	OpenConfiguration = function(panel, args)
 		InterfaceOptionsFrame_OpenToCategory(addonName)
 	end
-	OpenConfiguration(self, args)
+	C_Timer.After(0.05, OpenConfiguration)
 end
 
 -- create a fake configuration panel
