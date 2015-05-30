@@ -21,6 +21,13 @@ local thisCharacter   = DataStore:GetCharacter() or UnitFullName('player')
 local realmCharacters = DataStore:GetCharacters() or {thisCharacter = UnitName('player')} -- TODO: this is bsh*t
 local emptyTable      = {}
 
+hooksecurefunc(DataStore, 'DeleteCharacter', function(self, name, realm, account)
+	if not name then return end
+	local characterKey = ('%s.%s.%s'):format(account or 'Default', realm or GetRealmName(), name)
+	-- TODO: update all our cached character lists
+	addon:SendMessage('TWINKLE_CHARACTER_DELETED', characterKey)
+end)
+
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
 	--[[ for characterName, characterKey in pairs(realmCharacters) do
@@ -32,20 +39,24 @@ function data.GetCharacters(useTable)
 end
 
 local realms = {}
-function data.GetAllCharacters(useTable, realm)
+function data.GetAllCharacters(useTable, ...)
 	wipe(realms)
-	if realm then
-		local _, _, _, _, _, _, _, _, connected = LibRealmInfo:GetRealmInfoByName(realm)
-		for _, realmID in pairs(connected or emptyTable) do
-			realms[ (LibRealmInfo:GetRealmInfo(realmID)) ] = true
+	if ... then
+		for i = 1, select('#', ...) do
+			local realm = select(i, ...)
+			local _, _, _, _, _, _, _, _, connected = LibRealmInfo:GetRealmInfoByName(realm)
+			for _, realmID in pairs(connected or emptyTable) do
+				realms[ (LibRealmInfo:GetRealmInfo(realmID)) ] = true
+			end
+			realms[realm] = true
 		end
 	end
-	realms[ realm or (GetRealmName()) ] = true
+	local allRealms = not next(realms)
 
 	if useTable then wipe(useTable) else useTable = {} end
 	for account in pairs(DataStore:GetAccounts() or emptyTable) do
 		for realm in pairs(DataStore:GetRealms(account) or emptyTable) do
-			if realms[realm] then
+			if allRealms or realms[realm] then
 				for _, characterKey in pairs(DataStore:GetCharacters(realm, account) or emptyTable) do
 					table.insert(useTable, characterKey)
 				end
