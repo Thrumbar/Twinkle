@@ -34,7 +34,6 @@ modules\brokers.lua
 modules\calendar.lua
 modules\notifications.lua
 modules\search.lua
-modules\summary.lua
 modules\tooltip.lua
 modules\tradeskill.lua
 modules\views.lua

@@ -67,7 +67,7 @@ local function OpenConfiguration(self, args)
 		},
 	}
 
-	LibStub('LibDualSpec-1.0'):EnhanceDatabase(addon.db, addonName)
+	-- LibStub('LibDualSpec-1.0'):EnhanceDatabase(addon.db, addonName)
 	local AceConfig, AceConfigDialog = LibStub('AceConfig-3.0'), LibStub('AceConfigDialog-3.0')
 	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addon.db, types, L, true)
 	      optionsTable.name = addonName
