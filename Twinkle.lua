@@ -2,7 +2,7 @@ local addonName, addon, _ = ...
 _G[addonName] = addon
 
 -- GLOBALS: _G, GameTooltip, LibStub
--- GLOBALS: CreateFrame, SetPortraitToTexture, PlaySound, EditBox_ClearFocus, FauxScrollFrame_OnVerticalScroll, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, OptionsList_ClearSelection, OptionsList_SelectButton, ToggleFrame
+-- GLOBALS: CreateFrame, SetPortraitToTexture, PlaySound, EditBox_ClearFocus, FauxScrollFrame_OnVerticalScroll, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, ToggleFrame
 -- GLOBALS: gsub, type, pairs, tonumber, table, string, hooksecurefunc
 
 LibStub('AceAddon-3.0'):NewAddon(addon, addonName, 'AceEvent-3.0')
@@ -110,7 +110,6 @@ addon.IsItemBOP = setmetatable({}, {
 local characters = {}
 local thisCharacter
 function addon:OnInitialize()
-	-- TODO: prepare settings
 	-- fill char data
 	self.data.GetCharacters(characters)
 	thisCharacter = self.data.GetCurrentCharacter()
@@ -156,40 +155,61 @@ function addon:OnInitialize()
 		separator:SetPoint('TOPLEFT', sidebar, 'TOPRIGHT')
 		separator:SetPoint('BOTTOMRIGHT', sidebar, 'BOTTOMRIGHT', 5, 0)
 
-	local buttonHeight = 28
 	local characterList = CreateFrame('ScrollFrame', '$parentList', sidebar, 'FauxScrollFrameTemplate')
-		characterList:SetPoint('TOPLEFT', 4, -40)
+		characterList:SetPoint('TOPLEFT', 4, -72)
 		characterList:SetPoint('BOTTOMRIGHT', -4, 2)
 		characterList:SetScript('OnVerticalScroll', function(scrollFrame, offset)
-			FauxScrollFrame_OnVerticalScroll(scrollFrame, offset, buttonHeight, self.UpdateCharacters)
+			FauxScrollFrame_OnVerticalScroll(scrollFrame, offset, scrollFrame[1]:GetHeight(), function()
+				addon:UpdateCharacters()
+			end)
 		end)
 
 	characterList.selection = thisCharacter -- preselect active character
 	characterList.scrollBarHideable = true
-	-- use a wrapper so hooking SelectCharacter actually works
-	local function OnCharacterButtonClick(button) self.SelectCharacter(button) end
-	-- setup character buttons
-	characterList.buttons = {}
-	for i = 1, 11 do -- TODO: might even fit 12, but needs resizing by search
-		local button = CreateFrame('Button', '$parentButton'..i, sidebar, 'OptionsListButtonTemplate', i)
-		local info = button:CreateFontString(nil, nil, 'GameFontNormal')
-			  info:SetPoint('RIGHT', -10, 0)
-			  info:SetJustifyH('RIGHT')
-		button.info = info
-		button.toggle = nil
-		button.toggleFunc = nil
+	sidebar.scrollFrame = characterList
 
+	local function OnCharacterButtonClick(button, btn, up)
+		if btn == 'RightButton' then
+			-- TODO: delete characters, addon:DeleteCharacter(name, realm, account)
+		else
+			self:SelectCharacter(button)
+		end
+	end
+
+	-- setup character buttons
+	for i = 1, 11 do
+		local button = CreateFrame('Button', '$parentCharacter'..i, sidebar, nil, i)
+		      button:SetHeight(28)
 		if i == 1 then
 			button:SetPoint('TOPLEFT', characterList, 'TOPLEFT')
 		else
-			button:SetPoint('TOPLEFT', characterList.buttons[i-1], 'BOTTOMLEFT', 0, -2)
+			button:SetPoint('TOPLEFT', characterList[i-1], 'BOTTOMLEFT', 0, -2)
 		end
-		button:SetHeight(buttonHeight)
+		button:SetPoint('RIGHT', characterList, 'RIGHT')
+		button:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
 		button:SetScript('OnClick', OnCharacterButtonClick)
+		button:SetScript('OnEnter', OptionsListButton_OnEnter)
+		button:SetScript('OnLeave', OptionsListButton_OnLeave)
 
-		table.insert(characterList.buttons, button)
+		button:SetNormalFontObject('GameFontNormal')
+		button:SetHighlightFontObject('GameFontHighlight')
+		button:SetHighlightTexture('Interface\\QuestFrame\\UI-QuestLogTitleHighlight', 'ADD')
+		button.highlight = button:GetHighlightTexture()
+
+		local info = button:CreateFontString(nil, nil, 'GameFontNormal')
+			  info:SetPoint('RIGHT')
+			  info:SetJustifyH('RIGHT')
+		button.info = info
+
+		local text = button:CreateFontString(nil, nil, 'GameFontNormal')
+		      text:SetJustifyH('LEFT')
+		      text:SetPoint('LEFT')
+		      text:SetPoint('RIGHT', info, 'LEFT', -2, 0)
+		button.text = text
+		button:SetFontString(text)
+
+		table.insert(characterList, button)
 	end
-	sidebar.scrollFrame = characterList
 
 	-- actual content goes in here
 	local content = CreateFrame('Frame', '$parentContent', frame)
@@ -224,8 +244,7 @@ function addon:OnInitialize()
 
 		OnClick = function(button, btn, up)
 			if btn == 'RightButton' then
-				-- open config
-				-- InterfaceOptionsFrame_OpenToCategory(Viewda.options)
+				InterfaceOptionsFrame_OpenToCategory(addonName)
 			else
 				ToggleFrame(self.frame)
 			end
@@ -236,17 +255,22 @@ end
 function addon:OnEnable()
 	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
 
-	-- TODO: register events
+	self:RegisterMessage('TWINKLE_CHARACTER_DELETED', function(self, event, characterKey)
+		self.data.GetCharacters(characters)
+		self:Update()
+	end, self)
+
 	self:Update()
 end
 
 function addon:OnDisable()
-    -- unregister events
+    self:UnregisterMessage('TWINKLE_CHARACTER_DELETED')
 end
 
 local maxLevel = GetMaxPlayerLevel()
 function addon:UpdateCharacterButton(button, characterKey)
 	if not characterKey then
+		button.element = nil
 		button:Hide()
 	else
 		button:SetAlpha(1)
@@ -263,67 +287,55 @@ function addon:UpdateCharacterButton(button, characterKey)
 end
 
 function addon:UpdateCharacters()
-	local scrollFrame = addon.frame.sidebar.scrollFrame
-	local currentSelection = scrollFrame.selection
-	OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)
-
+	local scrollFrame = self.frame.sidebar.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
-	for i = 1, #scrollFrame.buttons do
-		local button = scrollFrame.buttons[i]
+	for i, button in ipairs(scrollFrame) do
 		local index = i + offset
+		self:UpdateCharacterButton(button, characters[index])
 
-		addon:UpdateCharacterButton(button, characters[index])
-
-		if button.element == currentSelection then
-			-- just for proper UI state
-			OptionsList_SelectButton(scrollFrame, button)
+		if button.element == scrollFrame.selection then
+			button.highlight:SetVertexColor(1, 1, 0)
+			button:LockHighlight()
+		else
+			button.highlight:SetVertexColor(.196, .388, .8)
+			button:UnlockHighlight()
 		end
 	end
 
-	local parent = scrollFrame:GetParent()
-	local width  = parent:GetWidth()
-	-- also update width of buttons to match (no) scroll bar
-	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, #characters, #scrollFrame.buttons, scrollFrame.buttons[1]:GetHeight(), parent:GetName()..'Button', width - 18, width)
+	-- adjustments so rows have decent padding with and without scroll bar
+	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, #characters, #scrollFrame, scrollFrame[1]:GetHeight())
+	scrollFrame:SetPoint('BOTTOMRIGHT', -4 + (needsScrollBar and -20 or 0), 2)
 end
 
-function addon.GetCharacterButton(characterKey)
-	local scrollFrame, button = addon.frame.sidebar.scrollFrame, nil
-	for i = 1, #scrollFrame.buttons do
-		if scrollFrame.buttons[i].element == characterKey then
-			button = scrollFrame.buttons[i]
-		end
-	end
-	return button
-end
-
-function addon.GetSelectedCharacter()
+function addon:GetSelectedCharacter()
 	local scrollFrame = addon.frame.sidebar.scrollFrame
-	return scrollFrame.selection or thisCharacter
+	return scrollFrame.selection
 end
 
-function addon.SelectCharacter(button)
+-- accepts characterKey or listButton to select, or nil to deselect all
+function addon:SelectCharacter(characterKey)
 	local scrollFrame = addon.frame.sidebar.scrollFrame
-	if button and type(button) == 'string' then
-		-- figure out this character' list button
-		for _, charButton in pairs(scrollFrame.buttons) do
-			if charButton.element and charButton.element == button then
-				button = charButton
-				break
-			end
+	if type(characterKey) == 'table' then
+		characterKey = characterKey.element
+	end
+
+	-- already displaying this character
+	if characterKey == addon:GetSelectedCharacter() then return end
+
+	for i, button in ipairs(scrollFrame) do
+		if button.element == characterKey then
+			PlaySound('igMainMenuOptionCheckBoxOn')
+			button.highlight:SetVertexColor(1, 1, 0)
+			button:LockHighlight()
+		else
+			button.highlight:SetVertexColor(.196, .388, .8)
+			button:UnlockHighlight()
 		end
 	end
-
-	local currentCharacter = addon.GetSelectedCharacter()
-	if currentCharacter == button.element then return end
-
-	OptionsList_ClearSelection(scrollFrame, scrollFrame.buttons)
-	if button then
-		PlaySound('igMainMenuOptionCheckBoxOn')
-		OptionsList_SelectButton(scrollFrame, button)
-	end
+	scrollFrame.selection = characterKey
 
 	addon:Update()
-	addon:SendMessage('TWINKLE_CHARACTER_CHANGED', button.element)
+	addon:SendMessage('TWINKLE_CHARACTER_CHANGED', listButton and listButton.element or nil)
 end
 
 local autoUpdateModules = {'views'}
@@ -345,7 +357,4 @@ function addon:Update()
 			plugin:Update()
 		end
 	end
-
-	-- local views = self:GetModule('views', true)
-	-- if views then views:Update() end
 end
