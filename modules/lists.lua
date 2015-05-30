@@ -409,6 +409,11 @@ function lists:SearchRow(provider, query, characterKey, index)
 	end
 
 	local isHeader, title, prefix, suffix, hyperlink = provider:GetRowInfo(characterKey, index)
+	if not title then
+		cache[key] = false
+		return false
+	end
+
 	local searchString = characterKey..': '..(hyperlink or title)
 	if CustomSearch:Matches(searchString, query, provider.filters or self.filters) then
 		cache[key] = true
