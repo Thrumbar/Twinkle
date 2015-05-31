@@ -48,7 +48,7 @@ function broker:UpdateTooltip()
 			while nextBatch > 0 and active > 0 and nextBatch <= now do
 				-- additional sets that have been completed
 				active = active - 1
-				completed  = (completed or 0) + 1
+				completed = (completed or 0) + 1
 				nextBatch = nextBatch + 4*60*60
 			end
 
@@ -58,11 +58,13 @@ function broker:UpdateTooltip()
 
 		-- builds
 		local numActive, numCompleted = 0, 0
-		for buildingID, expires in DataStore:IterateGarrisonBuilds(characterKey) or nop do
-			if expires <= now then
-				numCompleted = numCompleted + 1
-			else
-				numActive = numActive + 1
+		for _, buildingID, rank, _, _, expires in DataStore:IteratePlots(characterKey) or nop do
+			if expires then
+				if expires <= now then
+					numCompleted = numCompleted + 1
+				else
+					numActive = numActive + 1
+				end
 			end
 		end
 		local builds = (numActive > 0 or numCompleted > 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or ZERO
