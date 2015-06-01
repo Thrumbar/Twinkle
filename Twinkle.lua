@@ -114,6 +114,20 @@ addon.IsItemBOP = setmetatable({}, {
 	end
 })
 
+function addon.GetGradientColor(percent, maximum)
+	if maximum and maximum ~= 0 then percent = percent / maximum end
+	percent = percent > 1 and percent or percent * 100
+	local _, x = math.modf(percent * 0.02)
+	return (percent <= 50) and 1 or (percent >= 100) and 0 or (1 - x),
+	       (percent >= 50) and 1 or (percent <= 0) and 0 or x,
+	       0
+end
+
+function addon.ColorizeText(text, percent, maximum)
+	local r, g, b = addon.GetGradientColor(percent, maximum)
+	return ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
+end
+
 local characters = {}
 local thisCharacter
 function addon:OnInitialize()

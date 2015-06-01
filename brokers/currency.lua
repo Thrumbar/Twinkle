@@ -26,14 +26,6 @@ local function GetGeneralCurrencyInfo(currencyID)
 	return name, texture, totalMax, weeklyMax
 end
 
-local function GetGradientColor(percent)
-	percent = percent > 1 and percent or percent * 100
-    local _, x = math.modf(percent * 0.02)
-    return (percent <= 50) and 1 or (percent >= 100) and 0 or (1 - x),
-           (percent >= 50) and 1 or (percent <= 0) and 0 or x,
-           0
-end
-
 local collapsed = {}
 local function ScanCurrencies()
 	local index = 1
@@ -159,13 +151,11 @@ function broker:UpdateLDB()
 
 			local text = AbbreviateLargeNumbers(total)
 			if totalMax > 0 then
-				local r, g, b = GetGradientColor(1 - (total / totalMax))
-				text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
+				text = addon.ColorizeText(text, 1 - (total / totalMax))
 			end
 			if broker.db.profile.showWeeklyInLDB and weeklyMax and weekly > 0 then
 				local weeklyIcon = '' -- '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t'
-				local r, g, b = GetGradientColor(1 - (weekly / weeklyMax))
-				local weeklyText = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
+				local weeklyText = addon.ColorizeText(AbbreviateLargeNumbers(weekly), 1 - (weekly / weeklyMax))
 				text = ('%s (%s%s)'):format(text, weeklyIcon, weeklyText)
 			end
 
@@ -224,15 +214,13 @@ function broker:UpdateTooltip()
 				local _, _, totalMax, weeklyMax = GetGeneralCurrencyInfo(currencyID)
 				local text = AbbreviateLargeNumbers(total)
 				if totalMax > 0 then
-					local r, g, b = GetGradientColor(1 - (total / totalMax))
-					text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
+					text = addon.ColorizeText(text, 1 - (total / totalMax))
 				end
 				self:SetCell(lineNum, column, text, 'RIGHT')
 				column = column + 1
 
 				if weeklyMax and weeklyMax > 0 then
-					local r, g, b = GetGradientColor(1 - (weekly / weeklyMax))
-					text = ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, AbbreviateLargeNumbers(weekly))
+					text = addon.ColorizeText(AbbreviateLargeNumbers(weekly), 1 - (weekly / weeklyMax))
 					self:SetCell(lineNum, column, text, 'RIGHT')
 					column = column + 1
 				end
