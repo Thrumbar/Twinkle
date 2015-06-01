@@ -336,7 +336,7 @@ function items:OnEnable()
 
 	local scrollFrame = CreateFrame('ScrollFrame', '$parentScrollFrame', panel, 'FauxScrollFrameTemplate')
 	      scrollFrame:SetSize(360, 354 - 20)
-	      scrollFrame:SetPoint('TOPLEFT', 0, -40-4 -20 -2)
+	      scrollFrame:SetPoint('TOPLEFT', 0, -40-20-9)
 	      scrollFrame:SetPoint('BOTTOMRIGHT', -24, 2)
 	      scrollFrame.scrollBarHideable = true
 	panel.scrollFrame = scrollFrame
