@@ -6,15 +6,10 @@ local addonName, addon, _ = ...
 
 local views = addon:GetModule('views')
 local equipment = views:NewModule('equipment', 'AceTimer-3.0')
-      equipment.icon = 'Interface\\Icons\\Achievement_Arena_2v2_6' -- Achievement_Arena_3v3_6
+      equipment.icon = 'Interface\\PaperDollInfoFrame\\UI-EquipmentManager-Toggle'
       equipment.title = _G.BAG_FILTER_EQUIPMENT
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
-
--- skull: Achievement_BG_killingblow_30
--- chest armor: INV_Chest_Plate16
--- helm (token): Achievement_Dungeon_Outland_Dungeon_Hero
--- filled chest: Trade_Archaeology_ChestofTinyGlassAnimals
 
 local slotInfo = {
 	-- left aligned
@@ -249,7 +244,6 @@ local function SelectGearSet(self, btn, up)
 	SetGearSet(self.set)
 end
 
--- TODO: have DataMore store equipment sets & display those
 -- TODO: display more item info: enchant, reforge
 function equipment.OnEnable(self)
 	local panel = self.panel
@@ -378,8 +372,8 @@ function equipment.OnEnable(self)
 
 		if i == 1 then
 			button:SetPoint('TOPRIGHT', -8, -10)
-			button.name:SetText(_G.BAG_FILTER_EQUIPMENT)
-			button.icon:SetTexture('Interface\\GUILDFRAME\\GuildLogo-NoLogo')
+			button.name:SetText(_G.CURRENTLY_EQUIPPED)
+			button.icon:SetTexture('Interface\\PaperDollInfoFrame\\UI-EquipmentManager-Toggle')
 			button.selected = true
 			button.selectedTex:Show()
 		else
