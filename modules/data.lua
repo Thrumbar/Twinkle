@@ -106,21 +106,14 @@ function data.GetCharacterText(characterKey)
 		return characterName and characterName..'|r' or data.GetName(characterKey)
 	end
 end
-function data.GetCharacterFactionIcon(characterKey)
+function data.GetCharacterFaction(characterKey)
 	local faction
 	if characterKey == thisCharacter then
 		faction = UnitFactionGroup('player')
 	else
 		faction = DataStore:GetCharacterFaction(characterKey)
 	end
-
-	if faction == 'Horde' then
-		return '|TInterface\\WorldStateFrame\\HordeIcon.png:22|t'    -- Interface\\PVPFrame\\PVPCurrency-Honor-Horde'
-	elseif faction == 'Alliance' then
-		return '|TInterface\\WorldStateFrame\\AllianceIcon.png:22|t' -- Interface\\PVPFrame\\PVPCurrency-Honor-Alliance'
-	else
-		return '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:22|t'   -- Interface\\ICONS\\FactionChange
-	end
+	return faction
 end
 function data.GetRace(characterKey)
 	if characterKey == thisCharacter then

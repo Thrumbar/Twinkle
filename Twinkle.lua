@@ -8,6 +8,13 @@ _G[addonName] = addon
 LibStub('AceAddon-3.0'):NewAddon(addon, addonName, 'AceEvent-3.0')
 addon.L = LibStub('AceLocale-3.0'):GetLocale(addonName, true)
 
+local defaults = {
+	profile = {
+		factionIcon = 'Interface\\WorldStateFrame\\%sIcon',
+		factionIconUndecided = 'Interface\\MINIMAP\\TRACKING\\BattleMaster',
+	},
+}
+
 -- see link types here: http://www.townlong-yak.com/framexml/19033/ItemRef.lua#162
 local linkTypes = {
 	achievement = true,
@@ -253,7 +260,7 @@ function addon:OnInitialize()
 end
 
 function addon:OnEnable()
-	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', {}, true)
+	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', defaults, true)
 
 	self:RegisterMessage('TWINKLE_CHARACTER_DELETED', function(self, event, characterKey)
 		self.data.GetCharacters(characters)
@@ -265,6 +272,19 @@ end
 
 function addon:OnDisable()
     self:UnregisterMessage('TWINKLE_CHARACTER_DELETED')
+end
+
+local function GetFactionIcon(characterKey)
+	local faction = addon.data.GetCharacterFaction(characterKey)
+	local icon    = addon.db.profile.factionIcon
+	if faction ~= 'Horde' and faction ~= 'Alliance' then
+		icon = addon.db.profile.factionIconUndecided
+	end
+	if icon and icon ~= '' then
+		return '|T' .. icon:format(faction) .. ':22|t'
+	else
+		return ''
+	end
 end
 
 local maxLevel = GetMaxPlayerLevel()
@@ -280,7 +300,7 @@ function addon:UpdateCharacterButton(button, characterKey)
 		local level = addon.data.GetLevel(characterKey)
 		button.info:SetText(level < maxLevel and level or '')
 
-		local icon = addon.data.GetCharacterFactionIcon(characterKey)
+		local icon = GetFactionIcon(characterKey)
 		local name = addon.data.GetCharacterText(characterKey)
 		button:SetText( (icon and icon..' ' or '') .. name )
 	end

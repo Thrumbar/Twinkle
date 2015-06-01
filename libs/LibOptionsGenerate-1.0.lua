@@ -1,4 +1,4 @@
-local MAJOR, MINOR = 'LibOptionsGenerate-1.0', 20
+local MAJOR, MINOR = 'LibOptionsGenerate-1.0', 21
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -115,9 +115,17 @@ local function GetListSetting(info) return GetListFromTable(info.options.args[ i
 local function SetListSetting(info, value) info.options.args[ info[1] ].set(info, GetTableFromList(value, '\n')) end
 
 local function Widget(key, option, widgetInfo)
-	local widget, widgetType
+	-- trigger callback
+	if type(widgetInfo) == 'function' then
+		widgetInfo = widgetInfo(key, option)
+	end
+
+	local widget
 	key = tostring(key):lower()
-	widgetType = widgetInfo and type(widgetInfo) == 'string' and widgetInfo:lower() or key
+	local widgetType = key
+	if type(widgetInfo) == 'string' then
+		widgetType = widgetInfo:lower()
+	end
 
 	-- detect multiselect table structures
 	if type(option) == 'table' and next(option) then
@@ -390,11 +398,14 @@ local function AddScopeHeaders(optionsTable)
 	end
 end
 
-local function AddNamespaces(optionsTable, variable, L, typeMappings)
+local function AddNamespaces(optionsTable, variable, L, typeMappings, callback)
 	for namespace, options in pairs(variable.children or emptyTable) do
 		-- we need to access different data
 		local get = function(info) return GetSettingDefault(info, options) end
-		local set = function(info, value) return SetSettingDefault(info, value, options) end
+		local set = function(info, value)
+			SetSettingDefault(info, value, options)
+			if callback then callback(info, value, options) end
+		end
 		for scope in pairs(options.defaults or emptyTable) do
 			-- note: this will create empty groups when empty defaults are defined
 			local key = scope .. '_' .. namespace
@@ -421,9 +432,12 @@ local function AddNamespaces(optionsTable, variable, L, typeMappings)
 	end
 end
 
-function lib:GetOptionsTable(variable, typeMappings, L, includeNamespaces)
+function lib:GetOptionsTable(variable, typeMappings, L, includeNamespaces, callback)
 	if type(variable) == 'string' then
 		variable = GetVariableFromPath(variable)
+	end
+	if type(callback) ~= 'function' then
+		callback = nil
 	end
 
 	local optionsTable = {
@@ -431,7 +445,10 @@ function lib:GetOptionsTable(variable, typeMappings, L, includeNamespaces)
 		type = 'group',
 		args = {},
 		get = function(info) return GetSettingDefault(info, variable or info[1]) end,
-		set = function(info, value) return SetSettingDefault(info, value, variable or info[1]) end,
+		set = function(info, value)
+			SetSettingDefault(info, value, variable or info[1])
+			if callback then callback(info, value, variable or info[1]) end
+		end,
 	}
 
 	local isAceDB = variable.sv and variable.defaults
@@ -451,7 +468,7 @@ function lib:GetOptionsTable(variable, typeMappings, L, includeNamespaces)
 	if isAceDB then
 		if includeNamespaces then
 			-- add namespace settings to core addon's scopes
-			AddNamespaces(optionsTable, variable, L, typeMappings)
+			AddNamespaces(optionsTable, variable, L, typeMappings, callback)
 		end
 		AddScopeHeaders(optionsTable)
 	end

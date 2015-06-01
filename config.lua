@@ -14,6 +14,25 @@ local function GetReminderLabel(interval, value)
 	return interval, _G.PET_TIME_LEFT_MINUTES:format(interval)
 end
 
+local function GetFactionIcons()
+	local icons = {
+		'Interface\\FriendsFrame\\PlusManz-%s',
+		'Interface\\GROUPFRAME\\UI-Group-PVP-%s',
+		'Interface\\PVPFrame\\PVPCurrency-Conquest-%s',
+		'Interface\\PVPFrame\\PVPCurrency-Honor-%s',
+		'Interface\\WorldStateFrame\\%sIcon',
+		'Interface\\TARGETINGFRAME\\UI-PVP-%s',
+		'Interface\\Timer\\%s-Logo',
+	}
+	local options = {
+		[''] = _G.NONE,
+	}
+	for _, icon in ipairs(icons) do
+		options[icon] = '|T'..icon:format('Horde')..':20|t |T'..icon:format('Alliance')..':20|t'
+	end
+	return options
+end
+
 local function OpenConfiguration(self, args)
 	-- remove placeholder configuration panel
 	for i, panel in ipairs(_G.INTERFACEOPTIONS_ADDONCATEGORIES) do
@@ -27,6 +46,15 @@ local function OpenConfiguration(self, args)
 
 	-- initialize panel
 	local types = {
+		-- main settings
+		factionIcon = GetFactionIcons,
+		factionIconUndecided = {
+			['Interface\\TARGETINGFRAME\\PortraitQuestBadge'] = '|TInterface\\TARGETINGFRAME\\PortraitQuestBadge:20|t',
+			['Interface\\MINIMAP\\TRACKING\\BattleMaster'] = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:20|t',
+			['Interface\\ICONS\\FactionChange'] = '|TInterface\\ICONS\\FactionChange:20|t',
+		},
+
+		-- namespaces
 		Money = { -- brokers: money
 			history = '*none*',
 			tooltipFormat = {
