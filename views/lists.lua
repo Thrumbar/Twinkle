@@ -5,14 +5,24 @@ local L = addon.L
 -- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_SetOffset, FauxScrollFrame_OnVerticalScroll
 -- GLOBALS: ipairs, wipe, strjoin, type
 
--- TODO: return all sub-roww when parent matches search?
+-- TODO: return all sub-rows when parent matches search?
 
 local views = addon:GetModule('views')
 local lists = views:NewModule('lists')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = L['Lists']
+
+local prototype = {
+	Update = function(self)
+		if lists.provider == self then
+			print('update!', self, lists.panel:IsShown(), lists.panel:IsVisible())
+			lists:UpdateList()
+		end
+	end,
+}
 -- views modules are disabled by default, so our modules need to do the same
 lists:SetDefaultModuleState(false)
+lists:SetDefaultModulePrototype(prototype)
 
 local NUM_ITEMS_PER_ROW = 6
 local INDENT_WIDTH = 20
@@ -241,6 +251,18 @@ function lists:UpdateDataSources()
 	end
 end
 
+function lists:UpdateList()
+	local numRows = UpdateList()
+	self.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
+	return numRows
+end
+
+function lists:Update()
+	self:UpdateDataSources()
+	local numRows = self:UpdateList()
+	return numRows
+end
+
 function lists:OnEnable()
 	local panel = self.panel
 	self:UpdateDataSources()
@@ -299,7 +321,7 @@ function lists:OnEnable()
 	panel.scrollFrame = scrollFrame
 
 	scrollFrame:SetScript('OnVerticalScroll', function(self, offset)
-		FauxScrollFrame_OnVerticalScroll(self, offset, 20, UpdateList)
+		FauxScrollFrame_OnVerticalScroll(self, offset, 20, function() lists:UpdateList() end)
 	end)
 
 	for index = 1, 16 do
@@ -372,13 +394,6 @@ end
 
 function lists:OnDisable()
 	--
-end
-
-function lists:Update()
-	self:UpdateDataSources()
-	local numRows = UpdateList()
-	self.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
-	return numRows
 end
 
 local CustomSearch = LibStub('CustomSearch-1.0')
