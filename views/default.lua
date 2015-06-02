@@ -296,18 +296,6 @@ function view:OnEnable()
 	end
 	dailies.trigger = dailiesFrame
 
---[[
-|cff66bbff|Hjournal:1:691:3|h[Sha des Zorns]|h|r
-|cff66bbff|Hjournal:1:725:3|h[Salyis' Kriegsmeute]|h|r
-|cff66bbff|Hjournal:1:814:3|h[Nalak, der Sturmf\195\188rst]|h|r
-|cff66bbff|Hjournal:1:826:3|h[Oondasta]|h|r
-|cff66bbff|Hjournal:1:857:3|h[Chi-Ji, der Rote Kranich]|h|r
-|cff66bbff|Hjournal:1:858:3|h[Yu'lon, die Jadeschlange]|h|r
-|cff66bbff|Hjournal:1:859:3|h[Niuzao, der Schwarze Ochse]|h|r
-|cff66bbff|Hjournal:1:860:3|h[Xuen, der Wei\195\159e Tiger]|h|r
-|cff66bbff|Hjournal:1:861:3|h[Ordos, Feuergott der Yaungol]|h|r
---]]
-
 	local expansion = GetAccountExpansionLevel()
 	local worldBosses = {
 		[LE_EXPANSION_MISTS_OF_PANDARIA] = {
@@ -315,7 +303,7 @@ function view:OnEnable()
 			[2] = 'Interface\\Icons\\inv_mushanbeastmount',         -- 725, WORLD_BOSS_GALLEON
 			[3] = 'Interface\\Icons\\inv_pet_babycloudserpent',     -- 814, WORLD_BOSS_NALAK
 			[4] = 'Interface\\Icons\\inv_zandalaribabyraptorwhite', -- 826, WORLD_BOSS_OONDASTA
-			[5] = 'Interface\\Icons\\inv_pet_cranegod',             -- 858, WORLD_BOSS_FOUR_CELESTIALS
+			[5] = 'Interface\\Icons\\inv_pet_cranegod',             -- 857-860, WORLD_BOSS_FOUR_CELESTIALS
 			[6] = 'Interface\\Icons\\spell_fire_rune',              -- 861, WORLD_BOSS_ORDOS
 		},
 		[LE_EXPANSION_WARLORDS_OF_DRAENOR] = {
