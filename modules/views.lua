@@ -36,6 +36,7 @@ end
 
 local lastTabIndex = 0
 local function OnTabClick(self)
+	PlaySound('igSpellBookOpen')
 	self:SetChecked(not self:GetChecked())
 	views:Show( self.module )
 end

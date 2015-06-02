@@ -201,6 +201,7 @@ local function UpdateList()
 	return numDataRows
 end
 
+local function SourceOnClick(...) lists:SelectDataSource(...) end
 local function CreateDataSourceButton(subModule, index)
 	local name, title, icon = subModule:GetName(), subModule.title, subModule.icon
 	local button = CreateFrame('CheckButton', '$parent'..name, lists.panel, 'PopupButtonTemplate', index)
@@ -208,13 +209,14 @@ local function CreateDataSourceButton(subModule, index)
 	      button:SetScale(0.75)
 	      button.tiptext = title
 	      button.module = name
-	      button:SetScript('OnClick', function(...) lists:SelectDataSource(...) end)
+	      button:SetScript('OnClick', SourceOnClick)
 	      button:SetScript('OnEnter', addon.ShowTooltip)
 	      button:SetScript('OnLeave', addon.HideTooltip)
 	return button
 end
 
 function lists:SelectDataSource(button, btn, up)
+	PlaySound('igAbiliityPageTurn')
 	for index, sourceButton in ipairs(self.panel) do
 		if sourceButton == button then
 			self.provider = self:GetModule(sourceButton.module)

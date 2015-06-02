@@ -143,6 +143,8 @@ function addon:OnInitialize()
 	frame:SetFrameLevel(17)
 	frame:EnableMouse(true)
 	frame:Hide()
+	frame:HookScript('OnShow', function() PlaySound('igCharacterInfoOpen') end)
+	frame:HookScript('OnHide', function() PlaySound('igCharacterInfoClose') end)
 	self.frame = frame
 
 	SetPortraitToTexture(frame:GetName()..'Portrait', 'Interface\\Icons\\ACHIEVEMENT_GUILDPERK_MRPOPULARITY_RANK2')
@@ -251,10 +253,7 @@ function addon:OnInitialize()
 
 	portraitButton:SetScript('OnEnter', self.ShowTooltip)
 	portraitButton:SetScript('OnLeave', self.HideTooltip)
-	portraitButton:SetScript('OnClick', function(button, btn, up)
-		ToggleFrame(self.frame)
-		PlaySound('igMainMenuOpen') -- 'igCharacterInfoTab')
-	end)
+	portraitButton:SetScript('OnClick', function(button, btn, up) ToggleFrame(self.frame) end)
 	portraitButton.tiptext = 'Click to toggle Twinkle'
 
 	-- setup ldb launcher

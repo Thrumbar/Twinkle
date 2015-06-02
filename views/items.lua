@@ -59,6 +59,7 @@ local function ItemOnClick(self, btn, up) return OnRowClick(self:GetParent(), bt
 -- --------------------------------------------------------
 -- left click: regular toggle. right click: show only this one
 local function SourceOnClick(button, btn, up)
+	PlaySound('igAbiliityPageTurn')
 	if btn == 'RightButton' then
 		for name, provider in items:IterateModules() do
 			provider.button:SetChecked(provider.button == button)
