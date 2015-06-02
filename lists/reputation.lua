@@ -4,6 +4,8 @@ local addonName, addon, _ = ...
 -- GLOBALS: AbbreviateLargeNumbers, GetFactionInfoByID, GetItemInfo
 -- GLOBALS: string
 
+-- TODO: alliance can't get info on horde-only factions and vice versa
+
 local views  = addon:GetModule('views')
 local lists  = views:GetModule('lists')
 local reputation = lists:NewModule('Reputation', 'AceEvent-3.0')
@@ -24,7 +26,7 @@ local standingColors = {
 }
 
 function reputation:OnEnable()
-	-- self:RegisterEvent('UNIT_FACTION', lists.Update, lists)
+	-- self:RegisterEvent('UNIT_FACTION', 'Update')
 end
 function reputation:OnDisable()
 	-- self:UnregisterEvent('UNIT_FACTION')

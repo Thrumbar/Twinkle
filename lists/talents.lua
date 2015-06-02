@@ -13,7 +13,7 @@ local specializations = lists:NewModule('Specialization', 'AceEvent-3.0')
 local NUM_ROWS_PER_SPEC = MAX_TALENT_TIERS + 3 -- header + major/minor glyphs + talents
 
 function specializations:OnEnable()
-	-- self:RegisterEvent('USE_GLYPH', lists.Update, lists)
+	-- self:RegisterEvent('USE_GLYPH', 'Update')
 end
 function specializations:OnDisable()
 	-- self:UnregisterEvent('USE_GLYPH')

@@ -12,10 +12,10 @@ local glyphs = lists:NewModule('Glyphs', 'AceEvent-3.0')
       glyphs.excludeItemSearch = true
 
 function glyphs:OnEnable()
-	self:RegisterEvent('USE_GLYPH', lists.Update, lists)
-	self:RegisterEvent('GLYPH_ADDED', lists.Update, lists)
-	self:RegisterEvent('GLYPH_REMOVED', lists.Update, lists)
-	self:RegisterEvent('GLYPH_UPDATED', lists.Update, lists)
+	self:RegisterEvent('USE_GLYPH', 'Update')
+	self:RegisterEvent('GLYPH_ADDED', 'Update')
+	self:RegisterEvent('GLYPH_REMOVED', 'Update')
+	self:RegisterEvent('GLYPH_UPDATED', 'Update')
 end
 function glyphs:OnDisable()
 	self:UnregisterEvent('USE_GLYPH')

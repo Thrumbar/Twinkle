@@ -18,7 +18,7 @@ local followers  = lists:NewModule('Followers', 'AceEvent-3.0')
       followers.excludeItemSearch = true
 
 function followers:OnEnable()
-	-- self:RegisterEvent('USE_GLYPH', lists.Update, lists)
+	-- self:RegisterEvent('USE_GLYPH', 'Update')
 end
 function followers:OnDisable()
 	-- self:UnregisterEvent('USE_GLYPH')

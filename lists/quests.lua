@@ -26,7 +26,7 @@ local shortTags = {
 }
 
 function quests:OnEnable()
-	self:RegisterEvent('QUEST_LOG_UPDATE', lists.Update, lists)
+	self:RegisterEvent('QUEST_LOG_UPDATE', 'Update')
 end
 function quests:OnDisable()
 	self:UnregisterEvent('QUEST_LOG_UPDATE')
