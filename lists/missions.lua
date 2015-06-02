@@ -120,11 +120,11 @@ function missions:GetRowInfo(characterKey, index)
 		end
 	else
 		if missionID == 0 then
-			headerLevel = 1
+			headerLevel = -1
 			name = 'Mission History'
 		else
 			if subIndex == 0 then
-				headerLevel = 2
+				headerLevel = -2
 				name = C_Garrison.GetMissionName(missionID)
 				link = C_Garrison.GetMissionLink(missionID)
 			else

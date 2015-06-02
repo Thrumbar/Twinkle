@@ -33,7 +33,7 @@ local function OnRowClick(self, btn, up)
 		local providerName  = lists.provider:GetName()
 		local characterKey  = addon:GetSelectedCharacter()
 		local _, identifier = lists.provider:GetRowInfo(characterKey, self:GetID())
-		collapsed[providerName][identifier] = not collapsed[providerName][identifier] or nil
+		collapsed[providerName][identifier] = not collapsed[providerName][identifier]
 		lists:Update()
 	elseif IsModifiedClick() and HandleModifiedItemClick(self.link) then
 		return
@@ -68,10 +68,17 @@ local function UpdateList()
 	local buttonIndex, numRows, numDataRows = 1, 0, 0
 	for index = 1, self.provider:GetNumRows(characterKey) or 0 do
 		local isHeader, title, prefix, suffix, link, tiptext = self.provider:GetRowInfo(characterKey, index)
-		local identifier = isHeader and title or link
+		local isHeaderCollapsed = isHeader and isHeader < 0
+		      isHeader = isHeaderCollapsed and -1*isHeader or isHeader
+		local identifier = isHeader and title or link or tiptext
+
 		-- store collapse/expand all state
-		if isHeader and collapsed[providerName].all ~= nil then
-			collapsed[providerName][identifier] = collapsed[providerName].all or nil
+		if isHeader then
+			if collapsed[providerName].all ~= nil then
+				collapsed[providerName][identifier] = collapsed[providerName].all or nil
+			elseif collapsed[providerName][identifier] == nil then
+				collapsed[providerName][identifier] = isHeaderCollapsed
+			end
 		end
 
 		-- hide nested collapsed rows
