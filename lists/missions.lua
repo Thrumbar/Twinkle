@@ -18,7 +18,7 @@ local COMPONENT_ACTIVE, COMPONENT_AVAILABLE, COMPONENT_HISTORY = 1, 2, 3
 -- Interface/ICONS/INV_Misc_Map_01
 
 function missions:OnEnable()
-	-- self:RegisterEvent('USE_GLYPH', lists.Update, lists)
+	-- self:RegisterEvent('USE_GLYPH', 'Update')
 end
 function missions:OnDisable()
 	-- self:UnregisterEvent('USE_GLYPH')
@@ -99,12 +99,13 @@ function missions:GetRowInfo(characterKey, index)
 	if component == COMPONENT_ACTIVE then
 		if missionID == 0 then
 			headerLevel = 1
-			name = _G.WINTERGRASP_IN_PROGRESS -- GARRISON_LANDING_IN_PROGRESS, 'Active Missions'
+			name = _G.WINTERGRASP_IN_PROGRESS
 		else
 			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance = DataStore:GetActiveMissionInfo(characterKey, missionID)
 			link = C_Garrison.GetMissionLink(missionID)
 			name = C_Garrison.GetMissionName(missionID)
-			local timeInfo = remainingTime <= 0 and _G.COMPLETE
+			local timeInfo = remainingTime <= 0
+				and _G.COMPLETE -- ('%2$s%% – %1$s'):format(_G.COMPLETE, successChance)
 				or SecondsToTime(remainingTime, true)
 			suffix = timeInfo
 			-- prefix = successChance
@@ -112,11 +113,14 @@ function missions:GetRowInfo(characterKey, index)
 	elseif component == COMPONENT_AVAILABLE then
 		if missionID == 0 then
 			headerLevel = 1
-			name = AVAILABLE -- GARRISON_LANDING_AVAILABLE. 'Available Missions'
+			name = _G.AVAILABLE
 		else
-			-- missionType, typeAtlas, level, ilevel, cost, duration = DataStore:GetAvailableMissionInfo(characterKey, missionID)
+			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance = DataStore:GetMissionInfo(characterKey, missionID)
 			name = C_Garrison.GetMissionName(missionID)
 			link = C_Garrison.GetMissionLink(missionID)
+			prefix, remainingTime = SecondsToTimeAbbrev(remainingTime)
+			prefix = prefix:gsub('%%d ', '%%d'):format(remainingTime)
+			suffix = SecondsToTime(duration, true, false, 2)
 		end
 	else
 		if missionID == 0 then
@@ -127,6 +131,9 @@ function missions:GetRowInfo(characterKey, index)
 				headerLevel = -2
 				name = C_Garrison.GetMissionName(missionID)
 				link = C_Garrison.GetMissionLink(missionID)
+				local size = DataStore:GetMissionHistorySize(characterKey, missionID)
+				local startTime, collectTime = DataStore:GetMissionHistoryInfo(characterKey, missionID, size)
+				suffix = BNET_BROADCAST_SENT_TIME:gsub('[%(%)]', ''):format(FriendsFrame_GetLastOnline(collectTime))
 			else
 				local startTime, collectTime, successChance, success, followers, speedFactor, goldFactor, resourceFactor = DataStore:GetMissionHistoryInfo(characterKey, missionID, subIndex)
 				name   = ('%s'):format(date('%Y-%m-%d %H:%M', collectTime))
