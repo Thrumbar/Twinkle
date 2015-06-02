@@ -15,7 +15,6 @@ local lists = views:NewModule('lists')
 local prototype = {
 	Update = function(self)
 		if lists.provider == self then
-			print('update!', self, lists.panel:IsShown(), lists.panel:IsVisible())
 			lists:UpdateList()
 		end
 	end,
@@ -145,14 +144,12 @@ local function UpdateList()
 					local texture = isCollapsed and 'UI-PlusButton-UP' or 'UI-MinusButton-UP'
 					button:SetNormalTexture('Interface\\Buttons\\'..texture)
 					button:SetHighlightTexture('Interface\\Buttons\\UI-PlusButton-Hilight')
-					button.prefix:SetText('')
-					button.suffix:SetText('')
 				else
 					button:SetNormalTexture('')
 					button:SetHighlightTexture('')
-					button.prefix:SetText(prefix or '')
-					button.suffix:SetText(suffix or '')
 				end
+				button.prefix:SetText(prefix or '')
+				button.suffix:SetText(suffix or '')
 				button.isHeader = isHeader
 
 				-- we can display associated icons, e.g. quest rewards or crafting reagents
@@ -267,7 +264,6 @@ end
 
 function lists:OnEnable()
 	local panel = self.panel
-	self:UpdateDataSources()
 
 	local collapseAll = CreateFrame('Button', '$parentCollapseAll', panel)
 	      collapseAll:SetSize(270, 20)
