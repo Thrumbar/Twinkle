@@ -30,8 +30,10 @@ end
 
 function glyphs:GetRowInfo(characterKey, index)
 	local name, _, isKnown, icon, _, link = DataStore:GetGlyphInfo(characterKey, index)
-	local prefix
-	local suffix = (icon and isKnown) and '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t' or '|TInterface\\RAIDFRAME\\ReadyCheck-NotReady:0|t'
+	local prefix, suffix
+	if icon then
+		suffix = isKnown and '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t' or '|TInterface\\RAIDFRAME\\ReadyCheck-NotReady:0|t'
+	end
 
 	return (not icon) and 1 or nil, name, prefix, suffix, link
 end
