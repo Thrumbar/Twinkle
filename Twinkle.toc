@@ -70,6 +70,8 @@ views\equipment.lua
 
 # plugins for items view
 items\inventory.lua
+items\bank.lua
+items\voidstorage.lua
 items\mails.lua
 items\guildbank.lua
 
