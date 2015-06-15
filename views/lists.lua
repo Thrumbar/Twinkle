@@ -14,7 +14,7 @@ local lists = views:NewModule('lists')
 
 local prototype = {
 	Update = function(self)
-		if lists.provider == self then
+		if views:GetActiveView() == lists and lists.provider == self then
 			lists:UpdateList()
 		end
 	end,
@@ -419,7 +419,10 @@ lists.filters = {
 
 function lists:SearchRow(provider, query, characterKey, index)
 	if not query then return true end
-	local cache = searchResultCache[provider:GetName()]
+	local name = provider:GetName()
+	searchResultCache[name] = searchResultCache[name] or {}
+
+	local cache = searchResultCache[name]
 	local key   = strjoin(':', characterKey, index)
 	if cache and cache.query ~= query then
 		wipe(cache)
