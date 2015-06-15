@@ -15,7 +15,7 @@ local guildbank       = items:NewModule('GuildBank', 'AceEvent-3.0')
       guildbank.unchecked = true -- don't show these items by default
 
 function guildbank:OnEnable()
-	-- self:RegisterEvent('', lists.Update, self)
+	-- self:RegisterEvent('', 'Update')
 end
 function guildbank:OnDisable()
 	-- self:UnregisterEvent('')

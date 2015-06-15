@@ -10,14 +10,24 @@ local views = addon:GetModule('views')
 local items = views:NewModule('items', 'AceEvent-3.0')
       items.icon  = 'Interface\\Buttons\\Button-Backpack-Up'
       items.title = _G.ITEMS
+
+local collection  = setmetatable({ }, { __mode = 'v' }) -- TODO: does this even have any effect?
+local searchCache = {}
+local prototype = {
+	Update = function(self)
+		if views:GetActiveView() == items and items.provider == self then
+			-- only the logged in character's items can change
+			self:GatherItems(addon.data:GetCurrentCharacter())
+			items:UpdateList()
+		end
+	end,
+}
 -- views modules are disabled by default, so our modules need to do the same
 items:SetDefaultModuleState(false)
+items:SetDefaultModulePrototype(prototype)
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 local ItemSearch     = LibStub('LibItemSearch-1.2')
-
-local collection  = {}
-local searchCache = {}
 
 -- note: item based sorting matches index of GetItemInfo, collection based matches property name
 local SORT_BY_NAME, SORT_BY_QUALITY, SORT_BY_LEVEL, SORT_BY_COUNT = 1, 3, 15, 16
@@ -43,6 +53,10 @@ local function GetBaseLink(hyperlink)
 	return hyperlink:gsub('item:([^:]+:[^:]+:' 	-- itemID, enchantID
 		..'[^:]+:[^:]+:[^:]+:[^:]+:' 			-- gem1, gem2, gem3, gem4
 		..'[^:]+:)[^:]+(.+)$', 'item:%10%2')
+
+	-- TODO: handle different creation contexts
+	-- item:122273:0:0:0:0:0:0:0:100:0:14:0; GetDifficultyInfo() => "Normal", "raid", false, false, false, false, nil; GetItemCreationContext => 122273, "vendor"
+	-- item:122273:0:0:0:0:0:0:0:100:0:1:0; GetDifficultyInfo() => "Normal", "party", false, false, false, false, nil; GetItemCreationContext() => 122273, "dungeon-normal"
 end
 
 -- click handler for list rows
@@ -310,9 +324,7 @@ function items:Update()
 
 	-- gather data
 	local characterKey = addon:GetSelectedCharacter()
-	-- TODO: wipe collection[characterKey] when eq/items/... change
-	if characterKey == addon.data:GetCurrentCharacter() or not collection[characterKey] then
-		-- logged in character's items may change, all others are static
+	if not collection[characterKey] or #collection[characterKey] == 0 then
 		self:GatherItems(characterKey)
 	end
 
@@ -429,7 +441,7 @@ function items:OnEnable()
 end
 
 function items:OnDisable()
-	-- TODO
+	self:UnregisterMessage('TWINKLE_SEARCH_RESULTS')
 end
 
 -- --------------------------------------------------------

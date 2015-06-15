@@ -13,11 +13,11 @@ local voidstorage       = items:NewModule('VoidStorage', 'AceEvent-3.0')
       voidstorage.title = _G.VOID_STORAGE
 
 function voidstorage:OnEnable()
-	-- events: VOID_STORAGE_UPDATE, VOID_STORAGE_CONTENTS_UPDATE, VOID_TRANSFER_DONE
-	-- self:RegisterEvent('VOID_STORAGE_CONTENTS_UPDATE', lists.Update, self)
+	-- other events: VOID_STORAGE_UPDATE, VOID_TRANSFER_DONE
+	self:RegisterEvent('VOID_STORAGE_CONTENTS_UPDATE', 'Update')
 end
 function voidstorage:OnDisable()
-	-- self:UnregisterEvent('VOID_STORAGE_CONTENTS_UPDATE')
+	self:UnregisterEvent('VOID_STORAGE_CONTENTS_UPDATE')
 end
 
 function voidstorage:GetNumRows(characterKey)

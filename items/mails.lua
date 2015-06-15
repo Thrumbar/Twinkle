@@ -14,10 +14,10 @@ local mails       = items:NewModule('Mails', 'AceEvent-3.0')
       mails.title = _G.INBOX or 'Mails'
 
 function mails:OnEnable()
-	-- self:RegisterEvent('MAIL_INBOX_UPDATE', lists.Update, self)
+	self:RegisterEvent('MAIL_INBOX_UPDATE', 'Update')
 end
 function mails:OnDisable()
-	-- self:UnregisterEvent('MAIL_INBOX_UPDATE')
+	self:UnregisterEvent('MAIL_INBOX_UPDATE')
 end
 
 function mails:GetNumRows(characterKey)

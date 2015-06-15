@@ -13,12 +13,12 @@ local bank       = items:NewModule('Bank', 'AceEvent-3.0')
       bank.title = _G.BANK or 'Bank'
 
 function bank:OnEnable()
-	-- self:RegisterEvent('PLAYERBANKSLOTS_CHANGED', lists.Update, self)
-	-- self:RegisterEvent('PLAYERBANKBAGSLOTS_CHANGED', lists.Update, self)
+	self:RegisterEvent('PLAYERBANKSLOTS_CHANGED', 'Update')
+	self:RegisterEvent('PLAYERBANKBAGSLOTS_CHANGED', 'Update')
 end
 function bank:OnDisable()
-	-- self:UnregisterEvent('PLAYERBANKSLOTS_CHANGED')
-	-- self:UnregisterEvent('PLAYERBANKBAGSLOTS_CHANGED')
+	self:UnregisterEvent('PLAYERBANKSLOTS_CHANGED')
+	self:UnregisterEvent('PLAYERBANKBAGSLOTS_CHANGED')
 end
 
 function bank:GetNumRows(characterKey)
@@ -70,10 +70,10 @@ local reagents       = items:NewModule('ReagentBank', 'AceEvent-3.0')
       reagents.title = _G.REAGENT_BANK
 
 function reagents:OnEnable()
-	-- self:RegisterEvent('PLAYERREAGENTBANKSLOTS_CHANGED', lists.Update, self)
+	self:RegisterEvent('PLAYERREAGENTBANKSLOTS_CHANGED', 'Update')
 end
 function reagents:OnDisable()
-	-- self:UnregisterEvent('PLAYERREAGENTBANKSLOTS_CHANGED')
+	self:UnregisterEvent('PLAYERREAGENTBANKSLOTS_CHANGED')
 end
 
 function reagents:GetNumRows(characterKey)

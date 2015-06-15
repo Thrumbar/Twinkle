@@ -14,10 +14,10 @@ local inventory       = items:NewModule('Inventory', 'AceEvent-3.0')
       inventory.title = _G.BAG_FILTER_EQUIPMENT
 
 function inventory:OnEnable()
-	-- self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', lists.Update, self)
+	self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', 'Update')
 end
 function inventory:OnDisable()
-	-- self:UnregisterEvent('PLAYER_EQUIPMENT_CHANGED')
+	self:UnregisterEvent('PLAYER_EQUIPMENT_CHANGED')
 end
 
 function inventory:GetNumRows(characterKey)
@@ -57,15 +57,14 @@ end
 -- local views = addon:GetModule('views')
 -- local items = views:GetModule('items')
 local bags       = items:NewModule('Bags', 'AceEvent-3.0')
-      bags.icon  = 'Interface\\ICONS\\INV_Misc_Bag_07' -- _Red'
+      bags.icon  = 'Interface\\ICONS\\INV_Misc_Bag_07'
       bags.title = _G.INVTYPE_BAG or 'Bags'
 
 function bags:OnEnable()
-	-- TODO: check if this plugin is currently displayed
-	-- self:RegisterEvent('BAG_UPDATE_DELAYED', items.Update, items)
+	self:RegisterEvent('BAG_UPDATE_DELAYED', 'Update')
 end
 function bags:OnDisable()
-	-- self:UnregisterEvent('BAG_UPDATE_DELAYED')
+	self:UnregisterEvent('BAG_UPDATE_DELAYED')
 end
 
 function bags:GetNumRows(characterKey)
