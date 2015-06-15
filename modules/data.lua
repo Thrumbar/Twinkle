@@ -44,7 +44,7 @@ function data.GetAllCharacters(useTable, ...)
 	if ... then
 		for i = 1, select('#', ...) do
 			local realm = select(i, ...)
-			local _, _, _, _, _, _, _, _, connected = LibRealmInfo:GetRealmInfoByName(realm)
+			local _, _, _, _, _, _, _, _, connected = LibRealmInfo:GetRealmInfo(realm)
 			for _, realmID in pairs(connected or emptyTable) do
 				realms[ (LibRealmInfo:GetRealmInfo(realmID)) ] = true
 			end
