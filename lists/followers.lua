@@ -1,52 +1,102 @@
-if true then return end
-
-
-
-
-
 local addonName, addon, _ = ...
 
 -- GLOBALS: _G
 -- GLOBALS: ipairs, tonumber, math
+-- TODO: group followers: working, active, inactive
 
 local _, class = UnitClass('player')
 local views    = addon:GetModule('views')
 local lists    = views:GetModule('lists')
-local followers  = lists:NewModule('Followers', 'AceEvent-3.0')
-      followers.icon = 'Interface\\Icons\\INV_Glyph_Major' .. class
-      followers.title = _G.GLYPHS
-      followers.excludeItemSearch = true
+local plugin   = lists:NewModule('Followers', 'AceEvent-3.0')
+      plugin.icon = 'Interface\\Icons\\Achievement_WorldEvent_Brewmaster'
+      -- 'Interface\\Icons\\ACHIEVEMENT_GUILDPERK_EVERYONES A HERO_RANK2'
+      plugin.title = _G.GARRISON_FOLLOWERS_TITLE
+      plugin.excludeItemSearch = true
 
-function followers:OnEnable()
+function plugin:OnEnable()
 	-- self:RegisterEvent('USE_GLYPH', 'Update')
 end
-function followers:OnDisable()
+function plugin:OnDisable()
 	-- self:UnregisterEvent('USE_GLYPH')
 end
 
-function followers:GetNumRows(characterKey)
-	return DataStore:GetNumGlyphs(characterKey)
+local character, followers = nil, {}
+local function SortFollowers(a, b)
+	local aInactive = select(14, DataStore:GetFollowerInfo(character, a))
+	local bInactive = select(14, DataStore:GetFollowerInfo(character, b))
+	if aInactive ~= bInactive then
+		return not aInactive
+	else
+		return C_Garrison.GetFollowerNameByID(a) < C_Garrison.GetFollowerNameByID(b)
+	end
+end
+function plugin:GetNumRows(characterKey)
+	local numFollowers = DataStore:GetNumFollowers(characterKey)
+	if characterKey ~= character then
+		wipe(followers)
+		character = characterKey
+		for followerID in pairs(DataStore:GetFollowers(characterKey)) do
+			table.insert(followers, followerID)
+		end
+		table.sort(followers, SortFollowers)
+	end
+	return numFollowers
 end
 
-function followers:GetRowInfo(characterKey, index)
-	local name, _, isKnown, icon, _, link = DataStore:GetGlyphInfo(characterKey, index)
-	local prefix
-	local suffix = (icon and isKnown) and '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t' or '|TInterface\\RAIDFRAME\\ReadyCheck-NotReady:0|t'
+function plugin:GetRowInfo(characterKey, index)
+	local garrFollowerID = followers[index]
+	if not garrFollowerID then return end
+	local suffix, prefix = '', nil
 
-	return (not icon) and 1 or nil, name, prefix, suffix, link
-end
+	-- also available C_Garrison.GetFollower ... PortraitIconIDByID, DisplayIDByID, SourceTextByID
+	-- local specID = C_Garrison.GetFollowerClassSpecByID(garrFollowerID)
+	local name = C_Garrison.GetFollowerNameByID(garrFollowerID)
+	local quality, level, iLevel, skill1, skill2, skill3, skill4, trait1, trait2, trait3, trait4, xp, levelXP, inactive = DataStore:GetFollowerInfo(characterKey, garrFollowerID)
+	local link = DataStore:GetFollowerLink(characterKey, garrFollowerID)
 
-function followers:GetItemInfo(characterKey, index, itemIndex)
-	local icon, link, tooltipText, isKnown
-	if itemIndex == 1 then
-		_, _, isKnown, icon, _, link = DataStore:GetGlyphInfo(characterKey, index)
-		if isKnown then
-			tooltipText = _G.RED_FONT_COLOR_CODE .. _G.ITEM_SPELL_KNOWN
-		else
-			tooltipText = _G.GREEN_FONT_COLOR_CODE .. _G.UNKNOWN
+	local building
+	for _, buildingID, _, followerID in (DataStore:IteratePlots(characterKey) or nop) do
+		if followerID and followerID == garrFollowerID then
+			building = buildingID
+			break
 		end
 	end
-	return icon, link, nil, 1
+	building = building and select(4, C_Garrison.GetBuildingInfo(building)) or nil
+	if building then
+		prefix = '|T' .. building .. ':15|t'
+	elseif inactive then
+		prefix = '|TInterface\\RAIDFRAME\\ReadyCheck-NotReady:0|t'
+	end
+
+	if level < 100 then level = '  ' .. level end
+	local labelFormat, traitFormat = '%3$s%2$s|r %1$s', '%2$s|T:1:1|t|T%1$s:15|t'
+	local color = RGBTableToColorCode(_G.ITEM_QUALITY_COLORS[quality])
+	local label = labelFormat:format(name, (iLevel and iLevel > 600) and iLevel or level, color)
+	if trait1 > 0 then suffix = traitFormat:format(C_Garrison.GetFollowerAbilityIcon(trait1), suffix) end
+	if trait2 > 0 then suffix = traitFormat:format(C_Garrison.GetFollowerAbilityIcon(trait2), suffix) end
+	if trait3 > 0 then suffix = traitFormat:format(C_Garrison.GetFollowerAbilityIcon(trait3), suffix) end
+	if trait4 > 0 then suffix = traitFormat:format(C_Garrison.GetFollowerAbilityIcon(trait4), suffix) end
+
+	return nil, label, prefix, suffix, link
+end
+
+function plugin:GetItemInfo(characterKey, index, itemIndex)
+	local garrFollowerID = followers[index]
+	if not garrFollowerID or itemIndex > 4 then return end
+
+	local icon, link, tooltipText, count
+	local abilityID = select(3 + itemIndex, DataStore:GetFollowerInfo(characterKey, garrFollowerID))
+	if abilityID and abilityID > 0 then
+		local _, counters, counterIcon = C_Garrison.GetFollowerAbilityCounterMechanicInfo(abilityID)
+		icon = C_Garrison.GetFollowerAbilityIcon(abilityID)
+		tooltipText = '|T' .. icon .. ':0|t ' .. C_Garrison.GetFollowerAbilityName(abilityID)
+			.. '|n' .. C_Garrison.GetFollowerAbilityDescription(abilityID)
+		--	.. '|n' .. (_G.GARRISON_ABILITY_COUNTERS .. ' |T%s:0|t %s'):format(counterIcon, counters)
+		-- link = C_Garrison.GetFollowerAbilityLink(abilityID)
+		icon  = counterIcon
+		count = 1
+	end
+	return icon, link, tooltipText, count
 end
 
 --[[ local CustomSearch = LibStub('CustomSearch-1.0')
@@ -67,4 +117,4 @@ local linkFilters  = {
 for tag, handler in pairs(lists.filters) do
 	linkFilters[tag] = handler
 end
-followers.filters = linkFilters --]]
+plugin.filters = linkFilters --]]
