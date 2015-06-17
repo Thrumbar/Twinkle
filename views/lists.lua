@@ -472,7 +472,10 @@ function lists:Search(query, characterKey)
 		end
 
 		-- desaturate when data source has no data
-		_G[self.panel:GetName() .. name]:GetNormalTexture():SetDesaturated(numMatches == 0)
+		local dataSourceButton = self.panel:GetName() .. provider:GetName()
+		if dataSourceButton and _G[dataSourceButton] then
+			dataSourceButton:GetNormalTexture():SetDesaturated(numMatches == 0)
+		end
 		numResults = numResults + numMatches
 	end
 	return numResults
