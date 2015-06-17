@@ -33,6 +33,27 @@ local function GetFactionIcons()
 	return options
 end
 
+local characters = {}
+local function GetCharacters()
+	addon.data.GetAllCharacters(characters)
+	for i, characterKey in ipairs(characters) do
+		characters[characterKey] = ('%s: %s'):format(addon.data.GetRealm(characterKey), addon.data.GetCharacterText(characterKey))
+		characters[i] = nil
+	end
+	return characters
+end
+
+StaticPopupDialogs['TWINKLE_DELETE_CHARACTER'] = {
+  text = 'Are you sure you want to delete |nall data of %s on %s?',
+  button1 = _G.OKAY,
+  button2 = _G.CANCEL,
+  OnAccept = function(_, characterKey) addon.data.DeleteCharacter(characterKey) end,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true,
+  preferredIndex = 3,
+}
+
 local function OpenConfiguration(self, args)
 	-- remove placeholder configuration panel
 	for i, panel in ipairs(_G.INTERFACEOPTIONS_ADDONCATEGORIES) do
@@ -99,6 +120,24 @@ local function OpenConfiguration(self, args)
 	local AceConfig, AceConfigDialog = LibStub('AceConfig-3.0'), LibStub('AceConfigDialog-3.0')
 	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(addon.db, types, L, true)
 	      optionsTable.name = addonName
+
+	-- allow deleting characters
+	optionsTable.args.global.args.DeleteCharacter = {
+		type = 'select',
+		name = 'Delete character',
+		desc = 'Select a character to be deleted. Associated guild data will also be deleted if no other character is in that guild.|n|cFFFF0000This cannot be undone! Use with caution!|r',
+		values = GetCharacters,
+		get = nop,
+		set = function(info, characterKey)
+			StaticPopup_Show('TWINKLE_DELETE_CHARACTER',
+				addon.data.GetCharacterText(characterKey),
+				addon.data.GetRealm(characterKey),
+				characterKey
+			)
+		end,
+		order = 99,
+	}
+
 	AceConfig:RegisterOptionsTable(addonName, optionsTable)
 	AceConfigDialog:AddToBlizOptions(addonName, nil, nil)
 
