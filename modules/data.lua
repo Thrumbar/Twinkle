@@ -3,7 +3,7 @@ local addonName, addon, _ = ...
 local data = addon:NewModule('data', 'AceEvent-3.0')
 addon.data = data
 
--- GLOBALS: _G, DataStore, BANK_CONTAINER, BATTLENET_FONT_COLOR_CODE
+-- GLOBALS: _G, DataStore, BANK_CONTAINER, BATTLENET_FONT_COLOR_CODE, NUM_BAG_SLOTS
 -- GLOBALS: GetRealmName, UnitName, UnitFullName, UnitRace, UnitClass, UnitLevel, UnitFactionGroup, UnitXP, UnitXPMax, GetXPExhaustion, GetItemInfo, GetNumClasses, GetClassInfo, GetMoney, GetZoneText, GetSubZoneText, GetAverageItemLevel, GetNumUnspentTalents, GetInventoryItemLink, GetActiveSpecGroup, GetContainerItemInfo, GetGuildInfo, IsResting, GetVoidItemInfo, GetCurrencyListSize, GetCurrencyListInfo, GetCurrencyInfo
 -- GLOBALS: string, math, table, wipe, pairs, select, type, tonumber, setmetatable, rawget, rawset, strjoin, strsplit
 
@@ -20,13 +20,6 @@ local LibRealmInfo    = LibStub('LibRealmInfo')
 local thisCharacter   = DataStore:GetCharacter() or UnitFullName('player')
 local realmCharacters = DataStore:GetCharacters() or {thisCharacter = UnitName('player')} -- TODO: this is bsh*t
 local emptyTable      = {}
-
-hooksecurefunc(DataStore, 'DeleteCharacter', function(self, name, realm, account)
-	if not name then return end
-	local characterKey = ('%s.%s.%s'):format(account or 'Default', realm or GetRealmName(), name)
-	-- TODO: update all our cached character lists
-	addon:SendMessage('TWINKLE_CHARACTER_DELETED', characterKey)
-end)
 
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
@@ -77,6 +70,30 @@ function data.IsCharacter(key)
 	end
 end
 
+function data.DeleteCharacter(key)
+	if not key then return end
+	local account, realm, character = strsplit('.', key)
+	if not account or not realm or not character then return end
+	local guildName = DataStore.db.global.Characters[key].guildName
+	DataStore:DeleteCharacter(character, realm, account)
+
+	if guildName then
+		for characterKey, data in pairs(DataStore.db.global.Characters) do
+			local _, charRealm = strsplit('.', characterKey)
+			if charRealm == realm and data.guildName == guildName then
+				guildName = nil
+				break
+			end
+		end
+		-- no more characters in this guild
+		if guildName then
+			DataStore:DeleteGuild(guildName, realm, account)
+			addon:SendMessage('TWINKLE_GUILD_DELETED', key)
+		end
+	end
+	addon:SendMessage('TWINKLE_CHARACTER_DELETED', key)
+end
+
 -- ========================================
 --  General Information
 -- ========================================
@@ -94,6 +111,14 @@ function data.GetFullName(characterKey)
 	else
 		local account, realm, characterKey = strsplit('.', characterKey)
 		return characterKey..'-'..string.gsub(realm, ' ', '')
+	end
+end
+function data.GetRealm(characterKey)
+	if characterKey == thisCharacter then
+		return GetRealmName()
+	else
+		local account, realm, characterKey = strsplit('.', characterKey)
+		return realm
 	end
 end
 function data.GetCharacterText(characterKey)
