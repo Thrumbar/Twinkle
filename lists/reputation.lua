@@ -39,21 +39,24 @@ end
 function reputation:GetRowInfo(characterKey, index)
 	local factionID, reputation, standingID, standingText, low, high = DataStore:GetFactionInfo(characterKey, index)
 	local title, description, _, _, _, _, atWar, canWar, isHeader, _, hasRep, isWatched, isChild, _, hasBonus = GetFactionInfoByID(factionID)
+	if not title then
+		title = DataStore:GetFactionName(factionID)
+	end
+
 	-- gather header details
 	isHeader = (isHeader and 1 or 0) + (isChild and 1 or 0)
 	if isHeader == 0 then isHeader = nil end
-
-	local color = standingID and standingColors[standingID]
-	if GetFriendshipReputation(factionID) then
-		color = standingColors[standingID + 1] -- standingColors[5]
-	end
 
 	local info
 	-- local prefix = hasBonus and '|TInterface\\COMMON\\ReputationStar:16:16:0:0:32:32:16:32:16:32|t' or nil
 	local tiptext = description or _G.UNKNOWN
 	if standingID then
+		if standingID == 0 or GetFriendshipReputation(factionID) then
+			standingID = standingID + 1
+		end
+		local color = standingColors[standingID]
 		local lowBoundary, highBoundary = reputation - low, high - low
-		info = RGBTableToColorCode(color) .. (standingText or '?') .. '|r'
+		info = RGBTableToColorCode(color) .. (standingText or _G.FRIEND) .. '|r'
 		if reputation < high - 1 then
 			tiptext = string.format('%s|n%s%s: %s/%s|r', tiptext, RGBTableToColorCode(color),
 				standingText or '', AbbreviateLargeNumbers(lowBoundary), AbbreviateLargeNumbers(highBoundary))
