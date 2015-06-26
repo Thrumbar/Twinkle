@@ -35,13 +35,12 @@ local function ClearTooltipItem(self)
 end
 
 -- TODO: single-character pets+mounts / mounts learned by items (e.g. cloud serpent)
-local function HandleTooltipItem(self)
+local function HandleTooltipItem(self, link)
 	-- avoid script running out of time
 	if InCombatLockdown() then return end
-
-	local name, link = self:GetItem()
+	link = link or select(2, self:GetItem())
 	if not link then return end
-	local _, _, quality, iLevel, reqLevel, itemClass, subClass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
+	local name, _, quality, iLevel, reqLevel, itemClass, subClass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
 	local itemID = addon.GetLinkID(link)
 
 	local craftedName, professionName, professionRequiredSkill
@@ -116,6 +115,16 @@ local function HandleTooltipItem(self)
 
 	self.twinkleDone = true
 	self:Show()
+end
+
+local function HandleTradeSkillItem(self, skillIndex, reagentIndex)
+	local itemLink
+	if reagentIndex then
+		itemLink = GetTradeSkillReagentItemLink(skillIndex, reagentIndex)
+	else
+		itemLink = GetTradeSkillItemLink(skillIndex)
+	end
+	HandleTooltipItem(self, itemLink)
 end
 
 local function HandleTooltipSpell(self)
@@ -205,6 +214,7 @@ function plugin:OnEnable()
 	GameTooltip:HookScript('OnTooltipSetUnit',       addon.AddSocialInfo)
 	GameTooltip:HookScript('OnTooltipSetSpell',      HandleTooltipSpell)
 	-- GameTooltip:HookScript('OnTooltipSetEquipmentSet', function(self) end) -- ??
+	hooksecurefunc(GameTooltip, 'SetTradeSkillItem', HandleTradeSkillItem)
 	hooksecurefunc(GameTooltip, 'SetHyperlink',      HandleTooltipHyperlink)
 
 	ItemRefTooltip:HookScript('OnTooltipCleared',    ClearTooltipItem)
