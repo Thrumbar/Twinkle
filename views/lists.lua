@@ -463,7 +463,7 @@ function lists:Search(query, characterKey)
 			numMatches = self:Update()
 		else
 			-- gather search results without affecting current display
-			for index = 1, provider:GetNumRows(characterKey) do
+			for index = 1, provider:GetNumRows(characterKey) or 0 do
 				local matchesSearch = self:SearchRow(provider, query, characterKey, index)
 				if matchesSearch then
 					numMatches = numMatches + 1

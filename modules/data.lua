@@ -550,7 +550,8 @@ function data.GetCurrencyInfo(characterKey, currencyID)
 
 	if currencyID == 824 then -- garrison resource
 		weekly = DataStore:GetUncollectedResources(characterKey) or 0
-	elseif currencyID == 994 then -- seal of tempered fate
+	-- elseif currencyID == 994 then -- seal of tempered fate
+	elseif currencyID == 1129 then -- Seal of Inevitable Fate
 		weekly = data.GetNumQuestsCompleted(characterKey, 36058, -- war mill/dwarven bunker
 			36054, 37454, 37455, -- gold
 			36056, 37456, 37457, -- garrison resource

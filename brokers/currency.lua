@@ -19,8 +19,8 @@ local function GetGeneralCurrencyInfo(currencyID)
 	if currencyID == 824 then
 		-- garrison resource: display uncollected as weekly
 		weeklyMax = 500
-	elseif currencyID == 994 then
-		-- seal of tempered fate
+	elseif currencyID == 1129 then
+		-- seal of inevitable fate
 		weeklyMax = 3
 	end
 	return name, texture, totalMax, weeklyMax

@@ -15,8 +15,10 @@ local plugin   = lists:NewModule('Followers', 'AceEvent-3.0')
 
 local mechanics = {}
 function plugin:OnEnable()
-	for _, mechanic in pairs(C_Garrison.GetAllEncounterThreats()) do
-		-- table.insert(mechanics, mechanic.id)
+	for _, mechanic in pairs(C_Garrison.GetAllEncounterThreats(LE_FOLLOWER_TYPE_GARRISON_6_0)) do
+		mechanics[mechanic.id] = true
+	end
+	for _, mechanic in pairs(C_Garrison.GetAllEncounterThreats(LE_FOLLOWER_TYPE_SHIPYARD_6_2)) do
 		mechanics[mechanic.id] = true
 	end
 
