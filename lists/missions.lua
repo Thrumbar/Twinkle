@@ -92,6 +92,8 @@ function missions:GetNumRows(characterKey)
 	return numHeaders + numActiveMissions + numAvailableMissions + historySize
 end
 
+-- local anchorIcon = '|TInterface\\Garrison\\GarrisonShipMapIcons:16:16:0:0:512:512:296:328:189:221|t'
+local shipyardFontColor = _G.BATTLENET_FONT_COLOR_CODE
 function missions:GetRowInfo(characterKey, index)
 	local headerLevel, name, prefix, suffix, link
 	local component, missionID, subIndex = GetRowIndices(characterKey, index)
@@ -101,9 +103,12 @@ function missions:GetRowInfo(characterKey, index)
 			headerLevel = 1
 			name = _G.WINTERGRASP_IN_PROGRESS
 		else
-			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance = DataStore:GetActiveMissionInfo(characterKey, missionID)
+			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance, followerType = DataStore:GetActiveMissionInfo(characterKey, missionID)
 			link = C_Garrison.GetMissionLink(missionID)
 			name = C_Garrison.GetMissionName(missionID)
+			if (followerType or LE_FOLLOWER_TYPE_GARRISON_6_0) == LE_FOLLOWER_TYPE_SHIPYARD_6_2 then
+				name = shipyardFontColor .. name .. '|r'
+			end
 			local timeInfo = remainingTime <= 0
 				and _G.COMPLETE -- ('%2$s%% – %1$s'):format(_G.COMPLETE, successChance)
 				or SecondsToTime(remainingTime, true)
@@ -115,8 +120,11 @@ function missions:GetRowInfo(characterKey, index)
 			headerLevel = 1
 			name = _G.AVAILABLE
 		else
-			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance = DataStore:GetMissionInfo(characterKey, missionID)
+			local missionType, typeAtlas, level, ilevel, cost, duration, followers, remainingTime, successChance, followerType = DataStore:GetMissionInfo(characterKey, missionID)
 			name = C_Garrison.GetMissionName(missionID)
+			if (followerType or LE_FOLLOWER_TYPE_GARRISON_6_0) == LE_FOLLOWER_TYPE_SHIPYARD_6_2 then
+				name = shipyardFontColor .. name .. '|r'
+			end
 			link = C_Garrison.GetMissionLink(missionID)
 			prefix, remainingTime = SecondsToTimeAbbrev(remainingTime)
 			prefix = prefix:gsub('%%d ', '%%d'):format(remainingTime)
