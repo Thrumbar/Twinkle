@@ -635,6 +635,21 @@ function data.GetNumQuestsCompleted(characterKey, ...)
 	return count
 end
 
+function data.GetQuestProgress(characterKey, questID)
+	local hasQuest, progress = DataStore:GetQuestProgress(characterKey, questID)
+	if hasQuest then
+		return progress
+	else
+		for i = 1, DataStore:GetQuestLogSize(characterKey) or 0 do
+			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(characterKey, i)
+			local qID = questLink and addon.GetLinkID(questLink)
+			if not isHeader and qID == questID and completed ~= 1 then
+				return 0
+			end
+		end
+	end
+end
+
 function data.GetNumSavedWorldBosses(characterKey)
 	return DataStore:GetNumSavedWorldBosses(characterKey) or 0
 end
