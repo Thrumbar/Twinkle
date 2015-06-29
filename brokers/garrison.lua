@@ -83,14 +83,26 @@ function broker:UpdateTooltip()
 
 		-- missions
 		local numActive, numCompleted = 0, 0
+		local numShipyardActive, numShipyardCompleted = 0, 0
 		for missionID, expires in pairs(DataStore:GetMissions(characterKey, 'active') or emptyTable) do
-			if expires <= now then
-				numCompleted = numCompleted + 1
+			local followerType = DataStore:GetBasicMissionInfo(missionID)
+			if followerType == _G.LE_FOLLOWER_TYPE_SHIPYARD_6_2 then
+				numShipyardCompleted = numShipyardCompleted + (expires <= now and 1 or 0)
+				numShipyardActive    = numShipyardActive    + (expires <= now and 0 or 1)
 			else
-				numActive = numActive + 1
+				numCompleted = numCompleted + (expires <= now and 1 or 0)
+				numActive    = numActive    + (expires <= now and 0 or 1)
 			end
 		end
-		local missions = (numActive > 0 or numCompleted > 0) and COMPLETE_ACTIVE:format(numCompleted, numActive) or ZERO
+		local missions
+		if numActive > 0 or numCompleted > 0 then
+			missions = COMPLETE_ACTIVE:format(numCompleted, numActive)
+		end
+		if numShipyardActive > 0 or numShipyardCompleted > 0 then
+			missions = (missions and missions .. ' ' or '') .. _G.BATTLENET_FONT_COLOR_CODE
+				.. numShipyardCompleted .. '/' .. numShipyardActive .. '|r'
+		end
+		missions = missions or ZERO
 
 		-- resources
 		local _, _, numResources, _, numUncollectedResources = addon.data.GetCurrencyInfo(characterKey, 824)
