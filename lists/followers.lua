@@ -30,9 +30,12 @@ end
 
 local character, followers = nil, {}
 local function SortFollowers(a, b)
+	local aType, bType = C_Garrison.GetFollowerTypeByID(a), C_Garrison.GetFollowerTypeByID(b)
 	local aInactive = select(14, DataStore:GetFollowerInfo(character, a))
 	local bInactive = select(14, DataStore:GetFollowerInfo(character, b))
-	if aInactive ~= bInactive then
+	if aType ~= bType then
+		return aType > bType
+	elseif aInactive ~= bInactive then
 		return not aInactive
 	else
 		return C_Garrison.GetFollowerNameByID(a) < C_Garrison.GetFollowerNameByID(b)
