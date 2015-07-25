@@ -36,14 +36,17 @@ local worldBosses = {
 	-- display order
 	37462, -- drov/tarlna
 	37464, -- rukhmar
+	94015, -- supreme lord kazzak
 	-- boss data
 	[37462] = 1291, -- drov:1291, tarlna:1211, spell:172612
 	[37464] = 1262, -- rukhmar, id:9, item:116771
+	[94015] = 1452, -- supreme lord kazzak, id:15
 }
 local weeklyQuests = { -- sharedQuestID or 'allianceID|hordeID'
 	-- 32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
 	-- '32719|32718', -- lesser charms trade-in
 	-- 33338, 33334, --32956, -- timeless isle (epoch stone, rares, pirate chest)
+	37638, 37639, 37640, 38482, -- garrison invasions
 }
 
 local LFRDungeons, LFRInstances = {}, {}
