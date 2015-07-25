@@ -90,8 +90,8 @@ function specializations:GetItemInfo(characterKey, index, itemIndex)
 			local socket = _G['GLYPH_ID_' .. glyphType .. '_' .. (3 - itemIndex + 1)]
 			local enabled, glyphID, tooltipIndex
 			enabled, _, _, icon, glyphID, tooltipIndex = DataStore:GetGlyphSocketInfo(characterKey, specNum, socket)
-			link        =     enabled and DataStore:GetGlyphLink(glyphID) or nil
-			tooltipText = not enabled and _G['GLYPH_SLOT_TOOLTIP' .. tooltipIndex] or nil
+			link        = enabled and DataStore:GetGlyphLink(glyphID) or nil
+			tooltipText = (not enabled and tooltipIndex) and _G['GLYPH_SLOT_TOOLTIP' .. tooltipIndex] or nil
 			icon = icon or 'Interface\\Icons\\INV_Misc_QuestionMark'
 		end
 	else
