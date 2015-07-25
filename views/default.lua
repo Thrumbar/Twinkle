@@ -310,8 +310,10 @@ function view:OnEnable()
 			-- local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, journalBossID)
 			[7] = 'Interface\\Icons\\CreaturePortrait_FomorHand', 	-- 1291, qid:37460, drov = 1211, qid:37462, tarlna
 			[9] = 'Interface\\Icons\\inv_helm_suncrown_d_01', 		-- 1262, qid:37464, rukhmar
+			[15] = 'Interface\\Icons\\warlock_summon_doomguard', 	-- 1452, qid:94015, supreme lord kazzak
 		},
 	}
+	-- TODO: auto-detect available world bosses
 	local worldBoss = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	worldBoss:SetJustifyH('LEFT')
 	worldBoss.update = function(self, character)
