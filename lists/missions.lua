@@ -11,7 +11,9 @@ local missions = lists:NewModule('Missions', 'AceEvent-3.0')
       missions.title = _G.GARRISON_MISSIONS -- _TITLE
       missions.excludeItemSearch = false
 
+local emptyTable = {}
 local COMPONENT_ACTIVE, COMPONENT_AVAILABLE, COMPONENT_HISTORY = 1, 2, 3
+local activeMissions, availableMissions, historyMissions = {}, {}, {}
 
 -- Interface/ICONS/Creatureportrait_RopeLadder01
 -- Interface/ICONS/Achievement_Arena_2v2_6
@@ -41,28 +43,12 @@ local function GetRowIndices(characterKey, rowIndex)
 		-- active missions
 		component = COMPONENT_ACTIVE
 		index = rowIndex - COMPONENT_ACTIVE
-
-		local missions = DataStore:GetActiveMissions(characterKey)
-		for missionID in pairs(missions) do
-			if index == 1 then
-				index = missionID
-				break
-			end
-			index = index - 1
-		end
+		index = activeMissions[index] or 0
 	elseif rowIndex <= numActiveMissions + numAvailableMissions + COMPONENT_AVAILABLE then
 		-- available missions
 		component = COMPONENT_AVAILABLE
 		index = rowIndex - numActiveMissions - COMPONENT_AVAILABLE
-
-		local missions = DataStore:GetAvailableMissions(characterKey)
-		for missionID in pairs(missions) do
-			if index == 1 then
-				index = missionID
-				break
-			end
-			index = index - 1
-		end
+		index = availableMissions[index] or 0
 	else
 		-- mission history
 		component = COMPONENT_HISTORY
@@ -86,7 +72,42 @@ local function GetRowIndices(characterKey, rowIndex)
 	return component, index > 0 and index or 0, subIndex
 end
 
+local function SortActiveMissions(a, b)
+	local characterKey = DataStore:GetCurrentCharacterKey()
+	local aExpiry = DataStore:GetGarrisonMissionExpiry(characterKey, a) or math.huge
+	local bExpiry = DataStore:GetGarrisonMissionExpiry(characterKey, b) or math.huge
+	if aExpiry ~= bExpiry then return aExpiry < bExpiry
+	else
+		return C_Garrison.GetMissionName(a) < C_Garrison.GetMissionName(b)
+	end
+end
+local function SortMissions(a, b)
+	local aType, _, _, aLevel, aILevel, _, aDuration, aIsRare = DataStore:GetBasicMissionInfo(a)
+	local bType, _, _, bLevel, bILevel, _, bDuration, bIsRare = DataStore:GetBasicMissionInfo(b)
+	if aType ~= bType then return aType > bType
+	elseif aIsRare ~= bIsRare then return aIsRare
+	else
+		return C_Garrison.GetMissionName(a) < C_Garrison.GetMissionName(b)
+	end
+end
+
 function missions:GetNumRows(characterKey)
+	wipe(activeMissions)
+	for missionID in pairs(DataStore:GetActiveMissions(characterKey) or emptyTable) do
+		table.insert(activeMissions, missionID)
+	end
+	table.sort(activeMissions, SortActiveMissions)
+	wipe(availableMissions)
+	for missionID in pairs(DataStore:GetAvailableMissions(characterKey) or emptyTable) do
+		table.insert(availableMissions, missionID)
+	end
+	table.sort(availableMissions, SortMissions)
+	wipe(historyMissions)
+	for missionID in (DataStore:IterateHistoryMissions(characterKey) or nop) do
+		table.insert(historyMissions, missionID)
+	end
+	table.sort(historyMissions, SortMissions)
+
 	local numHeaders = 3 -- active missions, available missions, history missions
 	local numActiveMissions, numAvailableMissions, historySize = GetNumRows(characterKey)
 	return numHeaders + numActiveMissions + numAvailableMissions + historySize
@@ -181,7 +202,8 @@ function missions:GetItemInfo(characterKey, index, itemIndex)
 			else
 				tooltipText = rewardInfo.title
 				if rewardInfo.tooltip or rewardInfo.name then
-					tooltipText = tooltipText .. '\n' .. (rewardInfo.tooltip or rewardInfo.name)
+					tooltipText = (tooltipText and tooltipText .. '\n' or '')
+						.. (rewardInfo.tooltip or rewardInfo.name)
 				end
 			end
 		end
