@@ -36,8 +36,6 @@ end
 
 -- TODO: single-character pets+mounts / mounts learned by items (e.g. cloud serpent)
 local function HandleTooltipItem(self, link)
-	-- avoid script running out of time
-	if InCombatLockdown() then return end
 	link = link or select(2, self:GetItem())
 	if not link then return end
 	local name, _, quality, iLevel, reqLevel, itemClass, subClass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(link)
@@ -177,14 +175,12 @@ local function HandleTooltipHyperlink(self, hyperlink)
 	-- print('SetHyperlink', hyperlink, linkType, id)
 	if linkType == 'quest' then
 		-- would use OnTooltipSetQuest but that doesn't supply id
-		local linesAdded = nil
-		-- addon.AddEmptyLine(self, true)
-
-		linesAdded = addon.AddOnQuestInfo(self, id)
-		-- if linesAdded then addon.AddEmptyLine(self, true) end
+		addon.AddOnQuestInfo(self, id)
 	elseif linkType == 'achievement' then
 		-- TODO: FIXME: conflicts with TipTacItemRef
 		addon.AddAchievementInfo(self, id)
+	elseif linkType == 'currency' then
+		addon.AddCurrencyInfo(self, id)
 	else
 		-- print('SetHyperlink', hyperlink)
 	end
@@ -206,34 +202,43 @@ local defaults = {
 		},
 	},
 }
+
+local function HookTooltip(tooltip)
+	if not tooltip then return end
+	if tooltip:GetScript('OnTooltipCleared') then
+		tooltip:HookScript('OnTooltipCleared', ClearTooltipItem)
+	end
+	if tooltip:GetScript('OnTooltipSetItem') then
+		tooltip:HookScript('OnTooltipSetItem', HandleTooltipItem)
+	end
+	if tooltip:GetScript('OnTooltipSetUnit') then
+		tooltip:HookScript('OnTooltipSetUnit', addon.AddSocialInfo)
+	end
+	if tooltip:GetScript('OnTooltipSetSpell') then
+		tooltip:HookScript('OnTooltipSetSpell', HandleTooltipSpell)
+	end
+	-- tooltip:HookScript('OnTooltipSetEquipmentSet', function(self) end) -- ??
+
+	if tooltip.SetTradeSkillItem then hooksecurefunc(tooltip, 'SetTradeSkillItem', HandleTradeSkillItem) end
+	if tooltip.SetHyperlink then hooksecurefunc(tooltip, 'SetHyperlink', HandleTooltipHyperlink) end
+	-- if tooltip.SetItemByID then hooksecurefunc(tooltip, 'SetItemByID', HandleTooltipItem) end
+end
+
 function plugin:OnEnable()
 	self.db = addon.db:RegisterNamespace('Tooltip', defaults)
 
-	GameTooltip:HookScript('OnTooltipCleared',       ClearTooltipItem)
-	GameTooltip:HookScript('OnTooltipSetItem',       HandleTooltipItem)
-	GameTooltip:HookScript('OnTooltipSetUnit',       addon.AddSocialInfo)
-	GameTooltip:HookScript('OnTooltipSetSpell',      HandleTooltipSpell)
-	-- GameTooltip:HookScript('OnTooltipSetEquipmentSet', function(self) end) -- ??
-	hooksecurefunc(GameTooltip, 'SetTradeSkillItem', HandleTradeSkillItem)
-	hooksecurefunc(GameTooltip, 'SetHyperlink',      HandleTooltipHyperlink)
+	HookTooltip(GameTooltip)
+	HookTooltip(ItemRefTooltip)
+	HookTooltip(ShoppingTooltip1)
+	HookTooltip(ShoppingTooltip2)
 
-	ItemRefTooltip:HookScript('OnTooltipCleared',    ClearTooltipItem)
-	ItemRefTooltip:HookScript('OnTooltipSetItem',    HandleTooltipItem)
-	ItemRefTooltip:HookScript('OnTooltipSetUnit',    addon.AddSocialInfo)
-	hooksecurefunc(ItemRefTooltip, 'SetHyperlink',   HandleTooltipHyperlink)
-
-	if ShoppingTooltip1 then
-		ShoppingTooltip1:HookScript('OnTooltipSetItem',  HandleTooltipItem)
-		hooksecurefunc(ShoppingTooltip1, 'SetHyperlink', HandleTooltipHyperlink)
-	end
-	if ShoppingTooltip2 then
-		ShoppingTooltip2:HookScript('OnTooltipSetItem',  HandleTooltipItem)
-		hooksecurefunc(ShoppingTooltip2, 'SetHyperlink', HandleTooltipHyperlink)
-	end
-	if ShoppingTooltip3 then
-		ShoppingTooltip3:HookScript('OnTooltipSetItem',  HandleTooltipItem)
-		hooksecurefunc(ShoppingTooltip3, 'SetHyperlink', HandleTooltipHyperlink)
-	end
+	local extraTips = {}
+	hooksecurefunc('EmbeddedItemTooltip_SetItemByID', function(self, id)
+		if extraTips[self.Tooltip] then return end
+		HookTooltip(self.Tooltip)
+		extraTips[self.Tooltip] = true
+		EmbeddedItemTooltip_SetItemByID(self, id)
+	end)
 
 	hooksecurefunc(GameTooltip, 'SetGlyphByID', function(tooltip, glyphID)
 		-- shown when hovering a glyph in the talent ui
@@ -256,6 +261,7 @@ function plugin:OnEnable()
 		-- we add a marker for money frames as their texts are all empty
 		_G[tooltip:GetName()..'TextRight'..tooltip:NumLines()]:SetText('*')
 	end)
+
 	-- TODO: does not trigger on zone quest lists
 	hooksecurefunc('QuestMapLogTitleButton_OnEnter', function(self)
 		local _, _, _, isHeader, _, _, _, questID = GetQuestLogTitle(self.questLogIndex)
