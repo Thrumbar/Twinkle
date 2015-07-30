@@ -199,9 +199,20 @@ local defaults = {
 			showGuilds = true,
 			includeGuildCountInTotal = true,
 			onlyThisCharOnBOP = true,
+			-- onlyCurrentFaction = false, -- TODO
 		},
 	},
 }
+
+local function OnTooltipSetQuestItem(self, itemType, index)
+	local link = GetQuestItemLink(itemType, index)
+	HandleTooltipItem(self, link)
+end
+
+local function OnTooltipSetQuestLogItem(self, itemType, index)
+	local link = GetQuestLogItemLink(itemType, index)
+	HandleTooltipItem(self, link)
+end
 
 local function HookTooltip(tooltip)
 	if not tooltip then return end
@@ -222,6 +233,8 @@ local function HookTooltip(tooltip)
 	if tooltip.SetTradeSkillItem then hooksecurefunc(tooltip, 'SetTradeSkillItem', HandleTradeSkillItem) end
 	if tooltip.SetHyperlink then hooksecurefunc(tooltip, 'SetHyperlink', HandleTooltipHyperlink) end
 	-- if tooltip.SetItemByID then hooksecurefunc(tooltip, 'SetItemByID', HandleTooltipItem) end
+	if tooltip.SetQuestLogItem then hooksecurefunc(tooltip, 'SetQuestLogItem', OnTooltipSetQuestLogItem) end
+	if tooltip.SetQuestItem then hooksecurefunc(tooltip, 'SetQuestItem', OnTooltipSetQuestItem) end
 end
 
 function plugin:OnEnable()
