@@ -133,12 +133,12 @@ function broker:UpdateTooltip()
 		local _, _, numResources = addon.data.GetCurrencyInfo(characterKey, 824)
 		local numUncollected, cacheSize = DataStore:GetUncollectedResources(characterKey)
 		local warning = ''
-		if (numUncollected or 0) / cacheSize >= broker.db.profile.cacheFullWarningPercent then
+		if (numUncollected or 0) / (cacheSize or 500) >= broker.db.profile.cacheFullWarningPercent then
 			warning = '|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0:0:0:-1|t'
 		end
 
 		-- create tooltip row
-		if builds ~= '' or missions ~= '' or shipments ~= '' or numResources > 0 or numUncollected > 0 then
+		if missions ~= '' or shipments ~= '' or (numResources + numUncollected) > 0 or numOil > 0 then
 			local characterName = addon.data.GetCharacterText(characterKey)
 			lineNum = self:AddLine(characterName,
 				warning .. addon.ColorizeText(AbbreviateLargeNumbers(numResources), 10000 - numResources, 10000),
