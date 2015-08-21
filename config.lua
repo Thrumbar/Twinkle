@@ -74,6 +74,7 @@ local function OpenConfiguration(self, args)
 			['Interface\\MINIMAP\\TRACKING\\BattleMaster'] = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:20|t',
 			['Interface\\ICONS\\FactionChange'] = '|TInterface\\ICONS\\FactionChange:20|t',
 		},
+		characterFilters = '**none**',
 
 		-- namespaces
 		Money = { -- brokers: money

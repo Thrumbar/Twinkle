@@ -4,19 +4,12 @@ local addonName, addon, _ = ...
 -- GLOBALS: CreateFrame, PlaySound, EditBox_ClearFocus
 -- GLOBALS: hooksecurefunc, pairs, type
 
+local views  = addon:GetModule('views')
 local search = addon:NewModule('Search', 'AceEvent-3.0')
 local searchResults, emptyTable = {}, {}
-local characters
+local currentSearch
 
-function search:OnEnable()
-	-- views module is a requirement
-	if not addon:GetModule('views', true) then
-		self:Disable()
-		return
-	end
-
-	characters = addon.data.GetCharacters()
-
+local function InitializeFrame(frame)
 	local searchDelay, lastUpdate = 0.25, 0
 	local function SearchDelayed(self)
 		local now = GetTime()
@@ -27,26 +20,35 @@ function search:OnEnable()
 		end
 	end
 
-	-- add search box to frame sidebar
-	local frame = addon.frame
-	local searchbox = CreateFrame('EditBox', '$parentSearchBox', frame.sidebar, 'SearchBoxTemplate')
-	      searchbox:SetPoint('TOPLEFT', 9, -46)
-	      searchbox:SetSize(160, 20)
-	frame.search = searchbox
+	local searchBox = CreateFrame('EditBox', '$parentSearchBox', frame.sidebar, 'SearchBoxTemplate')
+	      searchBox:SetPoint('TOPLEFT', 9, -46)
+	      searchBox:SetSize(160, 20)
+	frame.search = searchBox
 
-	searchbox.clearButton:HookScript('OnClick', searchbox.clearButton.Hide)
-	searchbox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
-	searchbox:SetScript('OnEnterPressed', EditBox_ClearFocus)
-	searchbox:SetScript('OnTextChanged', function(self, isUserInput)
+	searchBox.tipText = 'TODO'
+	searchBox:SetScript('OnEnter', addon.ShowTooltip)
+	searchBox:SetScript('OnLeave', addon.HideTooltip)
+	searchBox.clearButton:HookScript('OnClick', searchBox.clearButton.Hide)
+	searchBox:SetScript('OnEscapePressed', function(self) self.clearButton:Click() end)
+	searchBox:SetScript('OnEnterPressed', EditBox_ClearFocus)
+	searchBox:SetScript('OnTextChanged', function(self, isUserInput)
 		InputBoxInstructions_OnTextChanged(self)
-		if self:GetText() == self.searchString then return end
-		if isUserInput then
+		local query = self:GetText():trim()
+		      query = query ~= '' and query or nil
+		if query == currentSearch then return end
+		if not isUserInput then
+			search:Update()
+		else
 			lastUpdate = GetTime()
 			self:SetScript('OnUpdate', SearchDelayed)
-		else
-			search:Update()
 		end
 	end)
+end
+
+function search:OnEnable()
+	-- add search box to frame sidebar
+	-- addon.frame:HookScript('OnShow', InitializeFrame)
+	InitializeFrame(addon.frame)
 
 	self:RegisterMessage('TWINKLE_VIEW_CHANGED', self.UpdateSearch)
 	self:RegisterMessage('TWINKLE_CHARACTER_CHANGED', self.UpdateSearch)
@@ -54,52 +56,35 @@ function search:OnEnable()
 	addon:AutoUpdateModule(self.moduleName)
 end
 
-function search:Clear()
-	local editBox = addon.frame.search
-	editBox.searchString = nil
-	-- restore UI state
-	addon:Update()
-end
-
 function search:UpdateSearch()
 	local editBox = addon.frame.search
-	if editBox.searchString then
+	if currentSearch then
 		addon:SendMessage('TWINKLE_SEARCH_RESULTS', searchResults)
 	end
 end
 function search:Update()
 	local editBox = addon.frame.search
-	local query   = editBox:GetText():trim()
-	      query   = query ~= '' and query or nil
+	local query = editBox:GetText():trim()
+	      query = query ~= '' and query or nil
 
-	if query == editBox.searchString then
+	if query == currentSearch then
 		-- nothing has changed
-	elseif not query then
-		-- search terms were removed
-		self:Clear()
-		return
 	else
-		-- search terms have changed
-		editBox.searchString = query
-
+		currentSearch = query
 		for characterKey, resultCounts in pairs(searchResults) do
 			wipe(resultCounts)
 		end
-		for viewName, view in addon:GetModule('views'):IterateModules() do
-			if view.Search then
-				-- also searching unloaded views
-				if not view:IsEnabled() then view:Enable() end
-				-- gather search results
-				for _, characterKey in pairs(characters) do
-					local numMatches = view:Search(query, characterKey)
-					if (numMatches or 0) > 0 then
-						searchResults[characterKey] = searchResults[characterKey] or {}
-						searchResults[characterKey][viewName] = numMatches
-					end
-				end
+
+		if not query then
+			-- search terms were removed, restore UI state
+			addon:Update()
+		else
+			-- search terms have changed
+			for _, plugin in addon:IterateModules() do
+				if plugin.Search then plugin:Search(query, searchResults) end
 			end
+			addon:SendMessage('TWINKLE_SEARCH_RESULTS', searchResults)
 		end
-		addon:SendMessage('TWINKLE_SEARCH_RESULTS', searchResults)
 	end
 end
 
@@ -117,7 +102,7 @@ end
 -- extend the base addon
 function addon:GetSearch()
 	local editBox = addon.frame.search
-	return editBox and editBox.searchString
+	return editBox and currentSearch
 end
 
 --[[

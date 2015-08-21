@@ -217,7 +217,7 @@ end
 
 local function SetGearSet(setName)
 	local characterKey = addon:GetSelectedCharacter()
-	local items = setName and DataStore:GetEquipmentSetItems(characterKey, setName)
+	local items = setName and addon.data.GetEquipmentSetItems(characterKey, setName)
 
 	for slotID = _G.INVSLOT_FIRST_EQUIPPED, _G.INVSLOT_LAST_EQUIPPED do
 		if not items then
@@ -245,7 +245,7 @@ local function SelectGearSet(self, btn, up)
 end
 
 -- TODO: display more item info: enchant, reforge
-function equipment.OnEnable(self)
+function equipment.Load(self)
 	local panel = self.panel
 
 	local panelLeft = panel:CreateTexture(nil, 'BACKGROUND')
@@ -397,13 +397,13 @@ end
 
 function equipment.Update()
 	local characterKey = addon:GetSelectedCharacter()
-	local equipmentSets = DataStore:GetEquipmentSetNames(characterKey)
+	local equipmentSets = addon.data.GetEquipmentSets(characterKey)
 	local buttons = equipment.panel.setButtons
 
 	for index = 2, #buttons do
 		local button, setName = buttons[index], equipmentSets and equipmentSets[index - 1]
 		if setName then
-			local name, icon, items = DataStore:GetEquipmentSet(characterKey, setName)
+			local name, icon, items = addon.data.GetEquipmentSet(characterKey, setName)
 			button.name:SetText(name)
 			button.icon:SetTexture(icon)
 			button.set = setName
@@ -415,4 +415,6 @@ function equipment.Update()
 
 	-- we display current equipment by default
 	SelectGearSet(buttons[1])
+
+	return 0 -- TODO: calculate result count depending on search
 end

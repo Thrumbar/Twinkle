@@ -52,7 +52,7 @@ local function GetItemSources(item, link)
 	end
 
 	LoadAddOn('Blizzard_EncounterJournal')
-	itemName = type(item) == 'string' and item or GetItemInfo(item)
+	local itemName = type(item) == 'string' and item or GetItemInfo(item)
 	if not itemName then return itemSources end
 
 	EJ_SetSearch(itemName)

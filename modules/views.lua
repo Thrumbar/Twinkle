@@ -4,27 +4,26 @@ local emptyTable = {}
 -- each view will be a sub-module of the views module!
 local views = addon:NewModule('views', 'AceEvent-3.0')
 local prototype = {
+	-- Load = function(self) local panel = self.panel end
+	-- Search = function(query, characterKey) return numRows end
+	-- Update = function() return numRows end
+
+	-- DO NOT CARELESSLY OVERWRITE THESE FUNCTIONS
 	OnInitialize = function(self)
-		-- supply views with panel and tab
-		local viewName = self:GetName()
-		local prettyName = viewName:gsub('^.',  string.upper)
-
-		local panel = CreateFrame('Frame', '$parentPanel'..prettyName, addon.frame)
-		      panel:SetSize(addon.frame.content:GetSize())
-		self.panel = panel
-
-		local tab = views.AddTab(self)
-		self.tab = tab
-
+		self.tab = views.AddTab(self)
+		self.tab.tiptext = self.title or self:GetName()
+		self.tab.module = self:GetName()
 		if self.icon then
-			tab:GetNormalTexture():SetTexture(self.icon)
+			self.tab:GetNormalTexture():SetTexture(self.icon)
 		end
-		tab.tiptext = self.title or prettyName
-		tab.module = viewName
-		-- tab.element = panel
 	end,
-	Show = views.Show,
-	Update = function() end, -- so we don't get errors if it doesn't exist
+	OnEnable = function(self)
+		self.panel = CreateFrame('Frame', '$parentPanel' .. self:GetName(), addon.frame.content)
+		self.panel:SetAllPoints()
+		self.panel:Hide()
+		self:Load()
+		self:Update()
+	end,
 }
 views:SetDefaultModuleState(false) -- don't enable modules on load
 views:SetDefaultModulePrototype(prototype)
@@ -38,7 +37,7 @@ local lastTabIndex = 0
 local function OnTabClick(self)
 	PlaySound('igSpellBookOpen')
 	self:SetChecked(not self:GetChecked())
-	views:Show( self.module )
+	views:Show(self.module)
 end
 function views.AddTab(view)
 	local index = lastTabIndex + 1
@@ -69,44 +68,30 @@ function views.AddTab(view)
 end
 
 local currentView
-function views:Show(view)
-	view = view and type(view) == 'string' and self:GetModule(view, true) or view
-	if (not view or type(view) == 'string') or (currentView and view == currentView) then return end
-
-	local previousView = currentView
-	local content = addon.frame.content
-	if content.panel then
-		-- hide old content panel
-		content.panel:Hide()
+function views:Hide()
+	if currentView then
+		currentView.panel:Hide()
+		currentView = nil
 		-- addon:SendMessage('TWINKLE_VIEW_HIDE', currentView:GetName())
 	end
+end
 
-	local newPanel = view.panel
-	-- now display new panel
-	newPanel:SetParent(content)
-	newPanel:ClearAllPoints()
-	newPanel:SetAllPoints()
-	newPanel:Show()
+function views:Show(view)
+	view = type(view) == 'table' and view or self:GetModule(view, true)
+	if not view or view == currentView then return end
+	if not view:IsEnabled() then view:Enable() end
 
-	content.panel = newPanel
+	local previousView = currentView
+	self:Hide()
+	view.panel:Show()
 	currentView = view
 
-	if not view:IsEnabled() then view:Enable() end
 	self:Update()
 
 	addon:SendMessage('TWINKLE_VIEW_CHANGED', view:GetName(), previousView and previousView:GetName() or nil)
 end
 
-function views:GetActiveView()
-	return currentView
-end
-
 function views:Update()
-	if not currentView then
-		views:EnableModule('default')
-		views:Show('default')
-	end
-
 	-- update tabs
 	for index = 1, lastTabIndex do
 		local tab = _G[addon.frame:GetName() .. 'Tab' .. index]
@@ -118,15 +103,44 @@ function views:Update()
 	end
 
 	-- update panel
-	currentView:Update()
+	if currentView and currentView.Update then
+		currentView:Update()
+	end
 end
 
-function views:TWINKLE_SEARCH_RESULTS(event, searchResults, characterKey)
-	-- only considering current character
-	characterKey = characterKey or addon:GetSelectedCharacter()
-	for name, view in self:IterateModules() do
+local characters = {}
+function views:Search(query, searchResults)
+	local currentCharacter = addon:GetSelectedCharacter()
+	characters = addon.data.GetCharacters(characters)
+
+	for viewName, view in views:IterateModules() do
+		if view.Search then
+			-- also searching unloaded views TODO: this causes :Update (duplicates)
+			if not view:IsEnabled() then view:Enable() end
+			-- gather search results
+			for _, characterKey in pairs(characters) do
+				local numMatches = 0
+				if view == currentView and characterKey == currentCharacter then
+					-- directly update displayed view
+					numMatches = self:Update() or 0
+				else
+					numMatches = view:Search(query, characterKey) or 0
+				end
+				if numMatches > 0 then
+					-- store data as view.name, e.g. Twinkle_views_items
+					searchResults[characterKey] = searchResults[characterKey] or {}
+					searchResults[characterKey][view.name] = numMatches
+				end
+			end
+		end
+	end
+end
+
+function views:TWINKLE_SEARCH_RESULTS(event, searchResults)
+	local characterKey = addon:GetSelectedCharacter()
+	for _, view in self:IterateModules() do
 		if view.tab then
-			local numResults = searchResults[characterKey] and searchResults[characterKey][name] or 0
+			local numResults = searchResults[characterKey] and searchResults[characterKey][view.name] or 0
 			-- display number of matches
 			view.tab.count:SetText(numResults > 0 and numResults or nil)
 			-- desaturate tabs without search results

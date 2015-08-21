@@ -35,10 +35,10 @@ modules\autocomplete.lua
 modules\brokers.lua
 modules\calendar.lua
 modules\notifications.lua
-modules\search.lua
 modules\tooltip.lua
 modules\tradeskill.lua
 modules\views.lua
+modules\search.lua
 
 # brokers
 brokers\auctions.lua

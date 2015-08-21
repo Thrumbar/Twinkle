@@ -3,33 +3,12 @@ local addonName, addon, _ = ...
 local data = addon:NewModule('data', 'AceEvent-3.0')
 addon.data = data
 
--- GLOBALS: _G, DataStore, BANK_CONTAINER, BATTLENET_FONT_COLOR_CODE, NUM_BAG_SLOTS
+-- GLOBALS: _G, Twinkle, DataStore, BANK_CONTAINER, BATTLENET_FONT_COLOR_CODE, NUM_BAG_SLOTS
 -- GLOBALS: GetRealmName, UnitName, UnitFullName, UnitRace, UnitClass, UnitLevel, UnitFactionGroup, UnitXP, UnitXPMax, GetXPExhaustion, GetItemInfo, GetNumClasses, GetClassInfo, GetMoney, GetZoneText, GetSubZoneText, GetAverageItemLevel, GetNumUnspentTalents, GetInventoryItemLink, GetActiveSpecGroup, GetContainerItemInfo, GetGuildInfo, IsResting, GetVoidItemInfo, GetCurrencyListSize, GetCurrencyListInfo, GetCurrencyInfo
 -- GLOBALS: string, math, table, wipe, pairs, select, type, tonumber, setmetatable, rawget, rawset, strjoin, strsplit
 
-local DataStore = _G.DataStore
-if not DataStore then
-	DataStore = setmetatable({}, {
-		__index = function(self, key)
-			return nop
-		end,
-	})
-end
-
-local LibRealmInfo    = LibStub('LibRealmInfo')
-local thisCharacter   = DataStore:GetCharacter() or UnitFullName('player')
-local realmCharacters = DataStore:GetCharacters() or {thisCharacter = UnitName('player')} -- TODO: this is bsh*t
-local emptyTable      = {}
-
-function data.GetCharacters(useTable)
-	if useTable then wipe(useTable) else useTable = {} end
-	--[[ for characterName, characterKey in pairs(realmCharacters) do
-		table.insert(useTable, characterKey)
-	end
-	table.sort(useTable)
-	return useTable --]]
-	return data.GetAllCharacters(useTable, GetRealmName())
-end
+local LibRealmInfo = LibStub('LibRealmInfo')
+local emptyTable   = {}
 
 local realms = {}
 function data.GetAllCharacters(useTable, ...)
@@ -60,12 +39,47 @@ function data.GetAllCharacters(useTable, ...)
 	return useTable
 end
 
+local listRealms = {}
+function data.GetCharacters(useTable)
+	if useTable then wipe(useTable) else useTable = {} end
+	local characters = data.GetAllCharacters(useTable) -- , unpack(listRealms))
+	if addon.db then
+		for i = #characters, 1, -1 do
+			local characterKey = characters[i]
+			local account, realm, character = strsplit('.', characterKey)
+			local faction = data.GetCharacterFaction(characterKey)
+			local level   = data.GetLevel(characterKey)
+			level = level == MAX_PLAYER_LEVEL and 'maxLevel' or 'leveling'
+
+			if not addon.db.profile.characterFilters.Account[account]
+				or not addon.db.profile.characterFilters.Realm[realm]
+				or not addon.db.profile.characterFilters.Faction[faction]
+				or not addon.db.profile.characterFilters.Level[level] then
+				tremove(characters, i)
+			end
+		end
+	end
+	table.sort(useTable)
+	return characters
+end
+
+local thisCharacter = DataStore:GetCharacter() or UnitFullName('player')
+local allCharacters = data.GetAllCharacters()
+
+function data.CharacterFilters(filterOptions)
+	filterOptions.Realm = DataStore:GetRealms()
+	for realm in pairs(filterOptions.Realm) do filterOptions.Realm[realm] = realm end
+	filterOptions.Account = DataStore:GetAccounts()
+	for account in pairs(filterOptions.Account) do filterOptions.Account[account] = account end
+	return filterOptions
+end
+
 function data.GetCurrentCharacter()
 	return thisCharacter
 end
 
 function data.IsCharacter(key)
-	if addon.Find(realmCharacters, key) then
+	if tContains(allCharacters, key) then
 		return true
 	end
 end
@@ -88,10 +102,10 @@ function data.DeleteCharacter(key)
 		-- no more characters in this guild
 		if guildName then
 			DataStore:DeleteGuild(guildName, realm, account)
-			addon:SendMessage('TWINKLE_GUILD_DELETED', key)
+			Twinkle:SendMessage('TWINKLE_GUILD_DELETED', key)
 		end
 	end
-	addon:SendMessage('TWINKLE_CHARACTER_DELETED', key)
+	Twinkle:SendMessage('TWINKLE_CHARACTER_DELETED', key)
 end
 
 -- ========================================
@@ -330,7 +344,7 @@ end
 
 --[[-- gets handled by BAG_UPDATE_DELAYED handler
 data:RegisterEvent('CHAT_MSG_LOOT', function(self, event, message)
-	local id, linkType = addon.GetLinkID(message)
+	local id, linkType = Twinkle.GetLinkID(message)
 	if id and linkType == 'item' then
 		ClearCacheItemCount(id, thisCharacter)
 	end
@@ -441,7 +455,7 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 		elseif type(bag) == 'number' and bag ~= BANK_CONTAINER and bag <= NUM_BAG_SLOTS then
 			-- note: bank and bank bags are not readily available, use db for those
 			local _, count, _, _, _, _, itemLink = GetContainerItemInfo(bag, slot)
-			local itemID = itemLink and addon:GetLinkID(itemLink) or nil
+			local itemID = itemLink and Twinkle.GetLinkID(itemLink) or nil
 			return itemID, itemLink, count
 		end
 	end
@@ -450,6 +464,22 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 	if container then
 		return DataStore:GetSlotInfo(container, slot)
 	end
+end
+
+-- ========================================
+--  Equipment Sets
+-- ========================================
+function data.GetEquipmentSets(characterKey, useTable)
+	return DataStore:GetEquipmentSetNames(characterKey) or emptyTable
+end
+
+function data.GetEquipmentSet(characterKey, setName)
+	local name, icon, items = DataStore:GetEquipmentSet(characterKey, setName)
+	return name or _G.UNKNOWN, icon or 'Interface\\Icons\\Inv_misc_questionmark', items
+end
+
+function data.GetEquipmentSetItems(characterKey, setName)
+	return DataStore:GetEquipmentSetItems(characterKey, setName) or emptyTable
 end
 
 -- ========================================
@@ -570,6 +600,23 @@ function data.GetGarrisonLevel(characterKey)
 	return rank or 0
 end
 
+function data.GetNumFollowers(characterKey)
+	return DataStore:GetNumFollowers(characterKey)
+end
+
+local followerList
+function data.GetFollowers(characterKey, useTable)
+	return DataStore:GetFollowers(characterKey)
+end
+
+function data.GetFollowerInfo(characterKey, garrFollowerID)
+	return DataStore:GetFollowerInfo(characterKey, garrFollowerID)
+end
+
+function data.GetFollowerLink(characterKey, garrFollowerID)
+	return DataStore:GetFollowerLink(characterKey, garrFollowerID)
+end
+
 -- ========================================
 --  Activity
 -- ========================================
@@ -642,7 +689,7 @@ function data.GetQuestProgress(characterKey, questID)
 	else
 		for i = 1, DataStore:GetQuestLogSize(characterKey) or 0 do
 			local isHeader, questLink, _, _, completed = DataStore:GetQuestLogInfo(characterKey, i)
-			local qID = questLink and addon.GetLinkID(questLink)
+			local qID = questLink and Twinkle.GetLinkID(questLink)
 			if not isHeader and qID == questID and completed ~= 1 then
 				return 0
 			end

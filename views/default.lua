@@ -5,12 +5,13 @@ local addonName, addon, _ = ...
 -- GLOBALS: ipairs, table, string, assert, unpack, tonumber
 
 local views = addon:GetModule('views')
-local view  = views:NewModule('default', 'AceTimer-3.0')
+local view  = views:NewModule('Default', 'AceTimer-3.0')
       view.icon = 'Interface\\Icons\\INV_Misc_GroupLooking'
       view.title = _G.GENERAL
-views:SetEnabledState(true) -- default view must be available
+view:SetEnabledState(true) -- default view must be available
 
-local function UpdateFlowContainer(container)
+local function UpdateFlowContainer()
+	local container = view.panel.contents
 	local character = addon:GetSelectedCharacter()
 	local containerWidth = container:GetWidth()
 
@@ -38,7 +39,7 @@ local function UpdateFlowContainer(container)
 	FlowContainer_DoLayout(container)
 end
 
-function view:OnEnable()
+function view:Load()
 	local panel = self.panel
 
 	local portrait = CreateFrame('Frame', '$parentPortrait', panel)
@@ -374,7 +375,12 @@ function view:OnEnable()
 	-- TODO: hearth location, raid ids
 	-- TODO: register update events
 
+
 	view.panel = panel
+
+	-- this is the default view, display it upon loading
+	views:Show(self)
+
 	return panel
 end
 
@@ -401,9 +407,9 @@ function view:Update()
 		xpText = '|TInterface\\COMMON\\ReputationStar:16:16:0:0:32:32:16:32:16:32|t ' .. addon.data.GetXPInfo(character)
 	else
 		xpText = addon.data.GetAverageItemLevel(character) .. ' |TInterface\\GROUPFRAME\\UI-GROUP-MAINTANKICON:0|t'
-
 	end
 	panel.xp:SetText(xpText)
 
-	UpdateFlowContainer(panel.contents)
+	UpdateFlowContainer()
+	return 0 -- TODO: get proper "result count" considering lfg, bosses etc
 end

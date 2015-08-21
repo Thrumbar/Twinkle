@@ -15,7 +15,8 @@ local collection  = setmetatable({ }, { __mode = 'v' }) -- TODO: does this even 
 local searchCache = {}
 local prototype = {
 	Update = function(self)
-		if views:GetActiveView() == items and items.provider == self then
+		if items.provider == self then
+			print('update items!', self, items.panel:IsShown(), items.panel:IsVisible())
 			-- only the logged in character's items can change
 			self:GatherItems(addon.data:GetCurrentCharacter())
 			items:UpdateList()
@@ -138,22 +139,21 @@ local function SorterOnClick(button, btn)
 	items:Update()
 end
 
-function items:CreateSortButtons()
-	local panel      = self.panel
-	      panel.sorters    = {}
+local function CreateSortButtons(parent)
 	local tabRegions = {'', 'Left', 'Middle', 'Right'}
-	local totalWidth = 0
+	local totalWidth, previous = 0, nil
+	parent.sorters = {}
 	for index, data in ipairs(sortHeaders) do
-		local sorter = CreateFrame('Button', '$parentSorter'..index, panel, 'WhoFrameColumnHeaderTemplate', data.id)
-			  sorter:SetText(data.label)
-			  sorter:SetScript('OnClick', SorterOnClick)
-		      -- sorter:SetNormalFontObject(GameFontNormalSmall)
-		panel.sorters[index] = sorter
+		local sorter = CreateFrame('Button', '$parentSorter' .. index, parent, 'WhoFrameColumnHeaderTemplate', data.id)
+		sorter:SetText(data.label)
+		sorter:SetScript('OnClick', SorterOnClick)
+		-- sorter:SetNormalFontObject(GameFontNormalSmall)
+		parent.sorters[index] = sorter
 
 		if index == 1 then
 			sorter:SetPoint('TOPLEFT', '$parent', 'TOPLEFT', 4, -40-4)
 		else
-			sorter:SetPoint('LEFT', panel.sorters[index - 1], 'RIGHT', -2, 0)
+			sorter:SetPoint('LEFT', parent.sorters[index - 1], 'RIGHT', -2, 0)
 		end
 
 		-- adjust tab width
@@ -164,12 +164,12 @@ function items:CreateSortButtons()
 		-- adjust tab height
 		local sorterName = sorter:GetName()
 		for _, region in ipairs(tabRegions) do
-			_G[sorterName..region]:SetHeight(20)
+			_G[sorterName .. region]:SetHeight(20)
 		end
 	end
 	-- extend main tab to fill whole panel width
-	local tabWidth = panel.sorters[2]:GetWidth()
-	WhoFrameColumn_SetWidth(panel.sorters[2], panel:GetWidth() - (totalWidth - tabWidth) -2*4)
+	local tabWidth = parent.sorters[2]:GetWidth()
+	WhoFrameColumn_SetWidth(parent.sorters[2], parent:GetWidth() - (totalWidth - tabWidth) -2*4)
 end
 
 local function Sort(a, b)
@@ -336,10 +336,9 @@ end
 -- --------------------------------------------------------
 --  Plugin Setup
 -- --------------------------------------------------------
-function items:OnEnable()
+function items:Load()
 	local panel = self.panel
-	self:UpdateDataSources()
-	self:CreateSortButtons()
+	CreateSortButtons(panel)
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
 	      background:SetTexture('Interface\\EncounterJournal\\UI-EJ-JournalBG')
@@ -437,11 +436,11 @@ function items:OnEnable()
 		scrollFrame[index] = row
 	end
 
-	self:RegisterMessage('TWINKLE_SEARCH_RESULTS')
+	self:RegisterMessage('TWINKLE_CHARACTER_DELETED')
 end
 
 function items:OnDisable()
-	self:UnregisterMessage('TWINKLE_SEARCH_RESULTS')
+	self:UnregisterMessage('TWINKLE_CHARACTER_DELETED')
 end
 
 -- --------------------------------------------------------
@@ -463,37 +462,30 @@ function items:SearchRow(query, characterKey, itemLink)
 end
 
 function items:Search(query, characterKey)
-	local isActiveView = characterKey == addon:GetSelectedCharacter() and views:GetActiveView() == self
+	local isCurrentCharacter = characterKey == addon:GetSelectedCharacter()
 	local numResults = 0
 	for name, provider in self:IterateModules() do
+		-- gather search results without affecting current display
 		local numMatches = 0
-		if isActiveView then
-			-- update displayed data
-			FauxScrollFrame_SetOffset(self.panel.scrollFrame, 0)
-			numMatches = self:Update()
-		else
-			-- gather search results without affecting current display
-			for index = 1, provider:GetNumRows(characterKey) do
-				local _, itemLink = provider:GetRowInfo(characterKey, index)
-				local matchesSearch = itemLink and self:SearchRow(query, characterKey, itemLink)
-				if matchesSearch then
-					numMatches = numMatches + 1
-				end
+		for index = 1, provider:GetNumRows(characterKey) do
+			local _, itemLink = provider:GetRowInfo(characterKey, index)
+			local matchesSearch = itemLink and self:SearchRow(query, characterKey, itemLink)
+			if matchesSearch then
+				numMatches = numMatches + 1
 			end
 		end
-
-		-- desaturate when data source has no data
-		provider.button.searchResults = numMatches
 		numResults = numResults + numMatches
+
+		if isCurrentCharacter then
+			-- desaturate when data source has no data
+			-- provider.button.searchResults = numMatches
+			provider.button:GetNormalTexture():SetDesaturated(numMatches == 0)
+		end
 	end
 	return numResults
 end
 
-function items:TWINKLE_SEARCH_RESULTS(event, searchResults, characterKey)
-	for name, provider in self:IterateModules() do
-		if provider.button then
-			local desaturate = provider.button.searchResults == 0
-			provider.button:GetNormalTexture():SetDesaturated(desaturate)
-		end
-	end
+function items:TWINKLE_CHARACTER_DELETED(event, characterKey)
+	wipe(collection[characterKey])
+	collection[characterKey] = nil
 end

@@ -7,27 +7,22 @@ _G[addonName] = addon
 
 LibStub('AceAddon-3.0'):NewAddon(addon, addonName, 'AceEvent-3.0')
 addon.L = LibStub('AceLocale-3.0'):GetLocale(addonName, true)
+local L = addon.L
 
 local defaults = {
 	profile = {
 		factionIcon = 'Interface\\WorldStateFrame\\%sIcon',
 		factionIconUndecided = 'Interface\\MINIMAP\\TRACKING\\BattleMaster',
+		characterFilters = {
+			['*'] = { -- options group: showLevel, showFaction ...
+				['*'] = true,
+			},
+		},
 	},
 }
 
 -- see link types here: http://www.townlong-yak.com/framexml/19033/ItemRef.lua#162
-local linkTypes = {
-	achievement = true,
-	currency = true,
-	enchant = true,
-	glyph = true,
-	instancelock = true,
-	item = true,
-	quest = true,
-	spell = true,
-	talent = true,
-	unit = true,
-}
+local linkTypes = {'achievement', 'currency', 'enchant', 'glyph', 'instancelock', 'item', 'quest', 'spell', 'talent', 'unit'}
 
 -- convenient and smart tooltip handling
 function addon.ShowTooltip(self, anchor)
@@ -42,7 +37,7 @@ function addon.ShowTooltip(self, anchor)
 	if self.link then
 		-- not all links display in GameTooltip
 		local _, linkType = addon.GetLinkID(self.link)
-		if not linkTypes[linkType] then return end
+		if not tContains(linkTypes, linkType) then return end
 
 		GameTooltip:SetHyperlink(self.link)
 	elseif type(self.tiptext) == "string" and self.tiptext ~= "" then
@@ -67,14 +62,6 @@ function addon.Count(table)
 		i = i + 1
 	end
 	return i
-end
-
-function addon.Find(where, what)
-	for k, v in pairs(where) do
-		if v == what then
-			return k
-		end
-	end
 end
 
 function addon.GlobalStringToPattern(str)
@@ -128,25 +115,17 @@ function addon.ColorizeText(text, percent, maximum)
 	return ('|cff%02x%02x%02x%s|r'):format(r*255, g*255, b*255, text)
 end
 
-local characters = {}
-local thisCharacter
-function addon:OnInitialize()
-	-- fill char data
-	self.data.GetCharacters(characters)
-	thisCharacter = self.data.GetCurrentCharacter()
+local function OnCharacterButtonClick(button, btn, up)
+	if btn == 'RightButton' then
+		-- TODO: delete characters, addon:DeleteCharacter(name, realm, account)
+	else
+		addon:SelectCharacter(button)
+	end
+end
 
-	-- enable modules when they are created
-	-- self:SetDefaultModuleState(true)
-
-	-- initialize main frame
-	local frame = CreateFrame('Frame', addonName..'Frame', _G.UIParent, 'PortraitFrameTemplate')
-	frame:SetFrameLevel(17)
-	frame:EnableMouse(true)
-	frame:Hide()
-	frame:HookScript('OnShow', function() PlaySound('igCharacterInfoOpen') end)
-	frame:HookScript('OnHide', function() PlaySound('igCharacterInfoClose') end)
-	self.frame = frame
-
+local function InitializeFrame(frame)
+	frame:SetScript('OnShow', function() PlaySound('igCharacterInfoOpen') end)
+	frame:SetScript('OnHide', function() PlaySound('igCharacterInfoClose') end)
 	SetPortraitToTexture(frame:GetName()..'Portrait', 'Interface\\Icons\\ACHIEVEMENT_GUILDPERK_MRPOPULARITY_RANK2')
 	frame.TitleText:SetText(addonName)
 	frame:EnableMouse(true)
@@ -178,26 +157,81 @@ function addon:OnInitialize()
 		separator:SetPoint('TOPLEFT', sidebar, 'TOPRIGHT')
 		separator:SetPoint('BOTTOMRIGHT', sidebar, 'BOTTOMRIGHT', 5, 0)
 
-	local characterList = CreateFrame('ScrollFrame', '$parentList', sidebar, 'FauxScrollFrameTemplate')
-		characterList:SetPoint('TOPLEFT', 4, -72)
-		characterList:SetPoint('BOTTOMRIGHT', -4, 2)
-		characterList:SetScript('OnVerticalScroll', function(scrollFrame, offset)
-			FauxScrollFrame_OnVerticalScroll(scrollFrame, offset, scrollFrame[1]:GetHeight(), function()
-				addon:UpdateCharacters()
-			end)
-		end)
+	local thisRealm = GetRealmName()
+	local filterOptions = {
+		Level = {
+			maxLevel = _G.GUILD_RECRUITMENT_MAXLEVEL,
+			leveling = 'Leveling',
+		},
+		Faction = {
+			Horde = _G.FACTION_HORDE,
+			Alliance = _G.FACTION_ALLIANCE,
+			Other = _G.FACTION_OTHER,
+		},
+	}
+	if addon.data.CharacterFilters then filterOptions = addon.data.CharacterFilters(filterOptions) end
 
-	characterList.selection = thisCharacter -- preselect active character
-	characterList.scrollBarHideable = true
-	sidebar.scrollFrame = characterList
+	local function FilterOnClick(self, menuList, key, isChecked)
+		if not menuList then return end
+		addon.db.profile.characterFilters[menuList][key] = isChecked
+		addon:Update()
+	end
 
-	local function OnCharacterButtonClick(button, btn, up)
-		if btn == 'RightButton' then
-			-- TODO: delete characters, addon:DeleteCharacter(name, realm, account)
-		else
-			self:SelectCharacter(button)
+	local filterButton = CreateFrame('Button', '$parentFilterButton', sidebar, 'UIMenuButtonStretchTemplate')
+	filterButton:SetSize(93+10, 22)
+	filterButton:SetText(_G.FILTER)
+	filterButton:SetPoint('TOPRIGHT', -6, -6)
+	filterButton:SetScript('OnClick', function(self, btn, up)
+		PlaySound('igMainMenuOptionCheckBoxOn')
+        ToggleDropDownMenu(nil, nil, self.filterDropDown, self:GetName(), 74, 15, filterOptions)
+	end)
+	local filterArrow = filterButton:CreateTexture(nil, 'ARTWORK')
+	filterArrow:SetTexture('Interface\\ChatFrame\\ChatFrameExpandArrow')
+	filterArrow:SetSize(10, 12)
+	filterArrow:SetPoint('RIGHT', -5, 0)
+
+	filterButton.filterDropDown = CreateFrame('Frame', '$parentFilterDropDown', filterButton, 'UIDropDownMenuTemplate')
+	filterButton.filterDropDown.filterOptions = filterOptions
+	filterButton.filterDropDown.displayMode = 'MENU'
+	filterButton.filterDropDown.initialize = function(self, level, menuList)
+		local info = UIDropDownMenu_CreateInfo()
+		info.isNotRadio = true
+		info.keepShownOnClick = true
+		info.func = FilterOnClick
+
+		local options = type(menuList) == 'table' and menuList or self.filterOptions[menuList]
+		for key, value in pairs(options) do
+			info.value = key
+			if type(value) == 'table' then
+				info.text = rawget(L, 'characterFilter' .. key) or key
+				info.notCheckable = true
+				info.hasArrow = true
+				info.menuList = key
+			else
+				info.text = value
+				info.notCheckable = nil
+				info.hasArrow = nil
+				info.menuList = nil
+				info.checked = addon.db.profile.characterFilters[menuList][key]
+				info.arg1 = menuList
+				info.arg2 = key
+			end
+			UIDropDownMenu_AddButton(info, level)
 		end
 	end
+
+	local characterList = CreateFrame('ScrollFrame', '$parentList', sidebar, 'FauxScrollFrameTemplate')
+	characterList:SetPoint('TOPLEFT', 4, -72)
+	characterList:SetPoint('BOTTOMRIGHT', -4, 2)
+	characterList:SetScript('OnVerticalScroll', function(scrollFrame, offset)
+		FauxScrollFrame_OnVerticalScroll(scrollFrame, offset, scrollFrame[1]:GetHeight(), function()
+			addon:UpdateCharacters()
+		end)
+	end)
+
+	characterList.selection = addon.data.GetCurrentCharacter() -- preselect active character
+	characterList.scrollBarHideable = true
+	sidebar.scrollFrame = characterList
 
 	-- setup character buttons
 	for i = 1, 11 do
@@ -233,6 +267,7 @@ function addon:OnInitialize()
 
 		table.insert(characterList, button)
 	end
+	FauxScrollFrame_Update(characterList, 0, #characterList, characterList[1]:GetHeight())
 
 	-- actual content goes in here
 	local content = CreateFrame('Frame', '$parentContent', frame)
@@ -241,6 +276,15 @@ function addon:OnInitialize()
 	      content:SetPoint('BOTTOMRIGHT', -4, 2)
 	      content:SetBackdrop({ bgFile = 'Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg.png' })
 	frame.content = content
+end
+
+function addon:OnInitialize()
+	-- initialize main frame
+	local frame = CreateFrame('Frame', addonName..'Frame', _G.UIParent, 'PortraitFrameTemplate')
+	frame:SetFrameLevel(17)
+	frame:EnableMouse(true)
+	frame:Hide()
+	self.frame = frame
 
 	-- quick launcher from the character frame
 	local portraitButton = CreateFrame('Button', '$parentPortraitButton', CharacterFrame)
@@ -254,7 +298,7 @@ function addon:OnInitialize()
 	portraitButton:SetScript('OnEnter', self.ShowTooltip)
 	portraitButton:SetScript('OnLeave', self.HideTooltip)
 	portraitButton:SetScript('OnClick', function(button, btn, up) ToggleFrame(self.frame) end)
-	portraitButton.tiptext = 'Click to toggle Twinkle'
+	portraitButton.tiptext = L['Click to toggle Twinkle']
 
 	-- setup ldb launcher
 	addon.ldb = LibStub('LibDataBroker-1.1'):NewDataObject(addonName, {
@@ -275,16 +319,22 @@ end
 function addon:OnEnable()
 	self.db = LibStub('AceDB-3.0'):New(addonName..'DB', defaults, true)
 
-	self:RegisterMessage('TWINKLE_CHARACTER_DELETED', function(self, event, characterKey)
-		self.data.GetCharacters(characters)
-		self:Update()
-	end, self)
-
+	-- self.frame:SetScript('OnShow', InitializeFrame)
+	InitializeFrame(self.frame)
 	self:Update()
+
+	self:RegisterMessage('TWINKLE_CHARACTER_DELETED')
 end
 
 function addon:OnDisable()
     self:UnregisterMessage('TWINKLE_CHARACTER_DELETED')
+end
+
+function addon:TWINKLE_CHARACTER_DELETED(event, characterKey)
+	if characterKey == self.frame.sidebar.scrollFrame.selection then
+		self.frame.sidebar.scrollFrame.selection = addon.data.GetCurrentCharacter()
+		self:Update()
+	end
 end
 
 local function GetFactionIcon(characterKey)
@@ -319,9 +369,11 @@ function addon:UpdateCharacterButton(button, characterKey)
 	end
 end
 
+local characters = {}
 function addon:UpdateCharacters()
 	local scrollFrame = self.frame.sidebar.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
+	local characters = self.data.GetCharacters(characters)
 	for i, button in ipairs(scrollFrame) do
 		local index = i + offset
 		self:UpdateCharacterButton(button, characters[index])

@@ -8,13 +8,13 @@ local L = addon.L
 -- TODO: return all sub-rows when parent matches search?
 
 local views = addon:GetModule('views')
-local lists = views:NewModule('lists')
+local lists = views:NewModule('lists', 'AceEvent-3.0')
       lists.icon = 'Interface\\Icons\\INV_Scroll_02' -- grids: Ability_Ensnare
       lists.title = L['Lists']
 
 local prototype = {
 	Update = function(self)
-		if views:GetActiveView() == lists and lists.provider == self then
+		if lists.provider == self then
 			lists:UpdateList()
 		end
 	end,
@@ -198,49 +198,53 @@ local function UpdateList()
 	return numDataRows
 end
 
-local function SourceOnClick(...) lists:SelectDataSource(...) end
-local function CreateDataSourceButton(subModule, index)
-	local name, title, icon = subModule:GetName(), subModule.title, subModule.icon
-	local button = CreateFrame('CheckButton', '$parent'..name, lists.panel, 'PopupButtonTemplate', index)
+local function SourceOnClick(button, btn, up)
+	for providerName, provider in lists:IterateModules() do
+		if provider.button == button then
+			lists:SelectDataSource(provider)
+			break
+		end
+	end
+end
+local function CreateDataSourceButton(provider, index)
+	local providerName, title, icon = provider:GetName(), provider.title, provider.icon
+	local button = CreateFrame('CheckButton', '$parent' .. providerName, lists.panel, 'PopupButtonTemplate', index)
 	      button:SetNormalTexture(icon)
 	      button:SetScale(0.75)
 	      button.tiptext = title
-	      button.module = name
 	      button:SetScript('OnClick', SourceOnClick)
 	      button:SetScript('OnEnter', addon.ShowTooltip)
 	      button:SetScript('OnLeave', addon.HideTooltip)
+	      provider.button = button
 	return button
 end
 
-function lists:SelectDataSource(button, btn, up)
-	PlaySound('igAbiliityPageTurn')
-	for index, sourceButton in ipairs(self.panel) do
-		if sourceButton == button then
-			self.provider = self:GetModule(sourceButton.module)
-			sourceButton:SetChecked(true)
-		else
-			sourceButton:SetChecked(false)
-		end
+function lists:SelectDataSource(provider)
+	if type(provider) == 'string' then provider = self:GetModule(provider) end
+	if provider ~= self.provider then
+		PlaySound('igAbiliityPageTurn')
+		self.provider = provider
+		self:Update()
 	end
-	self:Update()
 end
 
 function lists:UpdateDataSources()
 	local panel = self.panel
 
 	local index = 0
-	for name, subModule in self:IterateModules() do
-		if not subModule:IsEnabled() then subModule:Enable() end
-		self.provider   = self.provider or subModule
-		collapsed[name] = collapsed[name] or {}
-		searchResultCache[name] = searchResultCache[name] or {}
+	for providerName, provider in self:IterateModules() do
+		if not provider:IsEnabled() then provider:Enable() end
+		self.provider = self.provider or provider
+		collapsed[providerName] = collapsed[providerName] or {}
+		searchResultCache[providerName] = searchResultCache[providerName] or {}
 
 		-- init data selector
 		index = index + 1
-		local button = _G[panel:GetName()..subModule:GetName()] or CreateDataSourceButton(subModule, index)
-		      button:GetNormalTexture():SetDesaturated(false)
-		      button:ClearAllPoints()
-		      button:SetChecked(self.provider == subModule)
+		local button = _G[panel:GetName() .. provider:GetName()] or CreateDataSourceButton(provider, index)
+		button:GetNormalTexture():SetDesaturated(false)
+		button:ClearAllPoints()
+		button:SetChecked(self.provider == provider)
+		button:GetNormalTexture():SetDesaturated(false)
 		panel[index] = button
 		if index == 1 then
 			button:SetPoint('TOPLEFT', 10, -12)
@@ -252,6 +256,7 @@ end
 
 function lists:UpdateList()
 	local numRows = UpdateList()
+	self.provider.button.searchResults = numRows
 	self.panel.resultCount:SetFormattedText('%d result |4row:rows;', numRows)
 	return numRows
 end
@@ -262,8 +267,9 @@ function lists:Update()
 	return numRows
 end
 
-function lists:OnEnable()
+function lists:Load()
 	local panel = self.panel
+	self:UpdateDataSources()
 
 	local collapseAll = CreateFrame('Button', '$parentCollapseAll', panel)
 	      collapseAll:SetSize(270, 20)
@@ -390,10 +396,6 @@ function lists:OnEnable()
 	end
 end
 
-function lists:OnDisable()
-	--
-end
-
 local CustomSearch = LibStub('CustomSearch-1.0')
 local ItemSearch   = LibStub('LibItemSearch-1.2')
 lists.filters = {
@@ -453,30 +455,24 @@ function lists:SearchRow(provider, query, characterKey, index)
 end
 
 function lists:Search(query, characterKey)
-	local isActiveView = characterKey == addon:GetSelectedCharacter() and views:GetActiveView() == self
+	local isCurrentCharacter = characterKey == addon:GetSelectedCharacter()
 	local numResults = 0
 	for name, provider in self:IterateModules() do
+		-- gather search results without affecting current display
 		local numMatches = 0
-		if isActiveView and provider == self.provider then
-			-- update displayed data
-			FauxScrollFrame_SetOffset(self.panel.scrollFrame, 0)
-			numMatches = self:Update()
-		else
-			-- gather search results without affecting current display
-			for index = 1, provider:GetNumRows(characterKey) or 0 do
-				local matchesSearch = self:SearchRow(provider, query, characterKey, index)
-				if matchesSearch then
-					numMatches = numMatches + 1
-				end
+		for index = 1, provider:GetNumRows(characterKey) or 0 do
+			local matchesSearch = self:SearchRow(provider, query, characterKey, index)
+			if matchesSearch then
+				numMatches = numMatches + 1
 			end
 		end
-
-		-- desaturate when data source has no data
-		local dataSourceButton = self.panel:GetName() .. provider:GetName()
-		if dataSourceButton and _G[dataSourceButton] then
-			dataSourceButton:GetNormalTexture():SetDesaturated(numMatches == 0)
-		end
 		numResults = numResults + numMatches
+
+		if isCurrentCharacter then
+			-- desaturate when data source has no data
+			-- provider.button.searchResults = numMatches
+			provider.button:GetNormalTexture():SetDesaturated(numMatches == 0)
+		end
 	end
 	return numResults
 end

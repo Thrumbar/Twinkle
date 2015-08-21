@@ -48,7 +48,7 @@ function plugin:UpdateList()
 	return numDataRows
 end
 
-function plugin:OnEnable()
+function plugin:Load()
 	local panel = self.panel
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')

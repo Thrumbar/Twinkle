@@ -31,8 +31,8 @@ end
 local character, followers = nil, {}
 local function SortFollowers(a, b)
 	local aType, bType = C_Garrison.GetFollowerTypeByID(a), C_Garrison.GetFollowerTypeByID(b)
-	local aInactive = select(14, DataStore:GetFollowerInfo(character, a))
-	local bInactive = select(14, DataStore:GetFollowerInfo(character, b))
+	local aInactive = select(14, addon.data.GetFollowerInfo(character, a))
+	local bInactive = select(14, addon.data.GetFollowerInfo(character, b))
 	if aType ~= bType then
 		return aType > bType
 	elseif aInactive ~= bInactive then
@@ -42,11 +42,11 @@ local function SortFollowers(a, b)
 	end
 end
 function plugin:GetNumRows(characterKey)
-	local numFollowers = DataStore:GetNumFollowers(characterKey)
+	local numFollowers = addon.data.GetNumFollowers(characterKey)
 	if characterKey ~= character then
 		wipe(followers)
 		character = characterKey
-		for followerID in pairs(DataStore:GetFollowers(characterKey)) do
+		for followerID in pairs(addon.data.GetFollowers(characterKey)) do
 			table.insert(followers, followerID)
 		end
 		table.sort(followers, SortFollowers)
@@ -62,8 +62,8 @@ function plugin:GetRowInfo(characterKey, index)
 	-- also available C_Garrison.GetFollower ... PortraitIconIDByID, DisplayIDByID, SourceTextByID
 	-- local specID = C_Garrison.GetFollowerClassSpecByID(garrFollowerID)
 	local name = C_Garrison.GetFollowerNameByID(garrFollowerID)
-	local quality, level, iLevel, skill1, skill2, skill3, skill4, trait1, trait2, trait3, trait4, xp, levelXP, inactive = DataStore:GetFollowerInfo(characterKey, garrFollowerID)
-	local link = DataStore:GetFollowerLink(characterKey, garrFollowerID)
+	local quality, level, iLevel, skill1, skill2, skill3, skill4, trait1, trait2, trait3, trait4, xp, levelXP, inactive = addon.data.GetFollowerInfo(characterKey, garrFollowerID)
+	local link = addon.data.GetFollowerLink(characterKey, garrFollowerID)
 
 	local building
 	for _, buildingID, _, followerID in (DataStore:IteratePlots(characterKey) or nop) do
@@ -84,7 +84,7 @@ function plugin:GetRowInfo(characterKey, index)
 	local color = RGBTableToColorCode(_G.ITEM_QUALITY_COLORS[quality])
 	local label = labelFormat:format(name, (iLevel and iLevel > 600) and iLevel or level, color)
 	for i = 1, 4 + 4 do
-		local abilityID = select(3 + i, DataStore:GetFollowerInfo(characterKey, garrFollowerID))
+		local abilityID = select(3 + i, addon.data.GetFollowerInfo(characterKey, garrFollowerID))
 		if abilityID > 0 then
 			local mechanicID, _, icon = C_Garrison.GetFollowerAbilityCounterMechanicInfo(abilityID)
 			if icon and mechanics[mechanicID] then
@@ -102,7 +102,7 @@ function plugin:GetItemInfo(characterKey, index, itemIndex)
 	if not garrFollowerID or itemIndex > 4 then return end
 
 	local icon, link, tooltipText, count
-	local abilityID = select(3 + 4 + itemIndex, DataStore:GetFollowerInfo(characterKey, garrFollowerID))
+	local abilityID = select(3 + 4 + itemIndex, addon.data.GetFollowerInfo(characterKey, garrFollowerID))
 	if abilityID and abilityID > 0 then
 		-- link = C_Garrison.GetFollowerAbilityLink(abilityID)
 		icon = C_Garrison.GetFollowerAbilityIcon(abilityID)
@@ -112,23 +112,3 @@ function plugin:GetItemInfo(characterKey, index, itemIndex)
 	end
 	return icon, link, tooltipText, count
 end
-
---[[ local CustomSearch = LibStub('CustomSearch-1.0')
-local linkFilters  = {
-	known = {
-		tags       = {},
-		canSearch  = function(self, operator, search) return not operator and search == 'known' end,
-		match      = function(self, text)
-			local characterKey, hyperlink = text:match('^([^:]-): (.*)')
-
-			-- glyph specific search
-			local glyphID = addon.GetLinkID(hyperlink or '')
-			local isKnown = DataStore:IsGlyphKnown(characterKey, glyphID)
-			return isKnown
-		end,
-	},
-}
-for tag, handler in pairs(lists.filters) do
-	linkFilters[tag] = handler
-end
-plugin.filters = linkFilters --]]

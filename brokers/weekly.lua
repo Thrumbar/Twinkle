@@ -33,14 +33,14 @@ local worldBosses = { -- encounter journal bossID
 	1291, 1211, 1262, -- Warlords of Draenor: Drov (qid:37460/37462), Tarlna (qid:37462), Rukhmar (qid:37464/37474)
 } --]]
 local worldBosses = {
-	-- display order
-	37462, -- drov/tarlna
-	37464, -- rukhmar
-	94015, -- supreme lord kazzak
-	-- boss data
-	[37462] = 1291, -- drov:1291, tarlna:1211, spell:172612
-	[37464] = 1262, -- rukhmar, id:9, item:116771
-	[94015] = 1452, -- supreme lord kazzak, id:15
+	-- display order: i = bossID
+	7, -- drov/tarlna
+	9, -- rukhmar
+	15, -- supreme lord kazzak
+	-- boss data: bossID = encounterID
+	[ 7] = 1291, -- drov:1291, tarlna:1211, spell:172612
+	[ 9] = 1262, -- rukhmar, item:116771
+	[15] = 1452, -- supreme lord kazzak
 }
 local weeklyQuests = { -- sharedQuestID or 'allianceID|hordeID'
 	-- 32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
@@ -88,21 +88,18 @@ local function GetColumnHeaders(dataType)
 		return _G.RAID_FINDER, unpack(temp)
 	elseif dataType == 'boss' then
 		wipe(temp)
-		--[[ for index, journalBossID in ipairs(worldBosses) do
-			-- TODO: these icons are weirdly stretched
-			local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, journalBossID)
-			table.insert(temp, tex(icon, bossName))
-		end --]]
-		for index, questID in ipairs(worldBosses) do
-			local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, worldBosses[questID])
+		for index, bossID in ipairs(worldBosses) do
+			local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, worldBosses[bossID])
 			table.insert(temp, tex(icon, bossName))
 		end
 		return _G.BATTLE_PET_SOURCE_7, unpack(temp)
 	elseif dataType == 'weekly' then
-		return _G.QUESTS_LABEL
+		return _G.QUESTS_LABEL,
 			-- tex(94221, 'Stone'), tex(94222, 'Key'), tex(87391, 'Chest'), tex(93792, 'Chamberlain'), tex(90538, 'Champions'),
 			-- tex(90815, 'Charms'),
 			-- tex(105715, 'Epoch'), tex(33847, 'Rares')
+			tex('Interface\\Icons\\inv_misc_coin_19'), tex('Interface\\Icons\\inv_misc_coin_18'), tex('Interface\\Icons\\inv_misc_coin_17'), tex('Interface\\Icons\\inv_misc_coin_18'),
+			nil
 	end
 	return ''
 end
@@ -168,13 +165,8 @@ end
 local function GetCharacterBossLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.worldboss)
 	local showLine = characterKey == brokers:GetCharacter()
-	--[[ for index in ipairs(worldBosses) do
-		local expires = DataStore:IsWorldBossKilledBy(characterKey, index)
-		lockoutReturns.worldboss[index] = expires ~= nil
-		showLine = showLine or expires
-	end --]]
-	for index, questID in ipairs(worldBosses) do
-		local hasLockout = DataStore:IsQuestCompletedBy(characterKey, questID)
+	for index, bossID in ipairs(worldBosses) do
+		local hasLockout = DataStore:IsWorldBossKilledBy(characterKey, bossID)
 		lockoutReturns.worldboss[index] = hasLockout and true or false
 		showLine = showLine or hasLockout
 	end
