@@ -314,7 +314,7 @@ function view:Load()
 			[15] = 'Interface\\Icons\\warlock_summon_doomguard', 	-- 1452, qid:94015, supreme lord kazzak
 		},
 	}
-	-- TODO: auto-detect available world bosses
+
 	local worldBoss = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	worldBoss:SetJustifyH('LEFT')
 	worldBoss.update = function(self, character)

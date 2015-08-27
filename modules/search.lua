@@ -25,7 +25,7 @@ local function InitializeFrame(frame)
 	      searchBox:SetSize(160, 20)
 	frame.search = searchBox
 
-	searchBox.tipText = 'TODO'
+	searchBox.tiptext = nil -- TODO
 	searchBox:SetScript('OnEnter', addon.ShowTooltip)
 	searchBox:SetScript('OnLeave', addon.HideTooltip)
 	searchBox.clearButton:HookScript('OnClick', searchBox.clearButton.Hide)
