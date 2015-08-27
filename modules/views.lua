@@ -19,6 +19,7 @@ local prototype = {
 	end,
 	OnEnable = function(self)
 		self.panel = CreateFrame('Frame', '$parentPanel' .. self:GetName(), addon.frame.content)
+		self.panel:SetSize(addon.frame.content:GetSize())
 		self.panel:SetAllPoints()
 		self.panel:Hide()
 		self:Load()
