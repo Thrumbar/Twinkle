@@ -8,6 +8,7 @@ local max, floor = math.max, math.floor
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Weekly')
+local characters = {}
 local temp = {}
 
 function broker:OnEnable()
@@ -164,7 +165,7 @@ end
 
 local function GetCharacterBossLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.worldboss)
-	local showLine = characterKey == brokers:GetCharacter()
+	local showLine = characterKey == addon.data.GetCurrentCharacter()
 	for index, bossID in ipairs(worldBosses) do
 		local hasLockout = DataStore:IsWorldBossKilledBy(characterKey, bossID)
 		lockoutReturns.worldboss[index] = hasLockout and true or false
@@ -175,7 +176,7 @@ end
 
 
 local function GetCharacterQuestState(characterKey, questID)
-	if characterKey == brokers:GetCharacter() then
+	if characterKey == addon.data.GetCurrentCharacter() then
 		return IsQuestFlaggedCompleted(questID) and true or false
 	else
 		return DataStore:IsWeeklyQuestCompletedBy(characterKey, questID) or false
@@ -183,7 +184,7 @@ local function GetCharacterQuestState(characterKey, questID)
 end
 local function GetCharacterQuestLockouts(characterKey, hideEmpty)
 	wipe(lockoutReturns.weekly)
-	local showLine = characterKey == brokers:GetCharacter()
+	local showLine = characterKey == addon.data.GetCurrentCharacter()
 	local questState, alliance, horde
 	for index, questID in ipairs(weeklyQuests) do
 		if type(questID) == 'string' then
@@ -206,10 +207,13 @@ function broker:UpdateTooltip()
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CALENDAR_REPEAT_WEEKLY, 'LEFT', numColumns)
 
+	addon.data.GetCharacters(characters)
+	-- table.sort(characters, Sort) -- TODO
+
 	if #LFRDungeons > 0 then
 		self:AddHeader(GetColumnHeaders('lfr'))
 		self:AddSeparator(2)
-		for _, characterKey in ipairs(brokers:GetCharacters()) do
+		for _, characterKey in ipairs(characters) do
 			local data = GetCharacterLFRLockouts(characterKey, true)
 			if data then
 				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
@@ -222,7 +226,7 @@ function broker:UpdateTooltip()
 		if #LFRDungeons > 0 then self:AddLine(' ') end
 		self:AddHeader(GetColumnHeaders('boss'))
 		self:AddSeparator(2)
-		for _, characterKey in ipairs(brokers:GetCharacters()) do
+		for _, characterKey in ipairs(characters) do
 			local data = GetCharacterBossLockouts(characterKey, true)
 			if data then
 				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))
@@ -235,7 +239,7 @@ function broker:UpdateTooltip()
 		if #LFRDungeons > 0 or #worldBosses > 0 then self:AddLine(' ') end
 		self:AddHeader(GetColumnHeaders('weekly'))
 		self:AddSeparator(2)
-		for _, characterKey in ipairs(brokers:GetCharacters()) do
+		for _, characterKey in ipairs(characters) do
 			local data = GetCharacterQuestLockouts(characterKey, true)
 			if data then
 				lineNum = self:AddLine(addon.data.GetCharacterText(characterKey), prepare(data))

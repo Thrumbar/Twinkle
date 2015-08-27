@@ -8,6 +8,30 @@ local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Currency')
 local characters = {}
 
+local defaults = {
+	profile = {
+		showInTooltip = {
+			[395] = false, -- justice
+			[396] = false, -- valor
+			[392] =  true, -- honor
+			[390] =  true, -- conquest
+			[824] =  true, -- garrison resources
+			[823] =  true, -- apexis shard
+			[994] =  true, -- seal of tempered fate
+			[738] = false, -- lesser coin of fortune
+			[776] = false, -- war emblem
+			[777] = false, -- timeless
+		},
+		showInLDB = {
+			[824] = true, -- garrison resources
+			[823] = true, -- apexis shard
+			[994] = true, -- seal of tempered fate
+		},
+		iconFirst = true,
+		showWeeklyInLDB = true,
+	},
+}
+
 --[[
   TODO list:
   	- [config] currency order: [drag handle] [icon] currency name 	[x:ldb] [x:tooltip]
@@ -54,39 +78,30 @@ local function ScanCurrencies()
 	end
 end
 
-local sortCurrency, sortCurrencyReverse
-local function SortByCharacter(a, b)
-	if sortCurrencyReverse then
-		return addon.data.GetName(a) > addon.data.GetName(b)
+local sortCurrency, sortCurrencyReverse = 0, false
+local function Sort(a, b)
+	local valueA, valueB
+	if sortType == 0 then
+		valueA, valueB = addon.data.GetName(a), addon.data.GetName(b)
 	else
-		return addon.data.GetName(a) < addon.data.GetName(b)
-	end
-end
-local function SortByCurrency(charA, charB)
-	local _, _, countA, _, weeklyA = addon.data.GetCurrencyInfo(charA, sortCurrency)
-	local _, _, countB, _, weeklyB = addon.data.GetCurrencyInfo(charB, sortCurrency)
-	if sortCurrency < 0 then
-		-- sorting by weekly amounts
-		countA, countB = weeklyA, weeklyB
+		local _, _, countA, _, weeklyA = addon.data.GetCurrencyInfo(a, sortCurrency)
+		local _, _, countB, _, weeklyB = addon.data.GetCurrencyInfo(b, sortCurrency)
+		valueA = sortCurrency < 0 and weeklyA or countA
+		valueB = sortCurrency < 0 and weeklyB or countB
 	end
 	if sortCurrencyReverse then
-		return countA > countB
+		return valueA > valueB
 	else
-		return countA < countB
+		return valueA < valueB
 	end
 end
-local function SortCurrencyList(self, sortType, btn, up)
+
+local function ChangeSort(self, sortType, btn, up)
 	if sortCurrency == sortType then
 		sortCurrencyReverse = not sortCurrencyReverse
 	else
 		sortCurrency = sortType
 		sortCurrencyReverse = false
-	end
-
-	if sortType == 0 then
-		table.sort(characters, SortByCharacter)
-	else
-		table.sort(characters, SortByCurrency)
 	end
 	broker:Update()
 end
@@ -94,31 +109,7 @@ end
 -- --------------------------------------------------------
 --  Setup LDB
 -- --------------------------------------------------------
-local defaults = {
-	profile = {
-		showInTooltip = {
-			[395] = false, -- justice
-			[396] = false, -- valor
-			[392] =  true, -- honor
-			[390] =  true, -- conquest
-			[824] =  true, -- garrison resources
-			[823] =  true, -- apexis shard
-			[994] =  true, -- seal of tempered fate
-			[738] = false, -- lesser coin of fortune
-			[776] = false, -- war emblem
-			[777] = false, -- timeless
-		},
-		showInLDB = {
-			[824] = true, -- garrison resources
-			[823] = true, -- apexis shard
-			[994] = true, -- seal of tempered fate
-		},
-		iconFirst = true,
-		showWeeklyInLDB = true,
-	},
-}
 function broker:OnEnable()
-	characters = brokers:GetCharacters()
 	self.db = addon.db:RegisterNamespace('Currency', defaults)
 	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', self.Update, self)
 	self:RegisterEvent('SHOW_LOOT_TOAST', function(self, event, lootType, link, quantity, specID, sex, isPersonal, lootSource)
@@ -143,7 +134,7 @@ end
 function broker:UpdateLDB()
 	ScanCurrencies()
 
-	local characterKey, currenciesString = brokers:GetCharacter(), nil
+	local characterKey, currenciesString = addon.data.GetCurrentCharacter(), nil
 	for currencyID, isShown in pairs(broker.db.profile.showInLDB) do
 		if isShown then
 			local _, name, total, icon, weekly = addon.data.GetCurrencyInfo(characterKey, currencyID)
@@ -176,7 +167,7 @@ function broker:UpdateTooltip()
 	self:SetColumnLayout(1, 'LEFT')
 	local lineNum, column = self:AddHeader(_G.CHARACTER), 2
 	-- sort by character name
-	self:SetCellScript(lineNum, 1, 'OnMouseUp', SortCurrencyList, 0)
+	self:SetCellScript(lineNum, 1, 'OnMouseUp', ChangeSort, 0)
 	for currencyID, isShown in pairs(broker.db.profile.showInTooltip) do
 		if isShown then
 			local name, texture, totalMax, weeklyMax = GetGeneralCurrencyInfo(currencyID)
@@ -185,18 +176,21 @@ function broker:UpdateTooltip()
 			self.lines[lineNum].cells[column].link = 'currency:'..currencyID
 			self:SetCellScript(lineNum, column, 'OnEnter', addon.ShowTooltip, self)
 			self:SetCellScript(lineNum, column, 'OnLeave', addon.HideTooltip, self)
-			self:SetCellScript(lineNum, column, 'OnMouseUp', SortCurrencyList, currencyID)
+			self:SetCellScript(lineNum, column, 'OnMouseUp', ChangeSort, currencyID)
 			column = column + 1
 
 			if weeklyMax and weeklyMax > 0 then
 				if column > #self.columns then column = self:AddColumn('RIGHT') end
 				self:SetCell(lineNum, column, '|TInterface\\FriendsFrame\\StatusIcon-Away:0|t')
-				self:SetCellScript(lineNum, column, 'OnMouseUp', SortCurrencyList, -1*currencyID)
+				self:SetCellScript(lineNum, column, 'OnMouseUp', ChangeSort, -1*currencyID)
 				column = column + 1
 			end
 		end
 	end
 	self:AddSeparator(2)
+
+	addon.data.GetCharacters(characters)
+	table.sort(characters, Sort)
 
 	local addLine = true
 	for _, characterKey in ipairs(characters) do

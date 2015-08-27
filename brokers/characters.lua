@@ -5,7 +5,7 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Characters')
-local characters
+local characters = {}
 
 local function UpdateItemLevelQualities() end
 
@@ -150,10 +150,6 @@ function broker:OnEnable()
 	self:RegisterEvent('PLAYER_ENTERING_WORLD', self.Update, self)
 	self:RegisterEvent('PLAYER_LOOT_SPEC_UPDATED', self.Update, self)
 
-	-- create our own characters table, so sorting doesn't influence other brokers
-	characters = addon.data.GetCharacters()
-	table.sort(characters, Sort) -- apply default sorting
-
 	UpdateItemLevelQualities()
 	self:Update()
 end
@@ -170,11 +166,34 @@ function broker:OnClick(btn, down)
 	if btn == 'RightButton' then
 		-- loot spec selection
 		if not self.dropDown then
+			local function SelectLootSpec(self, arg1, arg2, isChecked)
+				SetLootSpecialization(self.value)
+			end
+
 			self.dropDown = CreateFrame('Frame', addonName..'CharacterLootSpecDropDown', UIParent, 'UIDropDownMenuTemplate')
 			self.dropDown:Hide()
 			self.dropDown.displayMode = 'MENU'
-			self.dropDown.initialize = function()
-				UnitPopup_ShowMenu(_G.UIDROPDOWNMENU_OPEN_MENU, 'SELECT_LOOT_SPECIALIZATION', 'player')
+			self.dropDown.initialize = function(self, level, menuList)
+				local info = UIDropDownMenu_CreateInfo()
+				      info.func = SelectLootSpec
+
+				-- current specialization
+				local _, specName = GetSpecializationInfo(GetSpecialization())
+				info.value = 0
+				info.text = _G.LOOT_SPECIALIZATION_DEFAULT:format(specName)
+				info.icon = 'Interface\\Buttons\\UI-GroupLoot-Dice-Up'
+				info.checked = GetLootSpecialization() == info.value
+				UIDropDownMenu_AddButton(info, level)
+
+				-- specific specialiation
+				for i = 1, GetNumSpecializations() do
+					local id, name, _, icon, _, role, primaryStat = GetSpecializationInfo(i)
+					info.value = id
+					info.text = _G['INLINE_'.. role ..'_ICON'] .. ' ' .. name
+					info.icon = icon
+					info.checked = GetLootSpecialization() == info.value
+					UIDropDownMenu_AddButton(info, level)
+				end
 			end
 		end
 		ToggleDropDownMenu(nil, nil, self.dropDown, 'cursor')
@@ -184,7 +203,7 @@ function broker:OnClick(btn, down)
 end
 
 function broker:UpdateLDB()
-	local thisCharacter = brokers:GetCharacter()
+	local thisCharacter = addon.data.GetCurrentCharacter()
 	local average    = addon.data.GetAverageItemLevel(thisCharacter)
 
 	local level      = UnitLevel('player')
@@ -227,7 +246,6 @@ function broker:UpdateTooltip()
 	-- lineNum = self:AddLine()
 	-- self:SetCell(lineNum, 1, NORMAL_FONT_COLOR_CODE .. 'Right-Click: Select loot specialization', 'LEFT', numColumns)
 
-	-- sorting
 	local iLevel = _G.GARRISON_FOLLOWER_ITEM_LEVEL:gsub('%%%d?%$?d', ''):trim()
 	lineNum = self:AddLine(_G.LEVEL_ABBR, _G.CHARACTER, '', iLevel)
 	for column = 1, numColumns do
@@ -237,7 +255,9 @@ function broker:UpdateTooltip()
 	end
 	self:AddSeparator(2)
 
-	-- data lines
+	addon.data.GetCharacters(characters)
+	table.sort(characters, Sort)
+
 	for _, characterKey in ipairs(characters) do
 		local level = addon.data.GetLevel(characterKey)
 		local color = RGBTableToColorCode(GetQuestDifficultyColor(level))

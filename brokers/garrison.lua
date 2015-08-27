@@ -4,6 +4,7 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker  = brokers:NewModule('Garrison')
+local characters = {}
 local emptyTable = {}
 
 local defaults = {
@@ -63,9 +64,12 @@ function broker:UpdateTooltip()
 
 	self:AddSeparator(2)
 
+	addon.data.GetCharacters(characters)
+	-- table.sort(characters, Sort) -- TODO
+
 	local now, hasData = time(), false
 	local shipmentInterval = 4*60*60 -- every four hours
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
+	for _, characterKey in ipairs(characters) do
 		-- shipments
 		local shipments = ''
 		for buildingID, max, active, completed, nextBatch in DataStore:IterateShipments(characterKey) or nop do
@@ -73,7 +77,7 @@ function broker:UpdateTooltip()
 			while nextBatch > 0 and active > 0 and nextBatch <= now do
 				-- additional sets that have been completed
 				active = active - 1
-				completed = (completed or 0) + 1
+				completed = completed + 1
 				nextBatch = nextBatch + shipmentInterval
 			end
 			local fulfilled = active > 0 and (nextBatch + (active-1) * shipmentInterval) or nil
@@ -84,8 +88,8 @@ function broker:UpdateTooltip()
 			end
 
 			local _, _, _, icon = C_Garrison.GetBuildingInfo(buildingID)
-			if active > 0 or fulfilled then
-				shipments = (shipments ~= '' and shipments..' ' or '') .. '|T'..icon..':0|t ' .. (completed > 0 and COMPLETE:format(completed)..' ' or '') .. fulfilled
+			if active > 0 or completed > 0 or fulfilled then
+				shipments = (shipments ~= '' and shipments..' ' or '') .. '|T'..icon..':0|t ' .. (completed > 0 and COMPLETE:format(completed)..' ' or '') .. (fulfilled or '')
 			end
 		end
 
@@ -132,8 +136,9 @@ function broker:UpdateTooltip()
 		local _, _, numOil = addon.data.GetCurrencyInfo(characterKey, 1101)
 		local _, _, numResources = addon.data.GetCurrencyInfo(characterKey, 824)
 		local numUncollected, cacheSize = DataStore:GetUncollectedResources(characterKey)
+		numUncollected, cacheSize = numUncollected or 0, cacheSize or 500
 		local warning = ''
-		if (numUncollected or 0) / (cacheSize or 500) >= broker.db.profile.cacheFullWarningPercent then
+		if numUncollected / cacheSize >= broker.db.profile.cacheFullWarningPercent then
 			warning = '|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0:0:0:-1|t'
 		end
 

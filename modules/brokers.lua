@@ -59,17 +59,3 @@ local prototype = {
 }
 brokers:SetDefaultModulePrototype(prototype)
 brokers:SetDefaultModuleLibraries('AceEvent-3.0')
-
-local characters, thisCharacter
-function brokers:OnInitialize()
-	characters = addon.data.GetCharacters(characters)
-	thisCharacter = addon.data.GetCurrentCharacter()
-end
-
-function brokers:GetCharacters()
-	return characters
-end
-
-function brokers:GetCharacter()
-	return thisCharacter
-end

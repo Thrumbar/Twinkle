@@ -4,6 +4,17 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker  = brokers:NewModule('Money')
+local characters = {}
+
+local defaults = {
+	global = {
+		history = {},
+	},
+	profile = {
+		ldbFormat = 'icon',
+		tooltipFormat = 'gsc',
+	},
+}
 
 local copperPerGold = COPPER_PER_SILVER * SILVER_PER_GOLD
 local function GetPrettyAmount(amount, style)
@@ -44,7 +55,7 @@ end
 
 function broker:GetAccountMoney()
 	local money = 0
-	for _, characterKey in ipairs(self.characters) do
+	for _, characterKey in ipairs(characters) do
 		if characterKey == addon.data.GetCurrentCharacter() then
 			money = money + GetMoney()
 		else
@@ -97,45 +108,19 @@ function broker:GetHistoryValues()
 	return session, day, week, month
 end
 
-local function MoneySort(keyA, keyB)
+local function Sort(keyA, keyB)
 	local amountA = addon.data.GetMoney(keyA)
 	local amountB = addon.data.GetMoney(keyB)
 	return amountA > amountB
 end
 
-local defaults = {
-	global = {
-		history = {},
-	},
-	profile = {
-		ldbFormat = 'icon',
-		tooltipFormat = 'gsc',
-	},
-}
 function broker:OnEnable()
-	self.characters = addon.data.GetCharacters()
 	self.db = addon.db:RegisterNamespace('Money', defaults)
 	self:Prune()
 
 	local today = date('%Y-%m-%d')
 	self.session = self:GetAccountMoney()
 	self.db.global.history[today] = self.session
-
-	-- create config ui
-	--[[ local types = {
-		history = '*none*',
-		tooltipFormat = {
-			gsc  = GetPrettyAmount(540321, 'gsc'),
-			icon = GetPrettyAmount(540321, 'icon'),
-			dot  = GetPrettyAmount(540321, 'dot'),
-		},
-	}
-	types.ldbFormat = types.tooltipFormat
-
-	local optionsTable = LibStub('LibOptionsGenerate-1.0'):GetOptionsTable(self.db, types)
-	      optionsTable.name = addonName .. ' - Money'
-	LibStub('AceConfig-3.0'):RegisterOptionsTable(self.name, optionsTable)
-	-- added to options when options panel gets loaded --]]
 
 	self:RegisterEvent('PLAYER_MONEY', self.Update, self)
 	self:Update()
@@ -173,8 +158,10 @@ function broker:UpdateTooltip()
 	-- bg: :SetCellColor(lineNum, colNum, r, g, b, a)
 	-- bg: :SetLineColor(lineNum, r, g, b, a)
 
-	table.sort(broker.characters, MoneySort)
-	for _, characterKey in ipairs(broker.characters) do
+	addon.data.GetCharacters(characters)
+	table.sort(characters, Sort)
+
+	for _, characterKey in ipairs(characters) do
 		local amount = addon.data.GetMoney(characterKey)
 
 		lineNum = self:AddLine(

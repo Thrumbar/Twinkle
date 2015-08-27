@@ -7,6 +7,7 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Notifications')
+local characters = {}
 
 function broker:OnEnable()
 	-- self:RegisterEvent('EVENT_NAME', self.Update, self)
@@ -33,8 +34,11 @@ function broker:UpdateTooltip()
 	local lineNum -- = self:AddHeader()
 	-- self:SetCell(lineNum, 1, addonName .. ': Notifications', 'LEFT', numColumns)
 
+	addon.data.GetCharacters(characters)
+	-- table.sort(characters, Sort) -- TODO
+
 	local allNotifications = addon:GetModule("Notifications"):GetSentNotifications()
-	for _, characterKey in ipairs(brokers:GetCharacters()) do
+	for _, characterKey in ipairs(characters) do
 		local notifications = allNotifications[characterKey]
 		local numNotifications = 0
 		for _, group in pairs(notifications) do

@@ -7,6 +7,7 @@ local addonName, addon, _ = ...
 
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Lockouts')
+local characters = {}
 
 -- FIXME: how do we get instanceMapIDs of available raid instances?
 -- @see: http://wow.gamepedia.com/InstanceMapID
@@ -59,9 +60,13 @@ function broker:UpdateTooltip()
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.RAID, 'LEFT', numColumns)
 
+	addon.data.GetCharacters(characters)
+	-- table.sort(characters, Sort) -- TODO
+
+	local hasAnyData = false
 	for _, instance in ipairs(instances) do
 		local hasData = false
-		for _, characterKey in ipairs(brokers:GetCharacters()) do
+		for _, characterKey in ipairs(characters) do
 			local totalDefeated, statusFormat = 0, '%s%d/%d|r'
 			local numDefeated, numBosses, hasID, color, instanceLink
 			wipe(instanceLinks)
@@ -115,5 +120,7 @@ function broker:UpdateTooltip()
 				end
 			end
 		end
+		hasAnyData = hasAnyData or hasData
 	end
+	return not hasAnyData
 end
