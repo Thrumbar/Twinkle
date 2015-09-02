@@ -81,7 +81,7 @@ end
 local sortCurrency, sortCurrencyReverse = 0, false
 local function Sort(a, b)
 	local valueA, valueB
-	if sortType == 0 then
+	if sortCurrency == 0 then
 		valueA, valueB = addon.data.GetName(a), addon.data.GetName(b)
 	else
 		local _, _, countA, _, weeklyA = addon.data.GetCurrencyInfo(a, sortCurrency)

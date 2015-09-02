@@ -118,6 +118,8 @@ function broker:OnEnable()
 	self.db = addon.db:RegisterNamespace('Money', defaults)
 	self:Prune()
 
+	addon.data.GetCharacters(characters)
+
 	local today = date('%Y-%m-%d')
 	self.session = self:GetAccountMoney()
 	self.db.global.history[today] = self.session
@@ -163,7 +165,6 @@ function broker:UpdateTooltip()
 
 	for _, characterKey in ipairs(characters) do
 		local amount = addon.data.GetMoney(characterKey)
-
 		lineNum = self:AddLine(
 			addon.data.GetCharacterText(characterKey),
 			GetPrettyAmount(amount, tooltipFormat)
