@@ -37,8 +37,8 @@ function quests:GetNumRows(characterKey)
 end
 
 function quests:GetRowInfo(characterKey, index)
+	local tags, prefix = '', ''
 	local isHeader, questLink, groupSize, _, isComplete = DataStore:GetQuestLogInfo(characterKey, index)
-	-- title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory = GetQuestLogTitle(index)
 
 
 	local questID, questLevel, title = nil, nil, questLink or ''
@@ -46,18 +46,23 @@ function quests:GetRowInfo(characterKey, index)
 		questID, questLevel = questLink:match("quest:(%d+):(-?%d+)")
 		questID, questLevel = tonumber(questID), tonumber(questLevel)
 		title = questLink:gsub('[%[%]]', ''):gsub('\124c........', ''):gsub('\124r', '')
+		if groupSize and groupSize > 0 then
+			tags = '['..groupSize..']'
+		end
 	end
 
-	local tags = ''
-	if groupSize and groupSize > 0 then tags = '['..groupSize..']' end
-	if isComplete == 1 then tags = tags .. shortTags[_G.COMPLETE] end
+	if questLevel and questLevel > 0 then
+		local color = GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
+		title = RGBTableToColorCode(color) .. title .. '|r'
+	end
 
 	local progress = questID and DataStore:GetQuestProgressPercentage(characterKey, questID)
-	if progress and isComplete ~= 1 and progress > 0 then
-		title = title .. ' ('..math.floor(progress*100)..'%)'
+	if isComplete == 1 --[[or progress == 1--]]then
+		prefix = shortTags[_G.COMPLETE]
+	elseif progress and progress > 0 then
+		local r, g, b = addon.GetGradientColor(progress)
+		prefix = ('|T%s:0:0:0:0:16:16:0:16:0:16:%d:%d:%d|t'):format('Interface\\AddOns\\Twinkle\\StatusIcon', r*255, g*255, b*255)
 	end
-	local color  = questLevel and GetRelativeDifficultyColor(DataStore:GetCharacterLevel(characterKey), questLevel)
-	local prefix = questLevel and RGBTableToColorCode(color) .. questLevel .. '|r' or ''
 
 	return isHeader and 1 or nil, title, prefix, tags, not isHeader and questLink or nil
 end
