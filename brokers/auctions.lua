@@ -1,65 +1,48 @@
 local addonName, addon, _ = ...
 
--- GLOBALS:
-
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Auctions')
 local characters = {}
 
 local lists = {'Auctions', 'Bids'}
 local function GetAuctionState(characterKey)
-	local _auctions, _bids, lastVisit = addon.data.GetAuctionState(characterKey)
+	local auctions, bids, lastVisit = addon.data.GetAuctionState(characterKey)
 	local now = GetTime()
 
 	local numBids, numAuctions, expired
-	local numGoblinBids, numGoblinAuctions, goblinExpired
 	for _, list in pairs(lists) do
-		local numEntries = list == 'Auctions' and _auctions or _bids
+		local numEntries = list == 'Auctions' and auctions or bids
 		for i = 1, numEntries or 0 do
 			local isGoblin, itemID, count, name, bidPrice, buyPrice, timeLeft = addon.data.GetAuctionInfo(characterKey, list, i)
 			if lastVisit + timeLeft < now then
 				-- entry is expired
-				goblinExpired = goblinExpired or isGoblin
 				expired = expired or (not isGoblin)
 			end
-			if isGoblin then
-				numGoblinBids = (numGoblinBids or 0) + (list == 'Bids' and 1 or 0)
-				numGoblinAuctions = (numGoblinAuctions or 0) + (list == 'Auctions' and 1 or 0)
-			else
-				numBids = (numBids or 0) + (list == 'Bids' and 1 or 0)
-				numAuctions = (numAuctions or 0) + (list == 'Auctions' and 1 or 0)
-			end
+			numBids = (numBids or 0) + (list == 'Bids' and 1 or 0)
+			numAuctions = (numAuctions or 0) + (list == 'Auctions' and 1 or 0)
 		end
 	end
 
-	return numAuctions or 0, numBids or 0, expired,
-		numGoblinAuctions or 0, numGoblinBids or 0, goblinExpired
+	return numAuctions or 0, numBids or 0, expired
 end
 
 local function GetAuctionStatusText(characterKey)
-	local numMails, numExpired = addon.data.GetNumMails(characterKey) -- GetInboxNumItems()
-	local auctionsFaction, bidsFaction, factionExpired,
-	      auctionsGoblin, bidsGoblin, goblinExpired = GetAuctionState(characterKey)
+	local numMails, numExpired = addon.data.GetNumMails(characterKey)
+	local numAuctions, numBids, expired = GetAuctionState(characterKey)
 
     local icon
 	if numExpired > 0 then	-- mails that last <7 days count as expired
 		icon = 'Interface\\RAIDFRAME\\ReadyCheck-NotReady'
-	elseif factionExpired or goblinExpired then
+	elseif expired then
 		icon = 'Interface\\RAIDFRAME\\ReadyCheck-Waiting'
 	elseif numMails > 0 then
 		icon = 'Interface\\Minimap\\TRACKING\\Mailbox'
 	end
 
 	local faction
-	if auctionsFaction > 0 or bidsFaction > 0 then
-		faction = auctionsFaction .. ' / ' .. bidsFaction
-		faction = (factionExpired and _G.RED_FONT_COLOR_CODE or _G.GREEN_FONT_COLOR_CODE) .. faction .. '|r'
-	end
-
-	local neutral
-	if auctionsGoblin > 0 or bidsGoblin > 0 then
-		neutral = auctionsGoblin .. ' / ' .. bidsGoblin
-		neutral = (factionExpired and _G.ORANGE_FONT_COLOR_CODE or _G.GREEN_FONT_COLOR_CODE) .. neutral .. '|r'
+	if numAuctions > 0 or numBids > 0 then
+		faction = numAuctions .. ' / ' .. numBids
+		faction = (expired and _G.RED_FONT_COLOR_CODE or _G.GREEN_FONT_COLOR_CODE) .. faction .. '|r'
 	end
 
 	local result = faction
