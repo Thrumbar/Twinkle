@@ -103,7 +103,7 @@ local function HandleTooltipItem(self, link)
 	-- if linesAdded then addon.AddEmptyLine(self, true) end
 
 	if itemID and itemID ~= HEARTHSTONE_ITEM_ID and (itemClass ~= RECIPE or self.twinkleDone) then
-		if not plugin.db.global.itemCountsOnSHIFT or IsShiftKeyDown() then
+		if not plugin.db.global.itemCounts.onSHIFT or IsShiftKeyDown() then
 			linesAdded = addon.AddItemCounts(self, itemID)
 			-- if linesAdded then addon.AddEmptyLine(self, true) end
 		else
@@ -155,8 +155,7 @@ local function HandleTooltipSpell(self)
 
 		if craftedItem then
 			-- addon.AddEmptyLine(self, true)
-			local itemCountsOnSHIFT = nil -- TODO: config
-			if not itemCountsOnSHIFT or IsShiftKeyDown() then
+			if not plugin.db.global.itemCounts.onSHIFT or IsShiftKeyDown() then
 				addon.AddItemCounts(self, craftedItem)
 			else
 				self:AddLine(BATTLENET_FONT_COLOR_CODE..'<Hold down SHIFT for item counts>')
@@ -193,8 +192,8 @@ end
 -- GLOBALS: GameTooltip, ItemRefTooltip, ShoppingTooltip1, ShoppingTooltip2, ShoppingTooltip3
 local defaults = {
 	global = {
-		itemCountsOnSHIFT = false,
 		itemCounts = {
+			onSHIFT = false,
 			showTotals = true,
 			showGuilds = true,
 			includeGuildCountInTotal = true,

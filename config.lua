@@ -74,7 +74,7 @@ local function OpenConfiguration(self, args)
 			['Interface\\MINIMAP\\TRACKING\\BattleMaster'] = '|TInterface\\MINIMAP\\TRACKING\\BattleMaster:20|t',
 			['Interface\\ICONS\\FactionChange'] = '|TInterface\\ICONS\\FactionChange:20|t',
 		},
-		characterFilters = '**none**',
+		characterFilters = '*none*',
 
 		-- namespaces
 		Money = { -- brokers: money
@@ -108,12 +108,41 @@ local function OpenConfiguration(self, args)
 	types.Money.ldbFormat = types.Money.tooltipFormat
 
 	local L = {
+		factionIconName = 'Faction icons',
+		factionIconUndecidedName = 'Undecided faction icon',
+
 		Currency = {
+			iconFirstName = 'Show icon before amount',
+			showInTooltipName = 'Show in tooltip',
 			showInTooltipValues = GetCurrencyLabel,
-			showInLDBValues     = GetCurrencyLabel,
+			showInLDBName = 'Show on data broker',
+			showInLDBValues = GetCurrencyLabel,
+			showWeeklyInLDBName = 'Show weekly progress',
+			showWeeklyInLDBDesc = 'Show weekly progress on data broker',
 		},
 		Notifications = {
+			eventRemindersName = 'Event reminders',
+			eventRemindersDesc = 'Show a reminder when an event is close',
 			eventRemindersValues = GetReminderLabel,
+			updateIntervalName = 'Update interval',
+			updateIntervalDesc = 'Interval (in seconds) between checks of event timings.|nHigher numbers mean fewer checks.',
+		},
+		Money = {
+			ldbFormatName = 'Format for display on data broker',
+			tooltipFormatName = 'Format for display in tooltip',
+		},
+		Tooltip = {
+			itemCountsName = 'Item counts',
+			onSHIFTName = 'Only on SHIFT',
+			onSHIFTDesc = 'Display item counts only when SHIFT is pressed',
+			showTotalsName = 'Display totals',
+			showTotalsDesc = 'Display sum of items by all characters',
+			showGuildsName = 'Show guild',
+			showGuildsDesc = 'Show counts for items in guild storage',
+			includeGuildCountInTotalName = 'Total includes guild',
+			includeGuildCountInTotalDesc = 'Include guild item counts in totals',
+			onlyThisCharOnBOPName = 'This character only on BoP',
+			onlyThisCharOnBOPDesc = 'When an item is Binds on Pickup (BoP) only display this character\'s items.',
 		},
 	}
 

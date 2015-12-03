@@ -1,5 +1,7 @@
 local addonName, addon, _ = ...
 
+-- TODO: black market AH
+
 local brokers = addon:GetModule('brokers')
 local broker = brokers:NewModule('Auctions')
 local characters = {}
