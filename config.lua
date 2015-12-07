@@ -34,10 +34,16 @@ local function GetFactionIcons()
 end
 
 local characters = {}
-local function GetCharacters()
+local function GetDeletableCharacters()
+	local thisCharacter = addon.data.GetCurrentCharacter()
 	addon.data.GetAllCharacters(characters)
 	for i, characterKey in ipairs(characters) do
-		characters[characterKey] = ('%s: %s'):format(addon.data.GetRealm(characterKey), addon.data.GetCharacterText(characterKey))
+		if characterKey ~= thisCharacter then
+			characters[characterKey] = ('%s: %s'):format(addon.data.GetRealm(characterKey), addon.data.GetCharacterText(characterKey))
+			-- local realmName = addon.data.GetRealm(characterKey)
+			-- characters[realmName] = characters[realmName] or {}
+			-- characters[realmName][characterKey] = addon.data.GetCharacterText(characterKey)
+		end
 		characters[i] = nil
 	end
 	return characters
@@ -155,8 +161,10 @@ local function OpenConfiguration(self, args)
 	optionsTable.args.global.args.DeleteCharacter = {
 		type = 'select',
 		name = 'Delete character',
-		desc = 'Select a character to be deleted. Associated guild data will also be deleted if no other character is in that guild.|n|cFFFF0000This cannot be undone! Use with caution!|r',
-		values = GetCharacters,
+		desc = 'Select a character to be deleted. The logged in character cannot be deleted.|n'
+			.. 'Associated guild data will be deleted if no other character is in the guild.|n'
+			.. '|cFFFF0000Use with caution, this cannot be undone!|r',
+		values = GetDeletableCharacters,
 		get = nop,
 		set = function(info, characterKey)
 			StaticPopup_Show('TWINKLE_DELETE_CHARACTER',
