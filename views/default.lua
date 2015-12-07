@@ -297,6 +297,21 @@ function view:Load()
 	end
 	dailies.trigger = dailiesFrame
 
+	local professions = contents:CreateFontString(nil, nil, 'GameFontNormal')
+	professions:SetJustifyH('LEFT')
+	professions.update = function(self, character)
+		local profText = nil
+		-- TODO: move DataStore calls
+		for i, profession in ipairs(DataStore:GetProfessions(character) or {}) do
+			if i > 2 then break end
+			local rank, maxRank, spellID = DataStore:GetProfessionInfo(character, profession)
+			local name, _, icon = GetSpellInfo(spellID or 0)
+			profText = (profText and profText .. ' ' or '') .. '|T' .. (icon or '') .. ':0|t ' .. rank
+		end
+		self:SetText(profText)
+	end
+	table.insert(contents.contents, professions)
+
 	local expansion = GetAccountExpansionLevel()
 	local worldBosses = {
 		[LE_EXPANSION_MISTS_OF_PANDARIA] = {
@@ -374,7 +389,6 @@ function view:Load()
 
 	-- TODO: hearth location, raid ids
 	-- TODO: register update events
-
 
 	view.panel = panel
 
