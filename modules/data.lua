@@ -708,3 +708,17 @@ end
 function data.IsWorldBossKilledBy(characterKey, bossID)
 	return DataStore:IsWorldBossKilledBy(characterKey, bossID) or false
 end
+
+function data.GetProfessions(characterKey)
+	local professions = DataStore:GetProfessions(characterKey)
+	local prof1, prof2, arch, fishing, cooking, firstAid = unpack(professions)
+	return prof1, prof2, arch, fishing, cooking, firstAid
+end
+
+-- profession: Whatever was returned by .GetProfessions
+function data.GetProfessionInfo(characterKey, profession)
+	local skillLine = profession -- TODO: this is only true for DataMore
+	local rank, maxRank, spellID, specSpellID = DataStore:GetProfessionInfo(characterKey, profession)
+	local name, _, icon = GetSpellInfo(spellID or 0)
+	return name, icon, rank, maxRank, skillLine, spellID, specSpellID
+end
