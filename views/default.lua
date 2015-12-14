@@ -300,17 +300,34 @@ function view:Load()
 	local professions = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	professions:SetJustifyH('LEFT')
 	professions.update = function(self, character)
+		local prof1, prof2, arch, fishing, cooking, firstAid = addon.data.GetProfessions(character)
+
 		local profText = nil
-		-- TODO: move DataStore calls
-		for i, profession in ipairs(DataStore:GetProfessions(character) or {}) do
-			if i > 2 then break end
-			local rank, maxRank, spellID = DataStore:GetProfessionInfo(character, profession)
-			local name, _, icon = GetSpellInfo(spellID or 0)
+		if prof1 then
+			local name, icon, rank, maxRank = addon.data.GetProfessionInfo(character, prof1)
+			profText = '|T' .. (icon or '') .. ':0|t ' .. rank
+		end
+		if prof2 then
+			local name, icon, rank, maxRank = addon.data.GetProfessionInfo(character, prof2)
 			profText = (profText and profText .. ' ' or '') .. '|T' .. (icon or '') .. ':0|t ' .. rank
 		end
 		self:SetText(profText)
 	end
 	table.insert(contents.contents, professions)
+
+	local professionsFrame = CreateFrame('Frame', nil, contents)
+	professionsFrame:SetAllPoints(mail)
+	professionsFrame:SetScript('OnEnter', addon.ShowTooltip)
+	professionsFrame:SetScript('OnLeave', addon.HideTooltip)
+	professionsFrame.tiptext = function(self, tooltip)
+		local character = addon:GetSelectedCharacter()
+		local now = time()
+		for recipeID, expires in ipairs(addon.data.GetProfessionCooldowns(character)) do
+			local name, _, icon = GetSpellInfo(recipeID)
+			tooltip:AddDoubleLine('|T' .. icon .. ':0|t ' .. name, SecondsToTime(expires - now))
+		end
+	end
+	professions.trigger = professionsFrame
 
 	local expansion = GetAccountExpansionLevel()
 	local worldBosses = {
