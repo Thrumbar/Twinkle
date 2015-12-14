@@ -53,7 +53,7 @@ function views.AddTab(view)
 	if index == 1 then
 		tab:SetPoint('TOPLEFT', '$parent', 'TOPRIGHT', 0, -36)
 	else
-		tab:SetPoint('TOPLEFT', '$parentTab'..(index-1), 'BOTTOMLEFT', 0, -22)
+		tab:SetPoint('TOPLEFT', '$parentTab'..(index-1), 'BOTTOMLEFT', 0, -16)
 	end
 
 	tab:RegisterForClicks('AnyUp')
