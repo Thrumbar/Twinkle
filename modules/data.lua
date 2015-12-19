@@ -715,10 +715,43 @@ function data.GetProfessions(characterKey)
 	return prof1, prof2, arch, fishing, cooking, firstAid
 end
 
--- profession: Whatever was returned by .GetProfessions
 function data.GetProfessionInfo(characterKey, profession)
+	if type(profession) == 'string' then
+		profession = DataStore:GetProfession(characterKey, profession)
+	end
+	if not profession then return nil end
 	local skillLine = profession -- TODO: this is only true for DataMore
 	local rank, maxRank, spellID, specSpellID = DataStore:GetProfessionInfo(characterKey, profession)
 	local name, _, icon = GetSpellInfo(spellID or 0)
-	return name, icon, rank, maxRank, skillLine, spellID, specSpellID
+	return name, icon, rank or 0, maxRank or 0, skillLine, spellID, specSpellID or nil
+end
+
+-- recipe and profession may be names or ids, profession is entirely optional
+-- returns true when recipe is known, false when given profession doesn't know recipe, nil otherwise
+function data.IsRecipeKnown(characterKey, recipe, profession)
+	profession = type(profession) == 'string' and DataStore:GetProfession(profession) or profession
+	if not profession then
+		-- Recursively check all professions
+		for i, skillLine in ipairs(DataStore:GetProfessions(characterKey)) do
+			if data.IsRecipeKnown(characterKey, recipeID, skillLine) then return true end
+		end
+	else
+		local isKnown = false
+		if type(recipe) == 'string' then
+			-- Retrieve recipe spellID from stored recipes.
+			local numCrafts = DataStore:GetNumCraftLines(characterKey, profession) or 0
+			for i = 1, numCrafts do
+				local isHeader, _, spellID = DataStore:GetCraftLineInfo(characterKey, profession, i)
+				if not isHeader and spellID then
+					if recipe == (GetSpellInfo(spellID) or '') then
+						isKnown = true
+					end
+				end
+			end
+		else
+			isKnown = DataStore:IsCraftKnown(characterKey, profession, recipe)
+		end
+		return isKnown and true or false
+	end
+	return nil
 end

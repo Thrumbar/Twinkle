@@ -1,4 +1,4 @@
-local addonName, ns, _ = ...
+local addonName, addon, _ = ...
 
 -- ================================================
 --  Recipes
@@ -25,43 +25,28 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	wipe(recipeUnknownCharacters)
 
 	local selfKnown = nil
-	for _, character in ipairs(ns.data.GetCharacters()) do
-		local profession = DataStore:GetProfession(character, professionName)
-		local rank = profession and DataStore:GetProfessionInfo(character, profession) or 0
-		if profession and rank > 0 then
-			local numCrafts = DataStore:GetNumCraftLines(character, profession) or 0
-			local isKnown = nil
-			for i = 1, numCrafts do
-				local isHeader, _, spellID = DataStore:GetCraftLineInfo(character, profession, i)
-				if not isHeader and spellID then
-					local skillName = GetSpellInfo(spellID) or ""
-					if skillName == craftedName then
-						isKnown = true
-						break
-					end
-				end
-			end
+	for _, character in ipairs(addon.data.GetCharacters()) do
+		local _, _, rank, _, skillLine = addon.data.GetProfessionInfo(character, professionName)
+		local isKnown = addon.data.IsRecipeKnown(character, craftedName, skillLine)
+		if isKnown and character == thisCharacter then
+			selfKnown = true
+		end
 
-			if isKnown and character == thisCharacter then
-				selfKnown = true
+		local charName = addon.data.GetCharacterText(character)
+		if isKnown and not onlyUnknown then
+			table.insert(recipeKnownCharacters, charName)
+		elseif isKnown == false and rank > 0 then
+			local characterText
+			if not requiredSkill or rank >= requiredSkill then
+				characterText = charName
+			else
+				characterText = string.format("%s %s(%d)|r", charName, RED_FONT_COLOR_CODE, rank)
 			end
-
-			local charName = ns.data.GetCharacterText(character)
-			if isKnown and not onlyUnknown then
-				table.insert(recipeKnownCharacters, charName)
-			elseif not isKnown and numCrafts > 0 then
-				local characterText
-				if not requiredSkill or rank >= requiredSkill then
-					characterText = charName
-				else
-					characterText = string.format("%s %s(%d)|r", charName, RED_FONT_COLOR_CODE, rank)
-				end
-				--[[ local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
-					or (skillLevel >= requiredSkill and GREEN_FONT_COLOR_CODE)
-					or RED_FONT_COLOR_CODE
-				local characterText = string.format("%s %s(%d)|r", charName, learnableColor, rank) --]]
-				table.insert(recipeUnknownCharacters, characterText)
-			end
+			--[[ local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
+				or (skillLevel >= requiredSkill and GREEN_FONT_COLOR_CODE)
+				or RED_FONT_COLOR_CODE
+			local characterText = string.format("%s %s(%d)|r", charName, learnableColor, rank) --]]
+			table.insert(recipeUnknownCharacters, characterText)
 		end
 	end
 	table.sort(recipeKnownCharacters, SortByName)
@@ -69,7 +54,7 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	return recipeKnownCharacters, recipeUnknownCharacters, selfKnown
 end
 
-function ns.AddCraftInfo(tooltip, professionName, craftedName, requiredSkill)
+function addon.AddCraftInfo(tooltip, professionName, craftedName, requiredSkill)
 	local onlyUnknown = false -- TODO: config
 	local linesAdded = false
 	local known, unknown, selfKnown = GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
