@@ -81,6 +81,7 @@ local function OpenConfiguration(self, args)
 			['Interface\\ICONS\\FactionChange'] = '|TInterface\\ICONS\\FactionChange:20|t',
 		},
 		characterFilters = '*none*',
+		notes = '*none*',
 
 		-- namespaces
 		Money = { -- brokers: money

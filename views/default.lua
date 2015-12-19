@@ -404,6 +404,69 @@ function view:Load()
 	table.insert(contents.contents, 'newline')
 	table.insert(contents.contents, lfrs)
 
+	-- Character text notes.
+	local notes = CreateFrame('ScrollFrame', '$parentNotesScroll', contents, 'UIPanelScrollFrameTemplate')
+	notes:SetSize(200, 4*14)
+	notes.edit = CreateFrame('EditBox', '$parentNotes', notes, 'InputBoxInstructionsTemplate')
+	notes.edit:SetFontObject('GameFontHighlight')
+	notes.edit:EnableMouse(true)
+	notes.edit:SetMultiLine(true)
+	notes.edit:SetAutoFocus(false)
+	notes.edit:SetSize(notes:GetSize())
+	notes.edit:SetAllPoints()
+	notes.edit:SetTextInsets(6, 6, 6, 6)
+	notes.edit.Left:Hide() notes.edit.Right:Hide() notes.edit.Middle:Hide()
+	notes.edit.Instructions:SetPoint('TOPLEFT', 6, -6)
+	notes.edit.Instructions:SetPoint('BOTTOMRIGHT', -6, 6)
+	notes.edit.Instructions:SetText('Store notes for this character.')
+	notes.edit:SetScript('OnEditFocusGained', nop)
+	notes.edit:SetScript('OnEscapePressed', EditBox_ClearFocus)
+	notes.edit:SetScript('OnEditFocusLost', function(self, character)
+		EditBox_ClearHighlight(self)
+		local character = self.character or addon:GetSelectedCharacter()
+		local unitName, realmName = addon.data.GetName(character), addon.data.GetRealm(character)
+		local dbKey = unitName .. ' - ' .. realmName
+		if not addon.db.sv.char[dbKey] then addon.db.sv.char[dbKey] = {} end
+		addon.db.sv.char[dbKey].notes = self:GetText()
+	end)
+
+	local backdrop = {
+		bgFile = 'Interface\\Tooltips\\UI-Tooltip-Background',
+		edgeFile = 'Interface\\Tooltips\\UI-Tooltip-Border', edgeSize = 16,
+		insets = { left = 4, right = 3, top = 4, bottom = 3 },
+	}
+	notes.scrollBarHideable = true
+	notes.noScrollThumb = true
+	notes.scrollStep = 11 -- equals line height
+	notes.ScrollBar:Hide()
+	notes:SetBackdrop(backdrop)
+	notes:SetBackdropColor(0, 0, 0)
+	notes:SetBackdropBorderColor(0.4, 0.4, 0.4)
+	notes:SetScrollChild(notes.edit)
+	notes:SetScript('OnScrollRangeChanged', function(self, x, y)
+		-- Scroll text while typing.
+		local min, max = self.ScrollBar:GetMinMaxValues()
+		local delta = max < y and self.scrollStep or -1 * self.scrollStep
+		self.ScrollBar:SetMinMaxValues(0, y)
+		local scroll = self:GetVerticalScroll() + delta
+		scroll = scroll < 0 and 0 or (scroll > y and y or scroll)
+		self:SetVerticalScroll(scroll)
+	end)
+	notes:SetScript('OnMouseDown', function(self) self.edit:SetFocus() end)
+	notes.update = function(self, character)
+		-- Save data when changing characters.
+		if self.edit.character ~= character then self.edit:ClearFocus() end
+
+		self:SetVerticalScroll(0)
+		local unitName, realmName = addon.data.GetName(character), addon.data.GetRealm(character)
+		local dbKey = unitName .. ' - ' .. realmName
+		local text = addon.db.sv.char[dbKey] and addon.db.sv.char[dbKey].notes or ''
+		self.edit:SetText(text)
+		self.edit.character = character
+	end
+	table.insert(contents.contents, 'newline')
+	table.insert(contents.contents, notes)
+
 	-- TODO: hearth location, raid ids
 	-- TODO: register update events
 

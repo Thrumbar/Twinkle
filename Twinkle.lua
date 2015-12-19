@@ -19,6 +19,9 @@ local defaults = {
 			},
 		},
 	},
+	char = {
+		notes = '',
+	}
 }
 
 -- see link types here: http://www.townlong-yak.com/framexml/19033/ItemRef.lua#162
