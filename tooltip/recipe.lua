@@ -27,11 +27,12 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 	local selfKnown = nil
 	for _, character in ipairs(ns.data.GetCharacters()) do
 		local profession = DataStore:GetProfession(character, professionName)
-		if profession and profession.Rank > 0 then
-			local numCrafts = DataStore:GetNumCraftLines(profession) or 0
+		local rank = profession and DataStore:GetProfessionInfo(character, profession) or 0
+		if profession and rank > 0 then
+			local numCrafts = DataStore:GetNumCraftLines(character, profession) or 0
 			local isKnown = nil
 			for i = 1, numCrafts do
-				local isHeader, _, spellID = DataStore:GetCraftLineInfo(profession, i)
+				local isHeader, _, spellID = DataStore:GetCraftLineInfo(character, profession, i)
 				if not isHeader and spellID then
 					local skillName = GetSpellInfo(spellID) or ""
 					if skillName == craftedName then
@@ -49,18 +50,16 @@ local function GetRecipeKnownInfo(craftedName, professionName, requiredSkill)
 			if isKnown and not onlyUnknown then
 				table.insert(recipeKnownCharacters, charName)
 			elseif not isKnown and numCrafts > 0 then
-				local skillLevel = DataStore:GetProfessionInfo(profession) or 0
-				--[[ local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
-					or (skillLevel >= requiredSkill and GREEN_FONT_COLOR_CODE)
-					or RED_FONT_COLOR_CODE --]]
-
 				local characterText
-				if not requiredSkill or skillLevel >= requiredSkill then
+				if not requiredSkill or rank >= requiredSkill then
 					characterText = charName
 				else
-					characterText = string.format("%s %s(%d)|r", charName, RED_FONT_COLOR_CODE, skillLevel)
+					characterText = string.format("%s %s(%d)|r", charName, RED_FONT_COLOR_CODE, rank)
 				end
-				-- local characterText = string.format("%s %s(%d)|r", charName, learnableColor, skillLevel)
+				--[[ local learnableColor = (not requiredSkill and HIGHLIGHT_FONT_COLOR_CODE)
+					or (skillLevel >= requiredSkill and GREEN_FONT_COLOR_CODE)
+					or RED_FONT_COLOR_CODE
+				local characterText = string.format("%s %s(%d)|r", charName, learnableColor, rank) --]]
 				table.insert(recipeUnknownCharacters, characterText)
 			end
 		end
