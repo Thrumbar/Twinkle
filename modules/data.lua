@@ -711,14 +711,20 @@ end
 
 function data.GetProfessions(characterKey)
 	local professions = DataStore:GetProfessions(characterKey)
-	local prof1, prof2, arch, fishing, cooking, firstAid = unpack(professions)
-	return prof1, prof2, arch, fishing, cooking, firstAid
+	if professions then
+		local prof1, prof2, arch, fishing, cooking, firstAid = unpack(professions)
+		return prof1, prof2, arch, fishing, cooking, firstAid
+	end
 end
 
 function data.GetProfessionInfo(characterKey, profession)
 	if type(profession) == 'string' then
 		profession = DataStore:GetProfession(characterKey, profession)
 	end
+	if not profession then
+		return nil
+	end
+
 	if not profession then return nil end
 	local skillLine = profession -- TODO: this is only true for DataMore
 	local rank, maxRank, spellID, specSpellID = DataStore:GetProfessionInfo(characterKey, profession)
