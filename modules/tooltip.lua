@@ -7,8 +7,13 @@ local addonName, addon, _ = ...
 local plugin = addon:NewModule('Tooltip')
 local LPT = LibStub('LibPeriodicTable-3.1', true)
 local PROFESSION_MIN_SKILL = '^' .. addon.GlobalStringToPattern(_G.ITEM_MIN_SKILL) .. '$'
-local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = GetAuctionItemClasses()
-local PLUNDER, REAGENT, PET, HOLIDAY, OTHER, MOUNT = GetAuctionItemSubClasses(9)
+local WEAPON, ARMOR, BAG, CONSUMABLE, GLYPH, TRADESKILL, RECIPE, GEM, MISC, QUEST, BATTLEPET = _G.AUCTION_CATEGORY_WEAPONS, _G.AUCTION_CATEGORY_ARMOR, _G.AUCTION_CATEGORY_CONTAINERS, _G.AUCTION_CATEGORY_CONSUMABLES, _G.AUCTION_CATEGORY_GLYPHS, _G.AUCTION_CATEGORY_TRADE_GOODS, _G.AUCTION_CATEGORY_RECIPES, _G.AUCTION_CATEGORY_GEMS, _G.AUCTION_CATEGORY_MISCELLANEOUS, _G.AUCTION_CATEGORY_QUEST_ITEMS, _G.AUCTION_CATEGORY_BATTLE_PETS
+local PLUNDER = GetItemSubClassInfo(_G.LE_ITEM_CLASS_MISCELLANEOUS, 1)
+local REAGENT = GetItemSubClassInfo(_G.LE_ITEM_CLASS_MISCELLANEOUS, 2)
+local PET     = GetItemSubClassInfo(_G.LE_ITEM_CLASS_MISCELLANEOUS, 3)
+local HOLIDAY = GetItemSubClassInfo(_G.LE_ITEM_CLASS_MISCELLANEOUS, 4)
+local OTHER   = GetItemSubClassInfo(_G.LE_ITEM_CLASS_MISCELLANEOUS, 5)
+local MOUNT   = GetItemSubClassInfo(_G.LE_ITEM_CLASS_MISCELLANEOUS, 6)
 
 function addon.AddEmptyLine(tooltip, slim, force)
 	local tipName, numLines = tooltip:GetName(), tooltip:NumLines()
@@ -252,13 +257,13 @@ function plugin:OnEnable()
 		EmbeddedItemTooltip_SetItemByID(self, id)
 	end)
 
-	hooksecurefunc(GameTooltip, 'SetGlyphByID', function(tooltip, glyphID)
+	--[[ hooksecurefunc(GameTooltip, 'SetGlyphByID', function(tooltip, glyphID)
 		-- shown when hovering a glyph in the talent ui
 		local professionName = addon.GetProfessionName('Inscription')
 		local craftedName = _G[tooltip:GetName()..'TextLeft1']:GetText()
 		addon.AddCraftInfo(tooltip, professionName, craftedName)
 		tooltip:Show()
-	end)
+	end) --]]
 	hooksecurefunc(GameTooltip, 'SetCurrencyByID', function(tooltip, currencyID)
 		addon.AddCurrencyInfo(tooltip, currencyID)
 		tooltip:Show()

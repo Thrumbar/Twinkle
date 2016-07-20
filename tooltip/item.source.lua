@@ -7,7 +7,18 @@ local LBFactions = LibStub("LibBabble-Faction-3.0", true)
 
 local _, _, VALOR = GetCurrencyInfo(VALOR_CURRENCY)
 local _, _, CONQUEST = GetCurrencyInfo(CONQUEST_CURRENCY)
-local _, LEATHERWORKING, TAILORING, ENGINEERING, BLACKSMITHING, COOKING, ALCHEMY, FIRSTAID, ENCHANTING, FISHING, JEWELCRAFTING, INSCRIPTION = GetAuctionItemSubClasses(7)
+
+local LEATHERWORKING = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 1)
+local TAILORING      = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 2)
+local ENGINEERING    = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 3)
+local BLACKSMITHING  = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 4)
+local COOKING        = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 5)
+local ALCHEMY        = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 6)
+local FIRSTAID       = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 7)
+local ENCHANTING     = GetItemSubClassInfo(_G.LE_ITEM_CLASS_TRADEGOODS, 12) -- GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 8)
+local FISHING        = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 9)
+local JEWELCRAFTING  = GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 10)
+local INSCRIPTION    = GetItemSubClassInfo(_G.LE_ITEM_CLASS_TRADEGOODS, 16) -- GetItemSubClassInfo(_G.LE_ITEM_CLASS_RECIPE, 11)
 
 -- TODO: brighten up
 local reputationColors = { "|cFFA00000", "|cFFA00000", "|cFFA00000", "|cFFD2AC00", "|cFF51AB01", "|cFF51AB01", "|cFF51AB01", "|cFF00BE70" }
@@ -80,7 +91,7 @@ function ns.AddItemSources(tooltip, itemID, link)
 
 		local lastInstance, encounters
 		for _, path in pairs(sources) do
-			local instance, encounter = path:match("(.-) | (.+)")
+			local instance, encounter = path:match("(.-) > (.+)")
 			if not lastInstance or instance == lastInstance then
 				encounters = (encounters and encounters..", " or "") .. encounter
 			else
