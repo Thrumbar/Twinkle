@@ -104,7 +104,9 @@ function missions:GetNumRows(characterKey)
 	table.sort(availableMissions, SortMissions)
 	wipe(historyMissions)
 	for missionID in (DataStore:IterateHistoryMissions(characterKey) or nop) do
-		table.insert(historyMissions, missionID)
+		if DataStore:GetBasicMissionInfo(missionID) then
+			table.insert(historyMissions, missionID)
+		end
 	end
 	table.sort(historyMissions, SortMissions)
 
@@ -179,7 +181,8 @@ function missions:GetItemInfo(characterKey, index, itemIndex)
 
 	if missions and missionID > 0 and (not subIndex or subIndex == 0) then
 		local rewardInfo
-		for id, reward in pairs(C_Garrison.GetMissionRewardInfo(missionID)) do
+		local rewards = C_Garrison.GetMissionRewardInfo(missionID) or emptyTable
+		for id, reward in pairs(rewards) do
 			if itemIndex == 1 then
 				rewardInfo = reward
 				break
