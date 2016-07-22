@@ -5,7 +5,7 @@
 
 local Search = LibStub('CustomSearch-1.0')
 local Unfit = LibStub('Unfit-1.0')
-local Lib = LibStub:NewLibrary('LibItemSearch-1.2', 11)
+local Lib = LibStub:NewLibrary('LibItemSearch-1.2', 13)
 if Lib then
 	Lib.Filters = {}
 else
@@ -133,7 +133,7 @@ Lib.Filters.usable = {
 			local lvl = select(5, GetItemInfo(link))
 			return lvl and (lvl == 0 or lvl > UnitLevel('player'))
 		end
-	end
+	end	
 }
 
 
@@ -173,7 +173,7 @@ Lib.Filters.tipPhrases = {
 		if not id then
 			return
 		end
-
+		
 		local cached = self.cache[search][id]
 		if cached ~= nil then
 			return cached
@@ -202,15 +202,16 @@ Lib.Filters.tipPhrases = {
 		['boe'] = ITEM_BIND_ON_EQUIP,
 		['bou'] = ITEM_BIND_ON_USE,
 		['boa'] = ITEM_BIND_TO_BNETACCOUNT,
-		[BATTLE_PET_SOURCE_2:lower()] = ITEM_BIND_QUEST,
+		[GetItemClassInfo(LE_ITEM_CLASS_QUESTITEM):lower()] = ITEM_BIND_QUEST,
 		[QUESTS_LABEL:lower()] = ITEM_BIND_QUEST,
 		[TOY:lower()] = TOY,
 		[MINIMAP_TRACKING_VENDOR_REAGENT:lower()] = PROFESSIONS_USED_IN_COOKING,
 		['reagent'] = PROFESSIONS_USED_IN_COOKING,
 		['crafting'] = PROFESSIONS_USED_IN_COOKING,
+		['naval'] = 'naval equipment',
 		['follower'] = 'follower',
 		['followe'] = 'follower',
-		['follow'] = 'follower'
+		['follow'] = 'follower',
 	}
 }
 
