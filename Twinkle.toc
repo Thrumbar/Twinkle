@@ -53,7 +53,7 @@ brokers\weekly.lua
 # tooltip
 tooltip\achievement.lua
 tooltip\currency.lua
-tooltip\glyph.lua
+#tooltip\glyph.lua
 tooltip\item.count.lua
 tooltip\item.source.lua
 tooltip\quest.lua
@@ -77,7 +77,7 @@ items\guildbank.lua
 # plugins for lists view
 lists\currencies.lua
 lists\followers.lua
-lists\glyphs.lua
+#lists\glyphs.lua
 lists\missions.lua
 lists\quests.lua
 lists\reputation.lua
