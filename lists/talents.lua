@@ -20,7 +20,7 @@ function specializations:OnDisable()
 end
 
 function specializations:GetNumRows(characterKey)
-	return 2 * NUM_ROWS_PER_SPEC
+	return DataStore:GetNumSpecializations(characterKey) * NUM_ROWS_PER_SPEC
 end
 
 local UNLOCKS_AT_LEVEL = UNLOCKS_AT_LABEL .. ' %d'

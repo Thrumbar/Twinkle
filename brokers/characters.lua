@@ -264,20 +264,16 @@ function broker:UpdateTooltip()
 
 		local currentSpec  = DataStore:GetActiveTalents(characterKey)
 		local activeSpec   = DataStore:GetSpecializationID(characterKey, currentSpec)
-		local inactiveSpec = DataStore:GetSpecializationID(characterKey, currentSpec == 2 and 1 or 2)
 
 		if activeSpec then
 			_, _, _, activeSpec = GetSpecializationInfoByID(activeSpec)
 		end
-		if inactiveSpec then
-			_, _, _, inactiveSpec = GetSpecializationInfoByID(inactiveSpec)
-		end
-		activeSpec, inactiveSpec = activeSpec or '', inactiveSpec or ''
+		activeSpec = activeSpec or ''
 
 		lineNum = self:AddLine(
 			color..level..'|r',
 			addon.data.GetCharacterText(characterKey),
-			'|T'..activeSpec..':0|t |T'..inactiveSpec..':0|t',
+			'|T'..activeSpec..':0|t',
 			ColorByItemLevel(addon.data.GetAverageItemLevel(characterKey))
 		)
 	end
