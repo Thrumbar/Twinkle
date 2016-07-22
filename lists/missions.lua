@@ -132,11 +132,20 @@ function missions:GetRowInfo(characterKey, index)
 			if (followerType or LE_FOLLOWER_TYPE_GARRISON_6_0) == LE_FOLLOWER_TYPE_SHIPYARD_6_2 then
 				name = shipyardFontColor .. name .. '|r'
 			end
-			local timeInfo = remainingTime <= 0
-				and _G.COMPLETE -- ('%2$s%% – %1$s'):format(_G.COMPLETE, successChance)
-				or SecondsToTime(remainingTime, true)
-			suffix = timeInfo
-			-- prefix = successChance
+
+			if remainingTime <= 0 then
+				prefix = '|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t'
+			else
+				local color = (remainingTime <= 15*60 and GREEN_FONT_COLOR)
+					or (remainingTime <= 30*60 and NORMAL_FONT_COLOR)
+					or RED_FONT_COLOR
+				-- TODO fix icon size
+				prefix = ('|T%s:0:0:0:0:16:16:0:16:0:16:%d:%d:%d|t'):format(
+					'Interface\\FriendsFrame\\StatusIcon-Away',
+					color.r*255, color.g*255, color.b*255
+				)
+			end
+			suffix = successChance .. '%'
 		end
 	elseif component == COMPONENT_AVAILABLE then
 		if missionID == 0 then
@@ -149,9 +158,8 @@ function missions:GetRowInfo(characterKey, index)
 				name = shipyardFontColor .. name .. '|r'
 			end
 			link = C_Garrison.GetMissionLink(missionID)
-			prefix, remainingTime = SecondsToTimeAbbrev(remainingTime)
-			prefix = prefix:gsub('%%d ', '%%d'):format(remainingTime)
-			suffix = SecondsToTime(duration, true, false, 2)
+			suffix, remainingTime = SecondsToTimeAbbrev(remainingTime)
+			suffix = suffix:format(remainingTime)
 		end
 	else
 		if missionID == 0 then
