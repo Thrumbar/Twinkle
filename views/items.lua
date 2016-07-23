@@ -12,6 +12,7 @@ local items = views:NewModule('items', 'AceEvent-3.0')
       items.title = _G.ITEMS
 
 local collection  = setmetatable({ }, { __mode = 'v' }) -- TODO: does this even have any effect?
+local emptyTable = {}
 local searchCache = {}
 local prototype = {
 	Update = function(self)
@@ -213,7 +214,7 @@ local function AddItem(characterKey, providerName, baseLink, identifier, count)
 	-- TODO: do not duplicate guild bank items
 	-- do we already know this item?
 	local collectionIndex
-	for compareIndex, compareData in ipairs(collection[characterKey]) do
+	for compareIndex, compareData in ipairs(collection[characterKey] or emptyTable) do
 		local compareBaseLink = GetBaseLink(compareData.link)
 		-- TODO: don't group (expiring) mail items with permanent bag items
 		if compareBaseLink == baseLink then
