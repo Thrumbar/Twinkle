@@ -120,13 +120,12 @@ local function HandleTooltipItem(self, link)
 	self:Show()
 end
 
-local function HandleTradeSkillItem(self, skillIndex, reagentIndex)
-	local itemLink
-	if reagentIndex then
-		itemLink = GetTradeSkillReagentItemLink(skillIndex, reagentIndex)
-	else
-		itemLink = GetTradeSkillItemLink(skillIndex)
-	end
+--[[ local function HandleTradeSkillResult(self, recipeID)
+	local itemLink = C_TradeSkillUI.GetRecipeItemLink(recipeID)
+	HandleTooltipItem(self, itemLink)
+end --]]
+local function HandleTradeSkillReagent(self, recipeID, reagentIndex)
+	local itemLink = C_TradeSkillUI.GetRecipeReagentItemLink(recipeID, reagentIndex)
 	HandleTooltipItem(self, itemLink)
 end
 
@@ -234,7 +233,8 @@ local function HookTooltip(tooltip)
 	end
 	-- tooltip:HookScript('OnTooltipSetEquipmentSet', function(self) end) -- ??
 
-	if tooltip.SetTradeSkillItem then hooksecurefunc(tooltip, 'SetTradeSkillItem', HandleTradeSkillItem) end
+	-- if tooltip.SetRecipeResultItem then hooksecurefunc(tooltip, 'SetRecipeResultItem', HandleTradeSkillResult) end
+	if tooltip.SetRecipeReagentItem then hooksecurefunc(tooltip, 'SetRecipeReagentItem', HandleTradeSkillReagent) end
 	if tooltip.SetHyperlink then hooksecurefunc(tooltip, 'SetHyperlink', HandleTooltipHyperlink) end
 	-- if tooltip.SetItemByID then hooksecurefunc(tooltip, 'SetItemByID', HandleTooltipItem) end
 	if tooltip.SetQuestLogItem then hooksecurefunc(tooltip, 'SetQuestLogItem', OnTooltipSetQuestLogItem) end
