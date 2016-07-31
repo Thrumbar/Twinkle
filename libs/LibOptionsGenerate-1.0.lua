@@ -117,6 +117,9 @@ local function Widget(key, option, widgetInfo)
 	-- trigger callback
 	if type(widgetInfo) == 'function' then
 		widgetInfo = widgetInfo(key, option)
+		if type(widgetInfo) == 'table' and widgetInfo.type then
+			return widgetInfo
+		end
 	end
 
 	local widget
