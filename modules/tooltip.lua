@@ -150,7 +150,7 @@ local function HandleTooltipSpell(self)
 		if profession == addon.GetProfessionName('Inscription') then
 			-- spell might create a glyph. tell us who knows it
 			-- addon.AddEmptyLine(self, true)
-			local isGlyph = addon.AddGlyphInfo(self, spellName)
+			-- local isGlyph = addon.AddGlyphInfo(self, spellName)
 		end
 
 		if craftedItem then
