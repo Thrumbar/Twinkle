@@ -1,12 +1,11 @@
-local MAJOR, MINOR = 'LibOptionsGenerate-1.0', 21
+local MAJOR, MINOR = 'LibOptionsGenerate-1.0', 22
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
 -- GLOBALS: _G, type, pairs, ipairs, wipe, strsplit
 local SharedMedia = LibStub('LibSharedMedia-3.0', true)
 
--- TODO: race, realm, faction, factionrealm is not yet supported
-local AceDBScopes = { 'global', 'profile', 'char', 'class', a = 'race', b = 'realm', c = 'faction', d = 'factionrealm' }
+local AceDBScopes = {'global', 'profile', 'char', 'realm', 'factionrealm', 'faction', 'class', 'race'}
 local AceDBExcludes = {'sv', 'callbacks', 'children', 'parent', 'keys', 'profiles', 'defaults'}
 local emptyTable = {}
 
@@ -365,37 +364,29 @@ local function ParseOption(key, option, L, typeMappings, path)
 	return widget
 end
 
-local function AddScopeHeaders(optionsTable)
-	-- TODO: also available: race, realm, faction, factionrealm (disabled in AceDBScopes table)
-	local playerName, playerRealm = UnitFullName('player')
+local function GetScopeLabel(scope)
+	local character, realm = UnitFullName('player')
 	local className, class = UnitClass('player')
+	local classColor = (_G.CUSTOM_CLASS_COLORS or _G.RAID_CLASS_COLORS)[class].colorStr
+	local faction = UnitFactionGroup('player')
 
-	local lastScope, hasMultipleScopes = nil, false
-	for weight, scope in ipairs(AceDBScopes) do
-		if optionsTable.args[scope] then
-			if lastScope then hasMultipleScopes = true end
-			lastScope = scope
-
-			optionsTable.args[scope..'Header'] = {
-				type = 'header',
-				name = scope:gsub('^.', string.upper)..' Settings',
-				order = weight*10 - 1,
-			}
-			optionsTable.args[scope].order = weight*10
-			optionsTable.args[scope].name = ''
-
-			if scope == 'char' then
-				optionsTable.args[scope..'Header'].name = ('Settings for |c%s%s-%s|r'):format((CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class].colorStr, playerName, playerRealm)
-			elseif scope == 'class' then
-				optionsTable.args[scope..'Header'].name = ('Settings for |c%s%s|r'):format((CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class].colorStr, className)
-			end
-		end
+	local label = ('%s Settings'):format(scope:gsub('^.', string.upper))
+	if scope == 'char' then
+		label = ('Settings for |c%s%s-%s|r'):format(classColor, character, realm)
+	elseif scope == 'class' then
+		label = ('Settings for |c%s%s|r'):format(classColor, className)
+	elseif scope == 'faction' then
+		local factionColor = faction == 'Alliance' and BATTLENET_FONT_COLOR_CODE or RED_FONT_COLOR_CODE
+		label = ('Settings for %s%s|r'):format(factionColor, faction)
+	elseif scope == 'realm' then
+		label = ('Settings for %s'):format(realm)
+	elseif scope == 'factionrealm' then
+		label = ('Settings for %s (%s)'):format(realm, faction)
+	elseif scope == 'race' then
+		local race = UnitRace('player')
+		label = ('Settings for %s'):format(race)
 	end
-
-	if not hasMultipleScopes and lastScope then
-		-- don't show header for single scope
-		optionsTable.args[lastScope..'Header'] = nil
-	end
+	return label
 end
 
 local function AddNamespaces(optionsTable, variable, L, typeMappings, callback)
@@ -467,10 +458,35 @@ function lib:GetOptionsTable(variable, typeMappings, L, includeNamespaces, callb
 
 	if isAceDB then
 		if includeNamespaces then
-			-- add namespace settings to core addon's scopes
+			-- Add namespace settings to core addon's scopes.
 			AddNamespaces(optionsTable, variable, L, typeMappings, callback)
 		end
-		AddScopeHeaders(optionsTable)
+
+		local lastScope, numScopes = nil, 0
+		for weight, scope in ipairs(AceDBScopes) do
+			if optionsTable.args[scope] then
+				if not next(optionsTable.args[scope].args) then
+					-- Remove empty scopes.
+					optionsTable.args[scope] = nil
+				else
+					-- Add scope header.
+					optionsTable.args[scope..'Header'] = {
+						type = 'header',
+						name = GetScopeLabel(scope),
+						order = weight*10 - 1,
+					}
+					optionsTable.args[scope].order = weight*10
+					optionsTable.args[scope].name = ''
+
+					numScopes = numScopes + 1
+					lastScope = scope
+				end
+			end
+		end
+		if numScopes < 2 and lastScope then
+			-- Don't show header for single scope.
+			optionsTable.args[lastScope..'Header'] = nil
+		end
 	end
 	return optionsTable
 end
