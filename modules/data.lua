@@ -42,19 +42,23 @@ end
 local listRealms = {}
 function data.GetCharacters(useTable)
 	if useTable then wipe(useTable) else useTable = {} end
+	local filters = addon.db.profile.characterFilters
+	local currentRealm = filters.Realm.current and GetRealmName('player') or false
+	local currentFaction = filters.Faction.current and (UnitFactionGroup('player')) or false
+
 	local characters = data.GetAllCharacters(useTable) -- , unpack(listRealms))
 	if addon.db then
 		for i = #characters, 1, -1 do
 			local characterKey = characters[i]
-			local account, realm, character = strsplit('.', characterKey)
+			local account, realm, character = strsplit('.', characterKey) -- TODO fix for non-DS
 			local faction = data.GetCharacterFaction(characterKey)
 			local level   = data.GetLevel(characterKey)
 			level = level == MAX_PLAYER_LEVEL and 'maxLevel' or 'leveling'
 
-			if not addon.db.profile.characterFilters.Account[account]
-				or not addon.db.profile.characterFilters.Realm[realm]
-				or not addon.db.profile.characterFilters.Faction[faction]
-				or not addon.db.profile.characterFilters.Level[level] then
+			if not filters.Account[account]
+				or (not filters.Realm[realm] and currentRealm ~= realm)
+				or (not filters.Faction[faction] and currentFaction ~= faction)
+				or not filters.Level[level] then
 				tremove(characters, i)
 			end
 		end
@@ -67,10 +71,13 @@ local thisCharacter = DataStore:GetCharacter() or UnitFullName('player')
 local allCharacters = data.GetAllCharacters()
 
 function data.CharacterFilters(filterOptions)
-	filterOptions.Realm = DataStore:GetRealms()
-	for realm in pairs(filterOptions.Realm) do filterOptions.Realm[realm] = realm end
-	filterOptions.Account = DataStore:GetAccounts()
-	for account in pairs(filterOptions.Account) do filterOptions.Account[account] = account end
+	filterOptions.Realm = filterOptions.Realm or {}
+	local realms = DataStore:GetRealms()
+	for realm in pairs(realms) do filterOptions.Realm[realm] = realm end
+
+	filterOptions.Account = filterOptions.Account or {}
+	local accounts = DataStore:GetAccounts()
+	for account in pairs(accounts) do filterOptions.Account[account] = account end
 	return filterOptions
 end
 

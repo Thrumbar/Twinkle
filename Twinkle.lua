@@ -164,12 +164,16 @@ local function InitializeFrame(frame)
 	local filterOptions = {
 		Level = {
 			maxLevel = _G.GUILD_RECRUITMENT_MAXLEVEL,
-			leveling = 'Leveling',
+			leveling = _G.PLAYER_LEVEL_UP,
 		},
 		Faction = {
+			current = _G.REFORGE_CURRENT,
 			Horde = _G.FACTION_HORDE,
 			Alliance = _G.FACTION_ALLIANCE,
 			Other = _G.FACTION_OTHER,
+		},
+		Realm = {
+			current = _G.REFORGE_CURRENT,
 		},
 	}
 	if addon.data.CharacterFilters then filterOptions = addon.data.CharacterFilters(filterOptions) end
