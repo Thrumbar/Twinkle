@@ -10,23 +10,8 @@ local characters = {}
 
 local defaults = {
 	profile = {
-		showInTooltip = {
-			[395] = false, -- justice
-			[396] = false, -- valor
-			[392] =  true, -- honor
-			[390] =  true, -- conquest
-			[824] =  true, -- garrison resources
-			[823] =  true, -- apexis shard
-			[994] =  true, -- seal of tempered fate
-			[738] = false, -- lesser coin of fortune
-			[776] = false, -- war emblem
-			[777] = false, -- timeless
-		},
-		showInLDB = {
-			[824] = true, -- garrison resources
-			[823] = true, -- apexis shard
-			[994] = true, -- seal of tempered fate
-		},
+		showInTooltip = {},
+		showInLDB = {},
 		iconFirst = true,
 		showWeeklyInLDB = true,
 	},
@@ -64,8 +49,8 @@ local function ScanCurrencies()
 			if currencyID then
 				if broker.db.profile.showInLDB[currencyID] == nil then
 					-- new currency found, add to settings
-					broker.db.profile.showInLDB[currencyID] = false
-					broker.db.profile.showInTooltip[currencyID] = false
+					broker.db.profile.showInLDB[currencyID] = isWatched
+					broker.db.profile.showInTooltip[currencyID] = isWatched
 				end
 			end
 		end
@@ -111,12 +96,28 @@ end
 -- --------------------------------------------------------
 function broker:OnEnable()
 	self.db = addon.db:RegisterNamespace('Currency', defaults)
+
+	-- Purge removed currencies.
+	for currencyID, enabled in pairs(self.db.profile.showInLDB) do
+		local name, _, _, _, _, count, icon = GetCurrencyInfo(currencyID)
+		if name == '' and not icon and count == 0 then
+			self.db.profile.showInLDB[currencyID] = nil
+		end
+	end
+	for currencyID, enabled in pairs(self.db.profile.showInTooltip) do
+		local name, _, _, _, _, count, icon = GetCurrencyInfo(currencyID)
+		if name == '' and not icon and count == 0 then
+			self.db.profile.showInTooltip[currencyID] = nil
+		end
+	end
+
 	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', self.Update, self)
 	self:RegisterEvent('SHOW_LOOT_TOAST', function(self, event, lootType, link, quantity, specID, sex, isPersonal, lootSource)
 		if lootSource == 10 then -- garrison cache
 			self:Update()
 		end
 	end, self)
+
 	self:Update()
 end
 function broker:OnDisable()
