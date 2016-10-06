@@ -330,7 +330,7 @@ function view:Load()
 	professions.trigger = professionsFrame
 
 	local expansion = GetAccountExpansionLevel()
-	local worldBosses = {
+	local worldBosses = setmetatable({
 		[LE_EXPANSION_MISTS_OF_PANDARIA] = {
 			[1] = 'Interface\\Icons\\inv_hand_1h_shaclaw',          -- 691, WORLD_BOSS_SHA_OF_ANGER
 			[2] = 'Interface\\Icons\\inv_mushanbeastmount',         -- 725, WORLD_BOSS_GALLEON
@@ -345,7 +345,12 @@ function view:Load()
 			[9] = 'Interface\\Icons\\inv_helm_suncrown_d_01', 		-- 1262, qid:37464, rukhmar
 			[15] = 'Interface\\Icons\\warlock_summon_doomguard', 	-- 1452, qid:94015, supreme lord kazzak
 		},
-	}
+	}, {
+		__index = function(key)
+			self[key] = {}
+			return self[key]
+		end
+	})
 
 	local worldBoss = contents:CreateFontString(nil, nil, 'GameFontNormal')
 	worldBoss:SetJustifyH('LEFT')
