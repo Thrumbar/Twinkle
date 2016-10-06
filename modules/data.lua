@@ -744,7 +744,8 @@ function data.IsRecipeKnown(characterKey, recipe, profession)
 	profession = type(profession) == 'string' and DataStore:GetProfession(profession) or profession
 	if not profession then
 		-- Recursively check all professions
-		for i, skillLine in ipairs(DataStore:GetProfessions(characterKey)) do
+		local professions = DataStore:GetProfessions(characterKey)
+		for i, skillLine in ipairs(professions or emptyTable) do
 			if data.IsRecipeKnown(characterKey, recipeID, skillLine) then return true end
 		end
 	else
