@@ -7,9 +7,10 @@ addon.data = data
 -- GLOBALS: GetRealmName, UnitName, UnitFullName, UnitRace, UnitClass, UnitLevel, UnitFactionGroup, UnitXP, UnitXPMax, GetXPExhaustion, GetItemInfo, GetNumClasses, GetClassInfo, GetMoney, GetZoneText, GetSubZoneText, GetAverageItemLevel, GetNumUnspentTalents, GetInventoryItemLink, GetActiveSpecGroup, GetContainerItemInfo, GetGuildInfo, IsResting, GetVoidItemInfo, GetCurrencyListSize, GetCurrencyListInfo, GetCurrencyInfo
 -- GLOBALS: string, math, table, wipe, pairs, select, type, tonumber, setmetatable, rawget, rawset, strjoin, strsplit
 
-local LibRealmInfo = LibStub('LibRealmInfo')
 local emptyTable   = {}
+local thisCharacter = DataStore:GetCharacter() or UnitFullName('player')
 
+local LibRealmInfo = LibStub('LibRealmInfo')
 local realms = {}
 function data.GetAllCharacters(useTable, ...)
 	wipe(realms)
@@ -67,9 +68,6 @@ function data.GetCharacters(useTable)
 	return characters
 end
 
-local thisCharacter = DataStore:GetCharacter() or UnitFullName('player')
-local allCharacters = data.GetAllCharacters()
-
 function data.CharacterFilters(filterOptions)
 	filterOptions.Realm = filterOptions.Realm or {}
 	local realms = DataStore:GetRealms()
@@ -85,6 +83,7 @@ function data.GetCurrentCharacter()
 	return thisCharacter
 end
 
+local allCharacters = data.GetAllCharacters()
 function data.IsCharacter(key)
 	if tContains(allCharacters, key) then
 		return true
