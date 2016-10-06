@@ -1,10 +1,12 @@
 local addonName, addon, _ = ...
 
 -- GLOBALS: _G, ipairs, string, ToggleCharacter, GetMoney, time, date, pairs
+-- TODO: Track money changes for all characters separately, to prevent "-xxxx" when changing realms/char filters.
 
 local brokers = addon:GetModule('brokers')
 local broker  = brokers:NewModule('Money')
-local characters = {}
+local characters, allCharacters = {}, {}
+local thisCharacter = addon.data.GetCurrentCharacter()
 
 local defaults = {
 	global = {
@@ -55,8 +57,8 @@ end
 
 function broker:GetAccountMoney()
 	local money = 0
-	for _, characterKey in ipairs(characters) do
-		if characterKey == addon.data.GetCurrentCharacter() then
+	for _, characterKey in ipairs(allCharacters) do
+		if characterKey == thisCharacter then
 			money = money + GetMoney()
 		else
 			local amount = addon.data.GetMoney(characterKey)
@@ -118,7 +120,10 @@ function broker:OnEnable()
 	self.db = addon.db:RegisterNamespace('Money', defaults)
 	self:Prune()
 
+	-- TODO Update characters/allCharacters when filters change.
 	addon.data.GetCharacters(characters)
+	addon.data.GetAllCharacters(allCharacters)
+	table.sort(characters, Sort)
 
 	local today = date('%Y-%m-%d')
 	self.session = self:GetAccountMoney()
@@ -159,9 +164,6 @@ function broker:UpdateTooltip()
 	self:AddLine(' ')
 	-- bg: :SetCellColor(lineNum, colNum, r, g, b, a)
 	-- bg: :SetLineColor(lineNum, r, g, b, a)
-
-	addon.data.GetCharacters(characters)
-	table.sort(characters, Sort)
 
 	for _, characterKey in ipairs(characters) do
 		local amount = addon.data.GetMoney(characterKey)
