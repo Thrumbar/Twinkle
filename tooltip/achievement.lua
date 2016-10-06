@@ -13,18 +13,17 @@ local function GetAchievementCompletionInfo(achievementID, onlyIncomplete)
 	for _, characterKey in ipairs(ns.data.GetCharacters()) do
 		local progress, goal
 		progress, goal, isShared = DataStore:GetAchievementProgress(characterKey, achievementID)
-		-- if characterKey ~= ns.data.GetCurrentCharacter() or isShared then
-			if not progress or progress <= 0 then
-				-- ignore
-			elseif progress == goal then
-				if not onlyIncomplete then
-					-- data is pre-sorted
-					table.insert(achievementDone, ns.data.GetCharacterText(characterKey))
-				end
-			else
-				achievementInfo[characterKey] = goal == 0 and 0 or progress / goal
+
+		if not progress or progress <= 0 then
+			-- ignore
+		elseif progress == goal then
+			if not onlyIncomplete then
+				-- data is pre-sorted
+				table.insert(achievementDone, ns.data.GetCharacterText(characterKey))
 			end
-		-- end
+		else
+			achievementInfo[characterKey] = goal == 0 and 0 or progress / goal
+		end
 
 		-- check account achievements for only one character
 		if isShared then break end
