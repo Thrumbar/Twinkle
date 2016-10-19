@@ -1,6 +1,6 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: _G, DataStore, ToggleCharacter, UnitClass, UnitLevel, EJ_SetDifficulty, EJ_GetNumLoot, EJ_GetLootInfoByIndex, EJ_GetInstanceByIndex, EJ_IsValidInstanceDifficulty, EncounterJournal_DisplayInstance, GetDifficultyInfo, GetSpecialization, GetSpecializationInfo, GetItemInfo, RGBTableToColorCode, GetQuestDifficultyColor, GetLootSpecialization, GetSpecializationInfoByID
+-- GLOBALS: _G, ToggleCharacter, UnitClass, UnitLevel, EJ_SetDifficulty, EJ_GetNumLoot, EJ_GetLootInfoByIndex, EJ_GetInstanceByIndex, EJ_IsValidInstanceDifficulty, EncounterJournal_DisplayInstance, GetDifficultyInfo, GetSpecialization, GetSpecializationInfo, GetItemInfo, RGBTableToColorCode, GetQuestDifficultyColor, GetLootSpecialization, GetSpecializationInfoByID
 -- GLOBALS: ipairs, string, table, math
 
 local brokers = addon:GetModule('brokers')
@@ -262,9 +262,7 @@ function broker:UpdateTooltip()
 		local level = addon.data.GetLevel(characterKey)
 		local color = RGBTableToColorCode(GetQuestDifficultyColor(level))
 
-		local currentSpec  = DataStore:GetActiveTalents(characterKey)
-		local activeSpec   = DataStore:GetSpecializationID(characterKey, currentSpec)
-
+		local activeSpec = addon.data.GetSpecializationID(characterKey)
 		if activeSpec then
 			_, _, _, activeSpec = GetSpecializationInfoByID(activeSpec)
 		end

@@ -279,15 +279,24 @@ function data.GetGuildInfo(characterKey)
 		return guildName, guildRank, rankID
 	end
 end
-function data.GetNumUnspentTalents(characterKey)
-	local primary   = DataStore:GetNumUnspentTalents(characterKey, 1) or 0
-	local secondary = DataStore:GetNumUnspentTalents(characterKey, 2) or 0
+function data.GetSpecializationID(characterKey, specIndex)
 	if characterKey == thisCharacter then
-		local active = GetActiveSpecGroup()
-		if active == 1 then primary = GetNumUnspentTalents() else secondary = GetNumUnspentTalents() end
+		specIndex = specIndex or GetSpecialization()
+		return (GetSpecializationInfo(specIndex))
+	else
+		specIndex = specIndex or DataStore:GetActiveTalents(characterKey)
+		return DataStore:GetSpecializationID(characterKey, currentSpec)
 	end
-	return primary or 0, secondary or 0
 end
+function data.GetNumUnspentTalents(characterKey, specIndex)
+	if characterKey == thisCharacter and specIndex == GetSpecialization() then
+		return GetNumUnspentTalents()
+	else
+		specIndex = specIndex or DataStore:GetActiveTalents(characterKey)
+		return DataStore:GetNumUnspentTalents(characterKey, specIndex) or 0
+	end
+end
+
 -- ========================================
 --  Containers & Inventory
 -- ========================================
