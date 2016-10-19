@@ -9,7 +9,9 @@ local search = addon:NewModule('Search', 'AceEvent-3.0')
 local searchResults, emptyTable = {}, {}
 local currentSearch
 
-local function InitializeFrame(frame)
+function search:Initialize()
+	-- add search box to frame sidebar
+	local frame = addon.frame
 	local searchDelay, lastUpdate = 0.25, 0
 	local function SearchDelayed(self)
 		local now = GetTime()
@@ -46,10 +48,6 @@ local function InitializeFrame(frame)
 end
 
 function search:OnEnable()
-	-- add search box to frame sidebar
-	-- addon.frame:HookScript('OnShow', InitializeFrame)
-	InitializeFrame(addon.frame)
-
 	self:RegisterMessage('TWINKLE_VIEW_CHANGED', self.UpdateSearch)
 	self:RegisterMessage('TWINKLE_CHARACTER_CHANGED', self.UpdateSearch)
 	self:RegisterMessage('TWINKLE_SEARCH_RESULTS')
@@ -57,12 +55,24 @@ function search:OnEnable()
 end
 
 function search:UpdateSearch()
+	--[[if not addon.frame then return end
+	if not addon.frame.search then
+		self:Initialize()
+	end--]]
+
 	local editBox = addon.frame.search
 	if currentSearch then
 		addon:SendMessage('TWINKLE_SEARCH_RESULTS', searchResults)
 	end
 end
+
 function search:Update()
+	--if not addon.frame or not addon.frame.search then return end
+	if not addon.frame then return end
+	if not addon.frame.search then
+		self:Initialize()
+	end
+
 	local editBox = addon.frame.search
 	local query = editBox:GetText():trim()
 	      query = query ~= '' and query or nil

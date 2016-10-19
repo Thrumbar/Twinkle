@@ -9,14 +9,7 @@ local prototype = {
 	-- Update = function() return numRows end
 
 	-- DO NOT CARELESSLY OVERWRITE THESE FUNCTIONS
-	OnInitialize = function(self)
-		self.tab = views.AddTab(self)
-		self.tab.tiptext = self.title or self:GetName()
-		self.tab.module = self:GetName()
-		if self.icon then
-			self.tab:GetNormalTexture():SetTexture(self.icon)
-		end
-	end,
+	OnInitialize = function(self) end,
 	OnEnable = function(self)
 		self.panel = CreateFrame('Frame', '$parentPanel' .. self:GetName(), addon.frame.content)
 		self.panel:SetSize(addon.frame.content:GetSize())
@@ -78,6 +71,8 @@ function views:Hide()
 end
 
 function views:Show(view)
+	if not addon.frame then return end
+
 	view = type(view) == 'table' and view or self:GetModule(view, true)
 	if not view or view == currentView then return end
 	if not view:IsEnabled() then view:Enable() end
@@ -92,7 +87,40 @@ function views:Show(view)
 	addon:SendMessage('TWINKLE_VIEW_CHANGED', view:GetName(), previousView and previousView:GetName() or nil)
 end
 
+function views.Sort(a, b)
+	if a:GetName() == 'Default' then
+		return true
+	elseif b:GetName() == 'Default' then
+		return false
+	end
+	return (a.title or a:GetName()) < (b.title or b:GetName())
+end
+function views:Initialize()
+	local modules = {}
+	for viewName, view in self:IterateModules() do
+		table.insert(modules, view)
+	end
+	table.sort(modules, views.Sort)
+
+	for _, view in pairs(modules) do
+		view.tab = self.AddTab(view)
+		view.tab.tiptext = view.title or view:GetName()
+		view.tab.module = view:GetName()
+		if view.icon then
+			view.tab:GetNormalTexture():SetTexture(view.icon)
+		end
+	end
+
+	local view = self:GetModule('Default')
+	view:Enable()
+end
+
 function views:Update()
+	if not addon.frame then return end
+	if not currentView then
+		views:Initialize()
+	end
+
 	-- update tabs
 	for index = 1, lastTabIndex do
 		local tab = _G[addon.frame:GetName() .. 'Tab' .. index]

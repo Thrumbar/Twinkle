@@ -39,6 +39,7 @@ modules\tooltip.lua
 modules\tradeskill.lua
 modules\views.lua
 modules\search.lua
+modules\ui.lua
 
 # brokers
 brokers\auctions.lua
