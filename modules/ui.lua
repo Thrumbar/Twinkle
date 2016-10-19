@@ -163,7 +163,7 @@ function ui:Initialize()
 	end
 
 	local characterList = CreateFrame('ScrollFrame', '$parentList', sidebar, 'FauxScrollFrameTemplate')
-	characterList:SetPoint('TOPLEFT', 4, -72)
+	characterList:SetPoint('TOPLEFT', 4, -70)
 	characterList:SetPoint('BOTTOMRIGHT', -4, 2)
 	characterList:SetScript('OnVerticalScroll', function(scrollFrame, offset)
 		FauxScrollFrame_OnVerticalScroll(scrollFrame, offset, scrollFrame[1]:GetHeight(), function()
