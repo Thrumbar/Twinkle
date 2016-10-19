@@ -18,6 +18,16 @@ function plugin:UpdateList()
 	local scrollFrame  = self.panel.scrollFrame
 	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
 
+	for columnIndex = 1, 2 do
+		self:AddColumn(columnIndex, 'Col ' .. columnIndex)
+		for rowIndex, characterButton in ipairs(addon.frame.sidebar.scrollFrame) do
+			self:AddCell(rowIndex, columnIndex, string.format('%dx%d', rowIndex, columnIndex))
+		end
+	end
+
+	self:UpdateColumnWidth(nil, nil, 10)
+
+	--[[
 	local buttonIndex = 1
 	local numRows, numDataRows = 11, 11
 	for index = 1, numRows do
@@ -44,12 +54,76 @@ function plugin:UpdateList()
 	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numRows, #scrollFrame, scrollFrame[1]:GetHeight())
 	-- adjustments so rows have decent padding with and without scroll bar
 	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
+	--]]
 
-	return numDataRows
+	return numDataRows or 0
+end
+
+function plugin:AddColumn(columnIndex, label)
+	return self:AddCell(0, columnIndex, label)
+end
+
+function plugin:AddCell(rowIndex, columnIndex, label)
+	local panel = self.panel
+	if not panel.cells then panel.cells = {} end
+	if not panel.cells[rowIndex] then panel.cells[rowIndex] = {} end
+
+	local cell = panel.cells[rowIndex][columnIndex]
+	if not cell then
+		cell = panel:CreateFontString(nil, nil, 'GameFontNormal')
+		if rowIndex == 0 then
+			local characterButton = addon.frame.sidebar.scrollFrame[1]
+			if columnIndex == 1 then
+				cell:SetPoint('BOTTOM', characterButton, 'TOP', 0, 10)
+				cell:SetPoint('LEFT', panel, 'LEFT', 2, 0)
+			else
+				cell:SetPoint('BOTTOMLEFT', panel.cells[rowIndex][columnIndex - 1], 'BOTTOMRIGHT', 2, 0)
+			end
+		else
+			local characterButton = addon.frame.sidebar.scrollFrame[rowIndex]
+			cell:SetPoint('TOP', characterButton, 'TOP', 0, 0)
+			cell:SetPoint('BOTTOM', characterButton, 'BOTTOM', 0, 0)
+			cell:SetPoint('LEFT', panel.cells[rowIndex - 1][columnIndex], 'LEFT', 0, 0)
+			cell:SetPoint('RIGHT', panel.cells[rowIndex - 1][columnIndex], 'RIGHT', 0, 0)
+
+			if columnIndex == 1 then
+				local shadow = panel:CreateTexture(nil, 'BACKGROUND') -- UI-EJ-Header-Overview
+				shadow:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
+				shadow:SetTexCoord(0.359375, 0.99609375, 0.8525390625, 0.880859375)
+				shadow:SetHeight(10)
+				shadow:SetPoint('BOTTOMLEFT', cell, 'BOTTOMLEFT')
+				shadow:SetPoint('RIGHT', panel, 'RIGHT')
+				shadow:SetAlpha(0.5)
+				panel.cells[rowIndex].shadow = shadow
+			end
+		end
+		panel.cells[rowIndex][columnIndex] = cell
+	end
+
+	-- Update cell content.
+	cell:SetText(label or '')
+
+	return cell
+end
+
+function plugin:UpdateColumnWidth(columnIndex, width, padding)
+	for column = 1, #self.panel.cells[0] do
+		if not columnIndex or columnIndex == column then
+			-- Calculate maximum used width.
+			if not width then
+				width = 0
+				for row = 0, #self.panel.cells do
+					width = math.max(width, self.panel.cells[row][column]:GetStringWidth())
+				end
+			end
+			self.panel.cells[0][column]:SetWidth(width + (padding or 0))
+		end
+	end
 end
 
 function plugin:Load()
 	local panel = self.panel
+	panel.cells = {}
 
 	local background = panel:CreateTexture(nil, 'BACKGROUND')
 	      background:SetTexture('Interface\\EncounterJournal\\UI-EJ-JournalBG')
@@ -68,65 +142,6 @@ function plugin:Load()
 		local buttonHeight = self[1]:GetHeight()
 		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, function() plugin:UpdateList() end)
 	end)
-
-	local leftButton = panel:CreateFontString('$parentText', 'ARTWORK', 'GameFontNormalRight')
-	      leftButton:SetPoint('TOPLEFT', 4, -40-4.5)
-	panel.leftButton = leftButton
-
-	local numRows, numColumns = 11, 3
-	local columnWidth = scrollFrame:GetWidth()/numColumns
-	panel.leftButton:SetText('Header text')
-
-	for index = 1, numRows do
-		local row = CreateFrame('Button', nil, panel, nil, index)
-		      row:SetHeight(30)
-		      row:Hide()
-
-		row:SetPoint('RIGHT', scrollFrame, 'RIGHT', 0, 0)
-		if index == 1 then
-			row:SetPoint('TOPLEFT', scrollFrame, 'TOPLEFT', 8, 0)
-		else
-			row:SetPoint('TOPLEFT', scrollFrame[index - 1], 'BOTTOMLEFT', 0, 0)
-		end
-
-    	local shadow = row:CreateTexture(nil, 'BACKGROUND') -- UI-EJ-Header-Overview
-    	      shadow:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
-    	      shadow:SetTexCoord(0.359375, 0.99609375, 0.8525390625, 0.880859375)
-    	      shadow:SetSize(320, 10)
-    	      shadow:SetPoint('BOTTOM')
-    	      shadow:SetAlpha(0.5)
-    	row.shadow = shadow
-
-		local highlight = row:CreateTexture(nil, 'HIGHLIGHT')
-		      highlight:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
-		      highlight:SetTexCoord(0.63085938, 0.88085938, 0.58886719, 0.61523438)
-		      highlight:SetDesaturated(true)
-		      highlight:SetVertexColor(230/255, 100/255, 60/255, 0.66)
-		      highlight:SetAllPoints()
-		row:SetHighlightTexture(highlight, 'BLEND')
-
-		row:SetScript('OnEnter', function(self) self.label:SetFontObject('GameFontHighlight') end)
-		row:SetScript('OnLeave', function(self) self.label:SetFontObject('GameFontNormal') end)
-		-- row:SetScript('OnClick', OnRowClick)
-
-		local label = row:CreateFontString(nil, nil, 'GameFontNormal')
-			  label:SetPoint('LEFT', 0, 0)
-			  label:SetWidth(200)
-			  label:SetHeight(row:GetHeight())
-			  label:SetJustifyH('LEFT')
-		row.label = label
-
-		for i = 1, numColumns do
-			local cell = row:CreateFontString(nil, nil, 'GameFontNormal')
-				  cell:SetPoint('LEFT', i > 1 and row[i-1] or row.label, 'RIGHT', 0, 0)
-				  cell:SetWidth(columnWidth)
-				  cell:SetHeight(row:GetHeight())
-				  cell:SetJustifyH('LEFT')
-			row[i] = cell
-		end
-
-		scrollFrame[index] = row
-	end
 end
 
 function plugin:OnDisable()
