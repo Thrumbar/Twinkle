@@ -502,59 +502,98 @@ end
 -- ========================================
 -- copied from wowhead.com/currencies
 local currencyIDs = {
+	-- Legion.
+	1155, -- Ancient Mana
+	1275, -- Curious Coin
+	1226, -- Nethershard
+	1220, -- Order Resources
+	1273, -- Seal of Broken Fate
+	1154, -- Shadowy Coins
+	1149, -- Sightless Eye
+	1268, -- Timeworn Artifact
+
+	-- Hidden.
+	1171, -- Artifact Power (L)
+
+	-- Dungeon and Raid.
+	1166, -- Timewarped Badge (WoD)
+	1191, -- Valor (WoD)
+
+	-- Miscellaneous.
+	 515, -- Darkmoon Prize Ticket
+	  81, -- Epicurean's Award
+	 402, -- Ironmaw Token
+
+	-- Mists of Pandaria.
+	 789, -- Bloody Coin
+	 697, -- Elder Charm of Good Fortune
+	 738, -- Lesser Charm of Good Fortune
+	 752, -- Mogu Rune of Fate
+	 777, -- Timeless Coin
+	 776, -- Warforged Seal
+
+	-- Cataclysm.
+	 615, -- Essence of Corrupted Deathwing
+	 361, -- Illustrious Jewelcrafter's Token
+	 416, -- Mark of the World Tree
+	 614, -- Mote of Darkness
+
+	-- Player vs. Player.
+	-- 392, -- Honor Points
+	-- 390, -- Conquest Points
+	 391, -- Tol Barad Commendation
+	-- 395, -- Justice Points
+	-- 396, -- Valor Points
+
+	-- Warlords of Draenor.
+	 823, -- Apexis Crystal
+	 944, -- Artifact Fragment
+	 980, -- Dingy Iron Coins
+	 824, -- Garrison Resources
+	1101, -- Oil
+	1129, -- Seal of Inevitable Fate
+	 994, -- Seal of Tempered Fate
+	 910, -- Secret of Draenor Alchemy
+	 999, -- Secret of Draenor Tailoring
+	1008, -- Secret of Draenor Jewelcrafting
+	1017, -- Secret of Draenor Leatherworking
+	1020, -- Secret of Draenor Blacksmithing
+
+	-- Wrath of the Lich King.
+	 241, -- Champion's Seal
 	  61, -- Dalaran Jewelcrafter's Token
 	  81, -- Epicurean's Award
-	 241, -- Champion's Seal
-	 361, -- Illustrious Jewelcrafter's Token
+
+	-- Archaeology.
 	 384, -- Dwarf Archaeology Fragment
 	 385, -- Troll Archaeology Fragment
-	 390, -- Conquest Points
-	 391, -- Tol Barad Commendation
-	 392, -- Honor Points
 	 393, -- Fossil Archaeology Fragment
 	 394, -- Night Elf Archaeology Fragment
-	 395, -- Justice Points
-	 396, -- Valor Points
 	 397, -- Orc Archaeology Fragment
 	 398, -- Draenei Archaeology Fragment
 	 399, -- Vrykul Archaeology Fragment
 	 400, -- Nerubian Archaeology Fragment
 	 401, -- Tol'vir Archaeology Fragment
-	 402, -- Ironpaw Token
-	 416, -- Mark of the World Tree
-	 515, -- Darkmoon Prize Ticket
-	 614, -- Mote of Darkness
-	 615, -- Essence of Corrupted Deathwing
 	 676, -- Pandaren Archaeology Fragment
 	 677, -- Mogu Archaeology Fragment
-	 697, -- Elder Charm of Good Fortune
-	 738, -- Lesser Charm of Good Fortune
-	 752, -- Mogu Rune of Fate
 	 754, -- Mantid Archaeology Fragment
-	 776, -- Warforged Seal
-	 777, -- Timeless Coin
-	 789, -- Bloody Coin
 	 821, -- Draenor Clans Archaeology Fragment
-	 823, -- Apexis Crystal
-	 824, -- Garrison Resources
 	 828, -- Ogre Archaeology Fragment
 	 829, -- Arakkoa Archaeology Fragment
-	 910, -- Secret of Draenor Alchemy
-	 944, -- Artifact Fragment
-	 980, -- Dingy Iron Coins
-	 994, -- Seal of Tempered Fate
-	 999, -- Secret of Draenor Tailoring
-	1008, -- Secret of Draenor Jewelcrafting
-	1017, -- Secret of Draenor Leatherworking
-	1020, -- Secret of Draenor Blacksmithing
+	1172, -- Highborne Archaeology Fragment
+	1173, -- Highmountain Tauren Archaeology Fragment
+	1174, -- Demonic Archaeology Fragment
 }
+local currencyNames = {}
 for index, currencyID in ipairs(currencyIDs) do
 	local currencyName = GetCurrencyInfo(currencyID)
-	currencyIDs[currencyName] = currencyID
-	currencyIDs[index] = nil
+	currencyNames[currencyName] = currencyID
 end
 
 function data.GetNumCurrencies(characterKey)
+	if not characterKey then
+		return #currencyIDs
+	end
 	if characterKey == thisCharacter then
 		return GetCurrencyListSize()
 	else
@@ -563,13 +602,18 @@ function data.GetNumCurrencies(characterKey)
 end
 
 function data.GetCurrencyInfoByIndex(characterKey, index)
-	local isHeader, name, count, icon, weekly
-	if characterKey == thisCharacter then
-		name, isHeader, _, _, _, count, icon, _, _, weekly = GetCurrencyListInfo(index)
+	local currencyID, isHeader, name, count, icon, weekly
+	if index < 0 then
+		-- We use negative index values to use the fixed currency order.
+		currencyID = currencyIDs[-1 * index]
 	else
-		isHeader, name, count, icon = DataStore:GetCurrencyInfo(characterKey, index)
+		if characterKey == thisCharacter then
+			name, isHeader, _, _, _, count, icon, _, _, weekly = GetCurrencyListInfo(index)
+		else
+			isHeader, name, count, icon = DataStore:GetCurrencyInfo(characterKey, index)
+		end
+		currencyID = not isHeader and name and currencyNames[name]
 	end
-	local currencyID = not isHeader and name and currencyIDs[name]
 	if currencyID then
 		-- avoid duplicate code
 		isHeader, name, count, icon = data.GetCurrencyInfo(characterKey, currencyID)
@@ -579,7 +623,7 @@ end
 
 -- identifier may be currencyID or currencyName
 function data.GetCurrencyInfo(characterKey, currencyID)
-	if type(currencyID) == 'string' then currencyID = currencyIDs[currencyID] end
+	if type(currencyID) == 'string' then currencyID = currencyNames[currencyID] end
 	if not currencyID then return end
 
 	local name, count, icon, weekly = GetCurrencyInfo(currencyID)
