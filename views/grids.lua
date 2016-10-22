@@ -21,6 +21,7 @@ function plugin:UpdateList()
 
 	local maxWidth = self.panel:GetWidth() - 24
 	local usedWidth, numUsed = 0, 0
+	local padding = 4
 
 	local numColumns = self:GetNumColumns()
 	local numRows = #addon.frame.sidebar.scrollFrame
@@ -29,17 +30,15 @@ function plugin:UpdateList()
 		self:AddColumn(columnIndex, columnLabel)
 		for rowIndex = 1, numRows do
 			local characterKey = addon.frame.sidebar.scrollFrame[rowIndex].element
-			local cellContent = self:GetCellContent(characterKey, columnIndex + offset)
-			self:SetCell(rowIndex, columnIndex, cellContent)
+			local cellContent, justify = self:GetCellContent(characterKey, columnIndex + offset)
+			self:SetCell(rowIndex, columnIndex, cellContent, justify)
 		end
 
-		usedWidth = usedWidth + self:UpdateColumnWidth(columnIndex, nil, 10)
+		usedWidth = usedWidth + self:UpdateColumnWidth(columnIndex) + (2 * padding)
 		if usedWidth > maxWidth then break end
 		numUsed = numUsed + 1
 	end
 	scrollFrame.numColumns = numUsed
-
-	-- self:UpdateColumnWidth(nil, nil, 10)
 
 	-- Hide unused columns.
 	for columnIndex = numUsed + 1, #self.panel.cells[0] do
@@ -60,7 +59,7 @@ function plugin:AddColumn(columnIndex, label)
 	return self:SetCell(0, columnIndex, label)
 end
 
-function plugin:SetCell(rowIndex, columnIndex, label)
+function plugin:SetCell(rowIndex, columnIndex, label, justify)
 	local panel = self.panel
 	if not panel.cells then panel.cells = {} end
 	if not panel.cells[rowIndex] then panel.cells[rowIndex] = {} end
@@ -69,14 +68,17 @@ function plugin:SetCell(rowIndex, columnIndex, label)
 	if not cell then
 		cell = panel:CreateFontString(nil, nil, 'GameFontNormal')
 		if rowIndex == 0 then
+			-- Headers.
+			local padding = 4
 			local characterButton = addon.frame.sidebar.scrollFrame[1]
 			if columnIndex == 1 then
 				cell:SetPoint('BOTTOM', characterButton, 'TOP', 0, 12.5)
-				cell:SetPoint('LEFT', panel, 'LEFT', 0, 0)
+				cell:SetPoint('LEFT', panel, 'LEFT', padding, 0)
 			else
-				cell:SetPoint('BOTTOMLEFT', panel.cells[rowIndex][columnIndex - 1], 'BOTTOMRIGHT', 2, 0)
+				cell:SetPoint('BOTTOMLEFT', panel.cells[rowIndex][columnIndex - 1], 'BOTTOMRIGHT', 2*padding, 0)
 			end
 		else
+			-- Data rows.
 			local characterButton = addon.frame.sidebar.scrollFrame[rowIndex]
 			cell:SetPoint('TOP', characterButton, 'TOP', 0, 0)
 			cell:SetPoint('BOTTOM', characterButton, 'BOTTOM', 0, 0)
@@ -97,13 +99,17 @@ function plugin:SetCell(rowIndex, columnIndex, label)
 		panel.cells[rowIndex][columnIndex] = cell
 	end
 
+	if justify then
+		cell:SetJustifyH(justify)
+	end
+
 	-- Update cell content.
 	cell:SetText(label)
 
 	return cell
 end
 
-function plugin:UpdateColumnWidth(columnIndex, width, padding)
+function plugin:UpdateColumnWidth(columnIndex, width)
 	for column = 1, #self.panel.cells[0] do
 		if not columnIndex or columnIndex == column then
 			-- Calculate maximum used width.
@@ -113,10 +119,10 @@ function plugin:UpdateColumnWidth(columnIndex, width, padding)
 					width = math.max(width, self.panel.cells[row][column]:GetStringWidth())
 				end
 			end
-			self.panel.cells[0][column]:SetWidth(width + (padding or 0))
+			self.panel.cells[0][column]:SetWidth(width)
 
 			if columnIndex then
-				return width + (padding or 0)
+				return width
 			end
 		end
 	end
@@ -164,20 +170,10 @@ end
 	Temporary helper functions.
 --]]
 function plugin:GetNumColumns()
-	local characterKey = addon.data.GetCurrentCharacter()
-	local count = 3
-	count = count + lists:GetModule('Currencies'):GetNumRows(characterKey)
-
-	--[[
-	local index = 1
-	local plugin = lists:GetModule('Currencies')
-	while true do
-		local isHeader, label = plugin:GetRowInfo(characterKey, index)
-		if not label then break end
-		if not isHeader then count = count + 1 end
-		index = index + 1
-	end
-	--]]
+	local count = 0
+	count = count + 3 -- bags
+	count = count + 6 -- professions
+	count = count + addon.data.GetNumCurrencies()
 
 	return count
 end
@@ -186,6 +182,7 @@ function plugin:GetColumnLabel(columnIndex)
 	local characterKey = addon.data.GetCurrentCharacter()
 	local plugin, count
 
+	-- Bag space.
 	count = 3
 	if columnIndex <= count then
 		return (columnIndex == 1 and 'Bag Slots')
@@ -194,11 +191,23 @@ function plugin:GetColumnLabel(columnIndex)
 	end
 	columnIndex = columnIndex - count
 
-	plugin = lists:GetModule('Currencies')
-	count = plugin:GetNumRows(characterKey)
+	-- Professions.
+	count = 6
 	if columnIndex <= count then
-		-- local _, label = plugin:GetRowInfo(characterKey, columnIndex)
-		local icon = plugin:GetItemInfo(characterKey, columnIndex, 1)
+		return (columnIndex == 1 and 'Prof 1')
+			or (columnIndex == 2 and 'Prof 2')
+			or (columnIndex == 3 and 'Arch')
+			or (columnIndex == 4 and 'Fish')
+			or (columnIndex == 5 and 'Cook')
+			or (columnIndex == 6 and 'Aid')
+	end
+	columnIndex = columnIndex - count
+
+	-- Currencies.
+	count = addon.data.GetNumCurrencies()
+	if columnIndex <= count then
+		-- Negative index => global list index.
+		local _, name, _, icon, _, currencyID = addon.data.GetCurrencyInfoByIndex(characterKey, -1 * columnIndex)
 		return icon and ('|T' .. icon .. ':0|t') or ''
 	end
 	columnIndex = columnIndex - count
@@ -209,6 +218,7 @@ end
 function plugin:GetCellContent(characterKey, columnIndex)
 	local plugin, count
 
+	-- Bag space.
 	count = 3
 	if columnIndex <= count then
 		local total, free = 0, 0
@@ -227,11 +237,26 @@ function plugin:GetCellContent(characterKey, columnIndex)
 	end
 	columnIndex = columnIndex - count
 
-	plugin = lists:GetModule('Currencies')
-	count = plugin:GetNumRows(characterKey)
+	-- Professions.
+	count = 6
 	if columnIndex <= count then
-		local icon, _, _, count = plugin:GetRowInfo(characterKey, columnIndex, 1)
-		return count
+		local profession = select(columnIndex, addon.data.GetProfessions(characterKey))
+		if profession then
+			local name, icon, rank, maxRank, skillLine, spellID, specSpellID = addon.data.GetProfessionInfo(characterKey, profession)
+			if name then
+				return string.format('|T%s:0|t %s', icon, rank)
+			end
+		end
+		return '-'
+	end
+	columnIndex = columnIndex - count
+
+	-- Currencies.
+	count = addon.data.GetNumCurrencies()
+	if columnIndex <= count then
+		-- Negative index => global list index.
+		local _, name, count, icon, _, currencyID = addon.data.GetCurrencyInfoByIndex(characterKey, -1 * columnIndex)
+		return count or '-'
 	end
 	columnIndex = columnIndex - count
 
