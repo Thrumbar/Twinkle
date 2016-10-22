@@ -288,7 +288,8 @@ function items:UpdateList()
 			local button = scrollFrame[buttonIndex]
 			if button then
 				-- update display row
-				local name, _, quality, _, _, _, _, _, _, texture, _ = GetItemInfo(itemData.link)
+				local _, _, _, _, texture = GetItemInfoInstant(itemData.link)
+				local name, _, quality = GetItemInfo(itemData.link)
 				local r, g, b = GetItemQualityColor(quality or _G.LE_ITEM_QUALITY_COMMON)
 				local itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemData.link)
 
