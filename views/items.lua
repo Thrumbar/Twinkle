@@ -264,7 +264,6 @@ function items:UpdateList()
 	local characterKey = addon:GetSelectedCharacter()
 	local scrollFrame  = self.panel.scrollFrame
 	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
-	tsort(collection[characterKey], Sort)
 
 	-- numRows: including headers (=> scroll frame), numDataRows: excluding headers (=> result count)
 	local buttonIndex, numRows, numDataRows = 1, 0, 0
@@ -328,6 +327,7 @@ function items:Update()
 	if not collection[characterKey] or #collection[characterKey] == 0 then
 		self:GatherItems(characterKey)
 	end
+	tsort(collection[characterKey], Sort)
 
 	-- display data
 	local numRows = self:UpdateList()
