@@ -17,7 +17,6 @@ local searchCache = {}
 local prototype = {
 	Update = function(self)
 		if items.provider == self then
-			print('update items!', self, items.panel:IsShown(), items.panel:IsVisible())
 			-- only the logged in character's items can change
 			self:GatherItems(addon.data:GetCurrentCharacter())
 			items:UpdateList()
@@ -228,7 +227,10 @@ local function AddItem(characterKey, providerName, baseLink, identifier, count)
 		local collectionItem = collection[characterKey][collectionIndex]
 		collectionItem[providerName] = (collectionItem[providerName] or 0) + (count or 1)
 	else
-		-- providers must not be names 'link' for obvious reasons
+		if not collection[characterKey] then
+			collection[characterKey] = {}
+		end
+		-- providers must not be named 'link' for obvious reasons
 		tinsert(collection[characterKey], {
 			link = baseLink,
 			[providerName] = count or 1,
