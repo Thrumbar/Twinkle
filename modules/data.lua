@@ -646,6 +646,10 @@ function data.GetCurrencyInfo(characterKey, currencyID)
 			36056, 37456, 37457, -- garrison resource
 			36057, 37458, 37459, -- honor
 			36055, 37452, 37453) -- apexis
+	elseif currencyID == 1273 then -- Seal of Broken Fate
+		weekly = data.GetNumQuestsCompleted(characterKey,
+			43895, 43896, 43897,-- gold
+			43892, 43893, 43894) -- order hall resources
 	end
 
 	return isHeader, name, count or 0, icon, weekly
