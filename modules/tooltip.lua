@@ -250,6 +250,7 @@ function plugin:OnEnable()
 	HookTooltip(ItemRefTooltip)
 	HookTooltip(ShoppingTooltip1)
 	HookTooltip(ShoppingTooltip2)
+	HookTooltip(WorldMapTooltip.ItemTooltip.Tooltip)
 
 	local extraTips = {}
 	hooksecurefunc('EmbeddedItemTooltip_SetItemByID', function(self, id)
