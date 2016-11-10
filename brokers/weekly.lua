@@ -79,21 +79,21 @@ end
 
 local function tex(itemID, text)
 	local icon = type(itemID) == 'number' and GetItemIcon(itemID) or itemID
-	return icon and '|T'..icon..':0|t' or text or '?'
+	return icon and '|T' .. icon .. ':0|t' or text or '?'
 end
 local function GetColumnHeaders(dataType)
 	if dataType == 'lfr' then
 		wipe(temp)
 		for index, dungeonIDs in ipairs(LFRDungeons) do
 			local instanceName, _, _, _, _, icon = EJ_GetInstanceInfo(LFRInstances[index])
-			table.insert(temp, tex(icon, instanceName))
+			table.insert(temp, tex(tostring(icon), instanceName))
 		end
 		return _G.RAID_FINDER, unpack(temp)
 	elseif dataType == 'boss' then
 		wipe(temp)
 		for index, bossID in ipairs(worldBosses) do
 			local _, bossName, _, _, icon = EJ_GetCreatureInfo(1, worldBosses[bossID])
-			table.insert(temp, tex(icon, bossName))
+			table.insert(temp, tex(tostring(icon), bossName))
 		end
 		return _G.BATTLE_PET_SOURCE_7, unpack(temp)
 	elseif dataType == 'weekly' then
