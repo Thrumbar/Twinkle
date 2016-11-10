@@ -138,7 +138,10 @@ local function AddConfigurationExtras(optionsTable)
 		text = 'Are you sure you want to delete |nall data of %s on %s?',
 		button1 = _G.OKAY,
 		button2 = _G.CANCEL,
-		OnAccept = function(_, characterKey) addon.data.DeleteCharacter(characterKey) end,
+		OnAccept = function(_, characterKey)
+			addon.data.DeleteCharacter(characterKey)
+			LibStub('AceConfigRegistry-3.0'):NotifyChange(addonName)
+		end,
 		timeout = 0,
 		whileDead = true,
 		hideOnEscape = true,
@@ -148,6 +151,7 @@ local function AddConfigurationExtras(optionsTable)
 	-- Allow deleting characters.
 	optionsTable.args.profile.args.DeleteCharacter = {
 		type = 'select',
+		width = 'full',
 		name = 'Delete character',
 		desc = 'Select a character to be deleted. The logged in character cannot be deleted.|n'
 			.. 'Associated guild data will be deleted if no other character is in the guild.|n'
