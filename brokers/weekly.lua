@@ -35,19 +35,21 @@ local worldBosses = { -- encounter journal bossID
 } --]]
 local worldBosses = {
 	-- display order: i = bossID
-	7, -- drov/tarlna
-	9, -- rukhmar
-	15, -- supreme lord kazzak
+	-- Warlords of Draenor.
+	-- 7, -- drov/tarlna
+	-- 9, -- rukhmar
+	-- 15, -- supreme lord kazzak
 	-- boss data: bossID = encounterID
 	[ 7] = 1291, -- drov:1291, tarlna:1211, spell:172612
 	[ 9] = 1262, -- rukhmar, item:116771
 	[15] = 1452, -- supreme lord kazzak
 }
+-- World boss zone: EJ_GetInstanceByIndex(1, true)
 local weeklyQuests = { -- sharedQuestID or 'allianceID|hordeID'
 	-- 32610, 32626, 32609, 32505, '32640|32641', -- Isle of Thunder (stone, key, chest, chamberlain, champions)
 	-- '32719|32718', -- lesser charms trade-in
 	-- 33338, 33334, --32956, -- timeless isle (epoch stone, rares, pirate chest)
-	37638, 37639, 37640, 38482, -- garrison invasions
+	-- 37638, 37639, 37640, 38482, -- garrison invasions
 }
 
 local LFRDungeons, LFRInstances = {}, {}

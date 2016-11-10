@@ -11,15 +11,22 @@ local characters = {}
 
 -- FIXME: how do we get instanceMapIDs of available raid instances?
 -- @see: http://wow.gamepedia.com/InstanceMapID
+-- for i=1490,1570 do print(i, GetRealZoneText(i)) end
 local instances = {
+	-- Mists of Pandaria.
 	 996, -- Terrace of Endless Spring
 	1008, -- Mogu'shan Vaults
 	1009, -- Heart of Fear
 	1098, -- Throne of Thunder
 	1136, -- Siege of Orgrimmar
-
+	-- Warlords of Draenor.
 	1228, -- Highmaul
 	1205, -- Blackrock Foundry
+	1448, -- Hellfire Citadel
+	-- Legion.
+	1520, -- The Emerald Nightmare
+	1530, -- The Nighthold
+	1648, -- Trial of Valor
 }
 
 local function GetInstanceLockouts(characterKey, difficulty, instance)
