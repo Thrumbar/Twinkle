@@ -208,8 +208,15 @@ local function OnTooltipSetQuestItem(self, itemType, index)
 	HandleTooltipItem(self, link)
 end
 
-local function OnTooltipSetQuestLogItem(self, itemType, index)
-	local link = GetQuestLogItemLink(itemType, index)
+local function OnTooltipSetQuestLogItem(self, itemType, index, questID)
+	local link
+	if itemType == 'reward' and questID then
+		local _, _, _, _, _, itemID = GetQuestLogRewardInfo(index, questID)
+		_, link = GetItemInfo(itemID)
+	else
+		-- TODO Does this still work?
+		link = GetQuestLogItemLink(itemType, index)
+	end
 	HandleTooltipItem(self, link)
 end
 
@@ -232,8 +239,8 @@ local function HookTooltip(tooltip)
 	if tooltip.SetRecipeReagentItem then hooksecurefunc(tooltip, 'SetRecipeReagentItem', HandleTradeSkillReagent) end
 	if tooltip.SetHyperlink then hooksecurefunc(tooltip, 'SetHyperlink', HandleTooltipHyperlink) end
 	-- if tooltip.SetItemByID then hooksecurefunc(tooltip, 'SetItemByID', HandleTooltipItem) end
-	if tooltip.SetQuestLogItem then hooksecurefunc(tooltip, 'SetQuestLogItem', OnTooltipSetQuestLogItem) end
-	if tooltip.SetQuestItem then hooksecurefunc(tooltip, 'SetQuestItem', OnTooltipSetQuestItem) end
+	-- if tooltip.SetQuestLogItem then hooksecurefunc(tooltip, 'SetQuestLogItem', OnTooltipSetQuestLogItem) end
+	-- if tooltip.SetQuestItem then hooksecurefunc(tooltip, 'SetQuestItem', OnTooltipSetQuestItem) end
 end
 
 function plugin:OnEnable()
