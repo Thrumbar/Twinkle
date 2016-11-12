@@ -128,7 +128,7 @@ local function Colorize(value, goodValue, badValue)
 	return returnString
 end
 local function prepare(dataTable)
-	for index, value in ipairs(dataTable) do
+	for index, value in pairs(dataTable) do
 		if not value then
 			dataTable[index] = '–'
 		elseif value == true then
@@ -162,7 +162,14 @@ local function GetCharacterLFRLockouts(characterKey, hideEmpty)
 			lockoutReturns.lfr[group] = text .. Colorize(numDefeated, 0, numDefeated + (completed and 0 or 1))
 		end
 	end
-	return hasData and lockoutReturns.lfr or nil
+
+	if hasData then
+		-- Make sure all indices are available so unpack() works.
+		for group, _ in ipairs(LFRDungeons) do
+			lockoutReturns.lfr[group] = lockoutReturns.lfr[group] or ''
+		end
+		return lockoutReturns.lfr
+	end
 end
 
 local function GetCharacterBossLockouts(characterKey, hideEmpty)
