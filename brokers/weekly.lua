@@ -211,7 +211,7 @@ end
 local function NOOP() end -- do nothing
 function broker:UpdateTooltip()
 	local numColumns, lineNum = 1 + max(0, #worldBosses, #weeklyQuests, #LFRDungeons), 2
-	self:SetColumnLayout(numColumns, 'LEFT')
+	self:SetColumnLayout(numColumns, 'LEFT', strsplit(' ', ('CENTER '):rep(numColumns - 1):trim()))
 
 	local lineNum = self:AddHeader()
 	self:SetCell(lineNum, 1, addonName .. ': ' .. _G.CALENDAR_REPEAT_WEEKLY, 'LEFT', numColumns)
