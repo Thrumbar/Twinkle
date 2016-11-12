@@ -269,7 +269,8 @@ function items:UpdateList()
 
 	-- numRows: including headers (=> scroll frame), numDataRows: excluding headers (=> result count)
 	local buttonIndex, numRows, numDataRows = 1, 0, 0
-	for index, itemData in ipairs(collection[characterKey]) do
+	-- TODO somehow collections[characterKey] is sometimes nil
+	for index, itemData in ipairs(collection[characterKey] or emptyTable) do
 		local matchesSearch = self:SearchRow(query, characterKey, itemData.link)
 		local itemCount = 0
 		if matchesSearch then

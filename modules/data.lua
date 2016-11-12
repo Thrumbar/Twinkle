@@ -669,7 +669,7 @@ end
 
 local followerList
 function data.GetFollowers(characterKey, useTable)
-	return DataStore:GetFollowers(characterKey)
+	return DataStore:GetFollowers(characterKey) or emptyTable
 end
 
 function data.GetFollowerInfo(characterKey, garrFollowerID)
