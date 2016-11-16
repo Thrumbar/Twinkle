@@ -1,27 +1,37 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: _G, AUTOCOMPLETE_MAX_BUTTONS, AUTOCOMPLETE_SIMPLE_REGEX, AUTOCOMPLETE_SIMPLE_FORMAT_REGEX, AutoCompleteBox, LE_AUTOCOMPLETE_PRIORITY_GUILD
+-- GLOBALS: _G, AUTOCOMPLETE_MAX_BUTTONS, AUTOCOMPLETE_SIMPLE_REGEX, AUTOCOMPLETE_SIMPLE_FORMAT_REGEX, AutoCompleteBox, LE_AUTOCOMPLETE_PRIORITY_GUILD, LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER
 -- GLOBALS: SendMailNameEditBox, GetAutoCompleteResults, AutoComplete_UpdateResults, Ambiguate, RGBTableToColorCode, GetNumGuildMembers, GetGuildRosterInfo, GetNumClasses, GetClassInfo
 -- GLOBALS: pairs, string, table, tContains, hooksecurefunc, strlen, unpack, tonumber
 
 local autocomplete = addon:NewModule('autocomplete')
 local floor = math.floor
+local characters, thisCharacter
 
 -- ================================================
 -- Autocomplete character names
 -- ================================================
-local LE_AUTOCOMPLETE_PRIORITY_ALTS = 6 -- totally random, just shouldn't collide with Blizzard. value is used for sorting
-
-local function GetGuildMemberClass(character)
+local function GetGuildCharacterInfo(name)
 	for index = 1, (GetNumGuildMembers()) do
 		local fullName, _, _, _, _, _, _, _, _, _, unitClass = GetGuildRosterInfo(index)
-		if fullName == character then
+		if fullName == name then
 			for classIndex = 1, GetNumClasses() do
 				local className, classTag, classID = GetClassInfo(classIndex)
 				if classTag == unitClass then
-					return className, classTag, classID
+					return name, fullName, classID
 				end
 			end
+		end
+	end
+end
+
+local function GetAccountCharacterInfo(name)
+	for _, characterKey in pairs(characters) do
+		local characterName = addon.data.GetName(characterKey)
+		if characterName == name then
+			local characterFullName = addon.data.GetFullName(characterKey)
+			local _, _, classID = addon.data.GetClass(characterKey)
+			return characterName, characterFullName, classID
 		end
 	end
 end
@@ -50,7 +60,6 @@ local function AddHighlightedText(editBox, text)
 	end
 end
 
-local characters, thisCharacter
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	if not parent or not parent.autoCompleteParams or text == '' then return end
 	-- possible flags can be found here: http://wow.go-hero.net/framexml/16650/AutoComplete.lua
@@ -58,48 +67,24 @@ local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	local newResults = GetAutoCompleteResults(text, include, exclude, AUTOCOMPLETE_MAX_BUTTONS+1, cursorPosition)
 	blizzSuggestion = newResults[1]
 
-	if parent == SendMailNameEditBox and cursorPosition <= strlen(text) then
-		-- add suitable alts to autocomplete
-		for _, characterKey in pairs(characters) do
-			if characterKey ~= thisCharacter then
-				local characterName, characterFullName = addon.data.GetName(characterKey), addon.data.GetFullName(characterKey)
-				if characterName:lower():find('^'..text:lower()) then
-					local index
-					-- check if this character is already on our list
-					for i, entry in pairs(newResults) do
-						if entry.name and entry.name == characterFullName then
-							index = i
-							break
-						end
-					end
-
-					local _, _, classID = addon.data.GetClass(characterKey)
-					if not index then
-						index = #newResults + 1
-						newResults[index] = {}
-					end
-					local priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ALTS, classID))
-					-- Ambiguate(characterFullName, parent.autoCompleteContext or 'all')
-					newResults[index].name     = characterFullName
-					newResults[index].priority = priority
-				end
-			end
-		end
-	end
-
 	-- color guild members by class
 	for index, suggestion in pairs(newResults) do
 		if suggestion.priority == LE_AUTOCOMPLETE_PRIORITY_GUILD then
-			local _, _, classID = GetGuildMemberClass(suggestion.name)
+			local characterName, fullName, classID = GetGuildCharacterInfo(suggestion.name)
 			if classID then
 				newResults[index].priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_GUILD, classID))
+			end
+		elseif suggestion.priority == LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER then
+			local characterName, characterFullName, classID = GetAccountCharacterInfo(suggestion.name)
+			if classID then
+				newResults[index].priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER, classID))
 			end
 		end
 	end
 
 	table.sort(newResults, SortSuggestions)
-
 	AutoComplete_UpdateResults(AutoCompleteBox, newResults)
+
 	-- prepare output of first match
 	firstSuggestion = nil
 	if newResults[1] and (not blizzSuggestion or blizzSuggestion.name ~= newResults[1].name) then
@@ -131,7 +116,7 @@ function autocomplete:OnEnable()
 		local className, classTag, classID = GetClassInfo(index)
 
 		-- class coloring for alts
-		priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ALTS, classID))
+		priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER, classID))
 		_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
 			key  = alt .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
 			text = string.format(your_character, className),
