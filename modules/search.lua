@@ -1,7 +1,7 @@
 local addonName, addon, _ = ...
 
 -- GLOBALS: _G
--- GLOBALS: CreateFrame, PlaySound, EditBox_ClearFocus
+-- GLOBALS: CreateFrame, EditBox_ClearFocus
 -- GLOBALS: hooksecurefunc, pairs, type
 
 local views  = addon:GetModule('views')

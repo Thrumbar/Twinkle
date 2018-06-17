@@ -222,7 +222,7 @@ end
 function lists:SelectDataSource(provider)
 	if type(provider) == 'string' then provider = self:GetModule(provider) end
 	if provider ~= self.provider then
-		PlaySound('igAbiliityPageTurn')
+		PlaySound(SOUNDKIT.IG_ABILITY_PAGE_TURN)
 		self.provider = provider
 		self:Update()
 	end

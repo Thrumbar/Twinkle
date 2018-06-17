@@ -2,7 +2,7 @@ local addonName, addon, _ = ...
 _G[addonName] = addon
 
 -- GLOBALS: _G, GameTooltip, LibStub
--- GLOBALS: CreateFrame, SetPortraitToTexture, PlaySound, EditBox_ClearFocus, FauxScrollFrame_OnVerticalScroll, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, ToggleFrame
+-- GLOBALS: CreateFrame, SetPortraitToTexture, EditBox_ClearFocus, FauxScrollFrame_OnVerticalScroll, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, ToggleFrame
 -- GLOBALS: gsub, type, pairs, tonumber, table, string, hooksecurefunc
 
 LibStub('AceAddon-3.0'):NewAddon(addon, addonName, 'AceEvent-3.0')
