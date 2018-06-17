@@ -10,6 +10,16 @@ local emptyTable = {}
 local defaults = {
 	profile = {
 		cacheFullWarningPercent = 0.75,
+		currencies = {
+			[824] = true,
+			[1101] = true,
+			[1220] = true,
+		},
+		--[[ followerTypes = {
+			[_G.LE_FOLLOWER_TYPE_GARRISON_6_0] = true,
+			[_G.LE_FOLLOWER_TYPE_SHIPYARD_6_2] = true,
+			[_G.LE_FOLLOWER_TYPE_GARRISON_7_0] = true,
+		}, --]]
 	},
 }
 
@@ -36,31 +46,43 @@ local INACTIVE = _G.GRAY_FONT_COLOR_CODE .. '%3$s|r'
 local ZERO = _G.GRAY_FONT_COLOR_CODE .. '0|r'
 local COMPLETE_ICON = _G.GREEN_FONT_COLOR_CODE .. '%d|r|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t '
 local ACTIVE_ICON = _G.NORMAL_FONT_COLOR_CODE .. '%d|r|TInterface\\FriendsFrame\\StatusIcon-Away:0|t '
+
+local layout, currencies, currencyCounts, missionCounts = {}, {}, {}, {}
 function broker:UpdateTooltip()
-	local numColumns = 7
-	self:SetColumnLayout(numColumns, 'LEFT', 'RIGHT', 'CENTER', 'RIGHT', 'CENTER', 'LEFT')
+	local missionIcon = '|TInterface\\HELPFRAME\\OpenTicketIcon:18|t'
+	wipe(layout)
+	wipe(currencies)
+	table.insert(layout, 'LEFT')
+	for currencyID, enabled in pairs(broker.db.profile.currencies) do
+		if enabled then
+			table.insert(currencies, currencyID)
+			table.insert(layout, 'RIGHT')
+			table.insert(layout, 'LEFT')
+		end
+	end
+	table.insert(layout, 'LEFT')
+	table.sort(currencies)
+
+	local column = #layout
+	self:SetColumnLayout(column, unpack(layout))
 
 	local lineNum = self:AddHeader()
-	self:SetCell(lineNum, 1, addonName .. ': Garrisons', 'LEFT', numColumns)
+	self:SetCell(lineNum, 1, addonName .. ': Garrisons', 'LEFT', column)
+	lineNum = self:AddHeader(_G.CHARACTER)
 
-	local resourceIcon = '|T'..(select(3, GetCurrencyInfo(824)))..':0|t'
-	local oilIcon = '|T'..(select(3, GetCurrencyInfo(1101)))..':0|t'
-	local missionIcon = '|TInterface\\HELPFRAME\\OpenTicketIcon:18|t'
-	lineNum = self:AddHeader(_G.CHARACTER, resourceIcon, missionIcon, oilIcon, missionIcon, _G.CAPACITANCE_WORK_ORDERS)
+	column = 2
+	for _, currencyID in ipairs(currencies) do
+		local currencyIcon = '|T'..(select(3, GetCurrencyInfo(currencyID)))..':0|t'
+		self:SetCell(lineNum, column, currencyIcon, 'RIGHT')
+		self.lines[lineNum].cells[column].link = 'currency:' .. currencyID
+		self:SetCellScript(lineNum, column, 'OnEnter', addon.ShowTooltip, self)
+		self:SetCellScript(lineNum, column, 'OnLeave', addon.HideTooltip, self)
+		column = column + 1
 
-	-- add header tooltips
-	self.lines[lineNum].cells[2].link = 'currency:824'
-	self:SetCellScript(lineNum, 2, 'OnEnter', addon.ShowTooltip, self)
-	self:SetCellScript(lineNum, 2, 'OnLeave', addon.HideTooltip, self)
-	self.lines[lineNum].cells[3].tiptext = _G.GARRISON_MISSIONS_TITLE
-	self:SetCellScript(lineNum, 3, 'OnEnter', addon.ShowTooltip, self)
-	self:SetCellScript(lineNum, 3, 'OnLeave', addon.HideTooltip, self)
-	self.lines[lineNum].cells[4].link = 'currency:1101'
-	self:SetCellScript(lineNum, 4, 'OnEnter', addon.ShowTooltip, self)
-	self:SetCellScript(lineNum, 4, 'OnLeave', addon.HideTooltip, self)
-	self.lines[lineNum].cells[5].tiptext = _G.SPLASH_NEW_6_2_FEATURE2_TITLE
-	self:SetCellScript(lineNum, 5, 'OnEnter', addon.ShowTooltip, self)
-	self:SetCellScript(lineNum, 5, 'OnLeave', addon.HideTooltip, self)
+		self:SetCell(lineNum, column, missionIcon, 'CENTER')
+		column = column + 1
+	end
+	self:SetCell(lineNum, column, _G.CAPACITANCE_WORK_ORDERS, 'LEFT')
 
 	self:AddSeparator(2)
 
@@ -93,6 +115,13 @@ function broker:UpdateTooltip()
 			end
 		end
 
+		-- Reset statistics.
+		for followerType, info in pairs(missionCounts) do
+			info.active = 0
+			info.completed = 0
+			info.text = nil
+		end
+
 		-- builds
 		local numActive, numCompleted = 0, 0
 		for _, buildingID, rank, _, _, expires in DataStore:IteratePlots(characterKey) or nop do
@@ -114,42 +143,52 @@ function broker:UpdateTooltip()
 		end
 
 		-- missions
-		local numActive, numCompleted = 0, 0
-		local shipyardActive, shipyardCompleted = 0, 0
 		for missionID, expires in pairs(DataStore:GetMissions(characterKey, 'active') or emptyTable) do
 			local followerType = DataStore:GetBasicMissionInfo(missionID)
-			if followerType == _G.LE_FOLLOWER_TYPE_SHIPYARD_6_2 then
-				shipyardCompleted = shipyardCompleted + (expires <= now and 1 or 0)
-				shipyardActive    = shipyardActive    + (expires <= now and 0 or 1)
+			if not missionCounts[followerType] then
+				missionCounts[followerType] = {}
+			end
+			if expires <= now then
+				missionCounts[followerType].completed = (missionCounts[followerType].completed or 0) + 1
 			else
-				numCompleted = numCompleted + (expires <= now and 1 or 0)
-				numActive    = numActive    + (expires <= now and 0 or 1)
+				missionCounts[followerType].active = (missionCounts[followerType].active or 0) + 1
 			end
 		end
-		local missions, shipyardMissions = '', ''
-		if numCompleted > 0 then missions = missions .. COMPLETE_ICON:format(numCompleted) end
-		if numActive > 0 then missions = missions .. ACTIVE_ICON:format(numActive) end
-		if shipyardCompleted > 0 then shipyardMissions = shipyardMissions .. COMPLETE_ICON:format(shipyardCompleted) end
-		if shipyardActive > 0 then shipyardMissions = shipyardMissions .. ACTIVE_ICON:format(shipyardActive) end
+
+		for followerType, info in pairs(missionCounts) do
+			if info.completed and info.completed > 0 then
+				info.text = (info.text or '') .. COMPLETE_ICON:format(info.completed)
+			end
+			if info.active and info.active > 0 then
+				info.text = (info.text or '') .. ACTIVE_ICON:format(info.active)
+			end
+		end
+		local missions = missionCounts[_G.LE_FOLLOWER_TYPE_GARRISON_6_0] and missionCounts[_G.LE_FOLLOWER_TYPE_GARRISON_6_0].text or ''
+		local shipyardMissions = missionCounts[_G.LE_FOLLOWER_TYPE_SHIPYARD_6_2] and missionCounts[_G.LE_FOLLOWER_TYPE_SHIPYARD_6_2].text or ''
+		local orderHallMissions = missionCounts[_G.LE_FOLLOWER_TYPE_GARRISON_7_0] and missionCounts[_G.LE_FOLLOWER_TYPE_GARRISON_7_0].text or ''
 
 		-- resources
-		local _, _, numOil = addon.data.GetCurrencyInfo(characterKey, 1101)
-		local _, _, numResources = addon.data.GetCurrencyInfo(characterKey, 824)
+		for i, currency in ipairs(currencies) do
+			currencyCounts[i] = select(3, addon.data.GetCurrencyInfo(characterKey, currency))
+		end
+		local warning = ''
 		local numUncollected, cacheSize = DataStore:GetUncollectedResources(characterKey)
 		numUncollected, cacheSize = numUncollected or 0, cacheSize or 500
-		local warning = ''
 		if numUncollected / cacheSize >= broker.db.profile.cacheFullWarningPercent then
 			warning = '|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0:0:0:-1|t'
 		end
 
 		-- create tooltip row
-		if missions ~= '' or shipments ~= '' or (numResources + numUncollected) > 0 or numOil > 0 then
+		if missions ~= '' or shipments ~= '' or orderHallMissions ~= ''
+			or (currencyCounts[1] + numUncollected) > 0 or currencyCounts[2] > 0 or currencyCounts[3] > 0 then
 			local characterName = addon.data.GetCharacterText(characterKey)
 			lineNum = self:AddLine(characterName,
-				warning .. addon.ColorizeText(AbbreviateLargeNumbers(numResources), 10000 - numResources, 10000),
+				warning .. addon.ColorizeText(AbbreviateLargeNumbers(currencyCounts[1]), 10000 - currencyCounts[1], 10000),
 				missions,
-				_G.NORMAL_FONT_COLOR_CODE .. AbbreviateLargeNumbers(numOil) .. '|r',
+				_G.NORMAL_FONT_COLOR_CODE .. AbbreviateLargeNumbers(currencyCounts[2]) .. '|r',
 				shipyardMissions,
+				_G.NORMAL_FONT_COLOR_CODE .. AbbreviateLargeNumbers(currencyCounts[3]) .. '|r',
+				orderHallMissions,
 				shipments .. '\32\32'
 			)
 			-- enable row highlight and tooltips
