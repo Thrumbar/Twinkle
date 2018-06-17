@@ -33,7 +33,7 @@ function specializations:GetRowInfo(characterKey, index)
 	if talentIndex == 0 then
 		-- Specialization header.
 		local specID = DataStore:GetSpecializationID(characterKey, specNum)
-		local _, specName, description, icon, _, role, class = GetSpecializationInfoByID(specID or 0)
+		local _, specName, description, icon, role, class = GetSpecializationInfoByID(specID or 0)
 		if not specName then
 			specName = 'Not specialized'
 			icon = 'Interface\\Icons\\Ability_Marksmanship'

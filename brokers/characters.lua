@@ -187,7 +187,7 @@ function broker:OnClick(btn, down)
 
 				-- specific specialiation
 				for i = 1, GetNumSpecializations() do
-					local id, name, _, icon, _, role, primaryStat = GetSpecializationInfo(i)
+					local id, name, _, icon, role, primaryStat = GetSpecializationInfo(i)
 					info.value = id
 					info.text = _G['INLINE_'.. role ..'_ICON'] .. ' ' .. name
 					info.icon = icon
@@ -213,7 +213,7 @@ function broker:UpdateLDB()
 
 	-- character spec
 	local specIndex  = GetSpecialization()
-	local specID, specName, _, icon, _, role = GetSpecializationInfo(specIndex or 0)
+	local specID, specName, _, icon, role = GetSpecializationInfo(specIndex or 0)
 	if not specID then
 		-- character has no active specialization
 		specName = 'No specialization'
