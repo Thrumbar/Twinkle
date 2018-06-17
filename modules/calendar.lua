@@ -305,10 +305,11 @@ local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, cont
 end
 
 function calendar:OnInitialize()
-	if not IsAddOnLoaded('Blizzard_Calendar') then
+	if not IsAddOnLoaded('Blizzard_Calendar') or not IsAddOnLoaded(addonName) then
 		-- registering ADDON_LOADED in OnEnable fails, so we need to do so here
 		self:RegisterEvent('ADDON_LOADED', function(event, arg1)
-			if arg1 == 'Blizzard_Calendar' then
+			if (arg1 == 'Blizzard_Calendar' or arg1 == addonName)
+				and IsAddOnLoaded('Blizzard_Calendar') or IsAddOnLoaded(addonName) then
 				self:UnregisterEvent('ADDON_LOADED')
 				self:OnEnable()
 			end
