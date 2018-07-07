@@ -83,3 +83,8 @@ lists\missions.lua
 lists\quests.lua
 lists\reputation.lua
 lists\talents.lua
+
+# plugins for grids view
+grids\currencies.lua
+grids\professions.lua
+grids\storage.lua

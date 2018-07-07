@@ -3,9 +3,9 @@ local addonName, addon, _ = ...
 -- GLOBALS: _G
 -- GLOBALS: ipairs, tonumber, math
 
-local views  = addon:GetModule('views')
-local lists  = views:GetModule('lists')
-local currencies = lists:NewModule('Currencies', 'AceEvent-3.0')
+local views = addon:GetModule('views')
+local lists = views:GetModule('lists')
+local currencies = lists:NewModule('currencies', 'AceEvent-3.0')
       currencies.icon = 'Interface\\Icons\\PVECurrency-Justice' -- INV_Misc_Token_Darkmoon_01
       currencies.title = 'Currencies'
 

@@ -4,76 +4,80 @@ local addonName, addon, _ = ...
 -- GLOBALS: FauxScrollFrame_OnVerticalScroll, FauxScrollFrame_GetOffset, FauxScrollFrame_Update
 
 local views = addon:GetModule('views')
-local lists  = views:GetModule('lists')
-local plugin = views:NewModule('Grids')
+local plugin = views:NewModule('grids')
       plugin.icon = 'Interface\\ICONS\\INV_Misc_Net_01'
       plugin.title = 'Grids'
 
 -- 'Interface\\Icons\\INV_Enchant_FormulaSuperior_01'
 -- 'Interface\\ICONS\\ACHIEVEMENT_GUILDPERK_EVERYONES A HERO_RANK2'
 
+local prototype = {
+	Update = function(self)
+		if plugin.provider == self then
+			plugin:UpdateList()
+		end
+	end,
+}
+-- views modules are disabled by default, so our modules need to do the same
+plugin:SetDefaultModuleState(false)
+plugin:SetDefaultModulePrototype(prototype)
+
 local emptyTable = {}
 
-function plugin:UpdateList()
-	local characterKey = addon:GetSelectedCharacter()
-	local scrollFrame  = self.panel.scrollFrame
-	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
-
-	local maxWidth = self.panel:GetWidth() - 24
-	local usedWidth, numUsed = 0, 0
-	local padding = 4
-
-	local numColumns = self:GetNumColumns()
-	local numRows = #addon.frame.sidebar.scrollFrame
-	for columnIndex = 1, numColumns do
-		local columnLabel = self:GetColumnLabel(columnIndex + offset)
-		self:AddColumn(columnIndex, columnLabel)
-		for rowIndex = 1, numRows do
-			local characterKey = addon.frame.sidebar.scrollFrame[rowIndex].element
-			local cellContent, justify = self:GetCellContent(characterKey, columnIndex + offset)
-			self:SetCell(rowIndex, columnIndex, cellContent, justify)
-		end
-
-		usedWidth = usedWidth + self:UpdateColumnWidth(columnIndex) + (2 * padding)
-		if usedWidth > maxWidth then break end
-		numUsed = numUsed + 1
-	end
-	scrollFrame.numColumns = numUsed
-
-	-- Hide unused columns.
-	for columnIndex = numUsed + 1, #self.panel.cells[0] do
-		for rowIndex = 0, numRows do
-			self:SetCell(rowIndex, columnIndex, nil)
+local function SourceOnClick(button, btn, up)
+	for providerName, provider in plugin:IterateModules() do
+		if provider.button == button then
+			plugin:SelectDataSource(provider)
+			break
 		end
 	end
-
-	-- Display scroll bar when necessary.
-	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numColumns, numUsed, maxWidth / (numUsed or 1))
-	-- adjustments so rows have decent padding with and without scroll bar
-	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
-
-	return numDataRows or 0
+end
+local function CreateDataSourceButton(provider, index)
+	local providerName, title, icon = provider:GetName(), provider.title, provider.icon
+	local button = CreateFrame('CheckButton', '$parent' .. providerName, plugin.panel, 'PopupButtonTemplate', index)
+	      button:SetNormalTexture(icon)
+	      button:SetScale(0.75)
+	      button.tiptext = title
+	      button:SetScript('OnClick', SourceOnClick)
+	      button:SetScript('OnEnter', addon.ShowTooltip)
+	      button:SetScript('OnLeave', addon.HideTooltip)
+	      provider.button = button
+	return button
 end
 
-function plugin:AddColumn(columnIndex, label)
-	return self:SetCell(0, columnIndex, label)
+function plugin:SelectDataSource(provider)
+	if type(provider) == 'string' then provider = self:GetModule(provider) end
+	if provider ~= self.provider then
+		PlaySound(SOUNDKIT.IG_ABILITY_PAGE_TURN)
+		self.provider = provider
+		self:Update()
+	end
 end
 
-function plugin:SetCell(rowIndex, columnIndex, label, justify)
+function plugin:SetCell(rowIndex, columnIndex, label, link, tiptext, justify)
 	local panel = self.panel
 	if not panel.cells then panel.cells = {} end
 	if not panel.cells[rowIndex] then panel.cells[rowIndex] = {} end
 
 	local cell = panel.cells[rowIndex][columnIndex]
 	if not cell then
-		cell = panel:CreateFontString(nil, nil, 'GameFontNormal')
+		cell = CreateFrame('Frame', '$parentRow' .. rowIndex .. 'Column' .. columnIndex, panel)
+		cell:SetHeight(16)
+		cell:SetScript('OnEnter', addon.ShowTooltip)
+		cell:SetScript('OnLeave', addon.HideTooltip)
+		-- cell:SetScript('OnClick', OnRowClick)
+
+		cell.text = cell:CreateFontString(nil, nil, 'GameFontNormal')
+		cell.text:SetAllPoints()
+
+		local padding = 6
+		local margin = 20
 		if rowIndex == 0 then
 			-- Headers.
-			local padding = 4
 			local characterButton = addon.frame.sidebar.scrollFrame[1]
 			if columnIndex == 1 then
 				cell:SetPoint('BOTTOM', characterButton, 'TOP', 0, 12.5)
-				cell:SetPoint('LEFT', panel, 'LEFT', padding, 0)
+				cell:SetPoint('LEFT', panel, 'LEFT', margin, 0)
 			else
 				cell:SetPoint('BOTTOMLEFT', panel.cells[rowIndex][columnIndex - 1], 'BOTTOMRIGHT', 2*padding, 0)
 			end
@@ -85,12 +89,12 @@ function plugin:SetCell(rowIndex, columnIndex, label, justify)
 			cell:SetPoint('LEFT', panel.cells[rowIndex - 1][columnIndex], 'LEFT', 0, 0)
 			cell:SetPoint('RIGHT', panel.cells[rowIndex - 1][columnIndex], 'RIGHT', 0, 0)
 
-			if columnIndex == 1 then
+			if not panel.cells[rowIndex].shadow then
 				local shadow = panel:CreateTexture(nil, 'BACKGROUND') -- UI-EJ-Header-Overview
 				shadow:SetTexture('Interface\\EncounterJournal\\UI-EncounterJournalTextures')
 				shadow:SetTexCoord(0.359375, 0.99609375, 0.8525390625, 0.880859375)
 				shadow:SetHeight(10)
-				shadow:SetPoint('BOTTOMLEFT', cell, 'BOTTOMLEFT')
+				shadow:SetPoint('BOTTOMLEFT', cell, 'BOTTOMLEFT', -1 * margin, 0)
 				shadow:SetPoint('RIGHT', panel, 'RIGHT')
 				shadow:SetAlpha(0.5)
 				panel.cells[rowIndex].shadow = shadow
@@ -99,12 +103,11 @@ function plugin:SetCell(rowIndex, columnIndex, label, justify)
 		panel.cells[rowIndex][columnIndex] = cell
 	end
 
-	if justify then
-		cell:SetJustifyH(justify)
-	end
-
 	-- Update cell content.
-	cell:SetText(label)
+	cell.text:SetJustifyH(justify or 'CENTER')
+	cell.text:SetText(label)
+	cell.link = link
+	cell.tiptext = tiptext
 
 	return cell
 end
@@ -116,7 +119,7 @@ function plugin:UpdateColumnWidth(columnIndex, width)
 			if not width then
 				width = 0
 				for row = 0, #self.panel.cells do
-					width = math.max(width, self.panel.cells[row][column]:GetStringWidth())
+					width = math.max(width, self.panel.cells[row][column].text:GetStringWidth())
 				end
 			end
 			self.panel.cells[0][column]:SetWidth(width)
@@ -161,24 +164,90 @@ function plugin:OnDisable()
 	--
 end
 
+function plugin:UpdateDataSources()
+	local panel = self.panel
+
+	local index = 0
+	for providerName, provider in self:IterateModules() do
+		if not provider:IsEnabled() then provider:Enable() end
+		self.provider = self.provider or provider
+
+		-- init data selector
+		index = index + 1
+		local button = _G[panel:GetName() .. provider:GetName()] or CreateDataSourceButton(provider, index)
+		button:GetNormalTexture():SetDesaturated(false)
+		button:ClearAllPoints()
+		button:SetChecked(self.provider == provider)
+		button:GetNormalTexture():SetDesaturated(false)
+		panel[index] = button
+		if index == 1 then
+			button:SetPoint('TOPLEFT', 10, -12)
+		else
+			button:SetPoint('TOPLEFT', panel[index - 1], 'TOPRIGHT', 12, 0)
+		end
+	end
+end
+
+function plugin:UpdateList()
+	local characterKey = addon:GetSelectedCharacter()
+	local scrollFrame  = self.panel.scrollFrame
+	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
+
+	local padding = 6
+	local margin = 20
+	local maxWidth = self.panel:GetWidth() - (16 + 2*margin)
+	local usedWidth, numUsed = 0, 0
+
+	local numRows = #addon.frame.sidebar.scrollFrame
+	local numColumns = self.provider:GetNumColumns()
+	for columnIndex = 1, numColumns do
+		-- @todo Add support for clicking if there's a link.
+		self:SetCell(0, columnIndex, self.provider:GetColumnInfo(columnIndex + offset))
+
+		for rowIndex = 1, numRows do
+			local characterKey = addon.frame.sidebar.scrollFrame[rowIndex].element
+			self:SetCell(rowIndex, columnIndex, self.provider:GetCellInfo(characterKey, columnIndex + offset))
+		end
+
+		usedWidth = usedWidth + self:UpdateColumnWidth(columnIndex) + (2 * padding)
+		numUsed = numUsed + 1
+		if usedWidth > maxWidth then break end
+	end
+	scrollFrame.numColumns = numUsed
+
+	-- Hide unused columns.
+	for columnIndex = numUsed + 1, #self.panel.cells[0] do
+		for rowIndex = 0, numRows do
+			self:SetCell(rowIndex, columnIndex, nil)
+		end
+	end
+
+	-- Display scroll bar when necessary.
+	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numColumns, numUsed, maxWidth / (numUsed or 1))
+	-- adjustments so rows have decent padding with and without scroll bar
+	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
+
+	return numUsed or 0
+end
+
 function plugin:Update()
-	local numRows = self:UpdateList()
-	return numRows
+	self:UpdateDataSources()
+	local numColumns = self:UpdateList()
+	return numColumns
 end
 
 --[[
 	Temporary helper functions.
 --]]
-function plugin:GetNumColumns()
+--[[function plugin:GetNumColumns()
 	local count = 0
 	count = count + 3 -- bags
-	count = count + 6 -- professions
 	count = count + addon.data.GetNumCurrencies()
 
 	return count
-end
+end--]]
 
-function plugin:GetColumnLabel(columnIndex)
+--[[function plugin:GetColumnLabel(columnIndex)
 	local characterKey = addon.data.GetCurrentCharacter()
 	local plugin, count
 
@@ -188,18 +257,6 @@ function plugin:GetColumnLabel(columnIndex)
 		return (columnIndex == 1 and 'Bag Slots')
 			or (columnIndex == 2 and 'Used')
 			or (columnIndex == 3 and 'Free')
-	end
-	columnIndex = columnIndex - count
-
-	-- Professions.
-	count = 6
-	if columnIndex <= count then
-		return (columnIndex == 1 and 'Prof 1')
-			or (columnIndex == 2 and 'Prof 2')
-			or (columnIndex == 3 and 'Arch')
-			or (columnIndex == 4 and 'Fish')
-			or (columnIndex == 5 and 'Cook')
-			or (columnIndex == 6 and 'Aid')
 	end
 	columnIndex = columnIndex - count
 
@@ -213,9 +270,9 @@ function plugin:GetColumnLabel(columnIndex)
 	columnIndex = columnIndex - count
 
 	return 'Col ' .. columnIndex
-end
+end--]]
 
-function plugin:GetCellContent(characterKey, columnIndex)
+--[[function plugin:GetCellContent(characterKey, columnIndex)
 	local plugin, count
 
 	-- Bag space.
@@ -237,20 +294,6 @@ function plugin:GetCellContent(characterKey, columnIndex)
 	end
 	columnIndex = columnIndex - count
 
-	-- Professions.
-	count = 6
-	if columnIndex <= count then
-		local profession = select(columnIndex, addon.data.GetProfessions(characterKey))
-		if profession then
-			local name, icon, rank, maxRank, skillLine, spellID, specSpellID = addon.data.GetProfessionInfo(characterKey, profession)
-			if name then
-				return string.format('|T%s:0|t %s', icon, rank)
-			end
-		end
-		return '-'
-	end
-	columnIndex = columnIndex - count
-
 	-- Currencies.
 	count = addon.data.GetNumCurrencies()
 	if columnIndex <= count then
@@ -261,4 +304,4 @@ function plugin:GetCellContent(characterKey, columnIndex)
 	columnIndex = columnIndex - count
 
 	return '...'
-end
+end--]]
