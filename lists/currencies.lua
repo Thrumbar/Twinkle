@@ -23,7 +23,7 @@ end
 function currencies:GetRowInfo(characterKey, index)
 	local isHeader, name, count, icon, weekly, currencyID = addon.data.GetCurrencyInfoByIndex(characterKey, index)
 	local prefix -- = '|T'..icon..':0|t'
-	local suffix = AbbreviateLargeNumbers(count)
+	local suffix = (not isHeader or count > 0) and AbbreviateLargeNumbers(count) or ''
 
 	return isHeader and 1 or nil, name, prefix, suffix, currencyID and GetCurrencyLink(currencyID)
 end
