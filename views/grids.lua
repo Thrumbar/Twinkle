@@ -65,6 +65,7 @@ function plugin:SetCell(rowIndex, columnIndex, label, link, tiptext, justify)
 		cell:SetHeight(16)
 		cell:SetScript('OnEnter', addon.ShowTooltip)
 		cell:SetScript('OnLeave', addon.HideTooltip)
+		-- @todo Add support for clicking if there's a link.
 		-- cell:SetScript('OnClick', OnRowClick)
 
 		cell.text = cell:CreateFontString(nil, nil, 'GameFontNormal')
@@ -201,7 +202,6 @@ function plugin:UpdateList()
 	local numRows = #addon.frame.sidebar.scrollFrame
 	local numColumns = self.provider:GetNumColumns()
 	for columnIndex = 1, numColumns do
-		-- @todo Add support for clicking if there's a link.
 		self:SetCell(0, columnIndex, self.provider:GetColumnInfo(columnIndex + offset))
 
 		for rowIndex = 1, numRows do
@@ -235,73 +235,3 @@ function plugin:Update()
 	local numColumns = self:UpdateList()
 	return numColumns
 end
-
---[[
-	Temporary helper functions.
---]]
---[[function plugin:GetNumColumns()
-	local count = 0
-	count = count + 3 -- bags
-	count = count + addon.data.GetNumCurrencies()
-
-	return count
-end--]]
-
---[[function plugin:GetColumnLabel(columnIndex)
-	local characterKey = addon.data.GetCurrentCharacter()
-	local plugin, count
-
-	-- Bag space.
-	count = 3
-	if columnIndex <= count then
-		return (columnIndex == 1 and 'Bag Slots')
-			or (columnIndex == 2 and 'Used')
-			or (columnIndex == 3 and 'Free')
-	end
-	columnIndex = columnIndex - count
-
-	-- Currencies.
-	count = addon.data.GetNumCurrencies()
-	if columnIndex <= count then
-		-- Negative index => global list index.
-		local _, name, _, icon, _, currencyID = addon.data.GetCurrencyInfoByIndex(characterKey, -1 * columnIndex)
-		return icon and ('|T' .. icon .. ':0|t') or ''
-	end
-	columnIndex = columnIndex - count
-
-	return 'Col ' .. columnIndex
-end--]]
-
---[[function plugin:GetCellContent(characterKey, columnIndex)
-	local plugin, count
-
-	-- Bag space.
-	count = 3
-	if columnIndex <= count then
-		local total, free = 0, 0
-		for container = 0, _G.NUM_BAG_SLOTS do
-			local bagTotal, bagFree = addon.data.GetContainerInfo(characterKey, container)
-			total = total + bagTotal
-			free = free + bagFree
-		end
-		if columnIndex == 1 then
-			return total
-		elseif columnIndex == 2 then
-			return total - free
-		else
-			return free
-		end
-	end
-	columnIndex = columnIndex - count
-
-	-- Currencies.
-	count = addon.data.GetNumCurrencies()
-	if columnIndex <= count then
-		-- Negative index => global list index.
-		local _, name, count, icon, _, currencyID = addon.data.GetCurrencyInfoByIndex(characterKey, -1 * columnIndex)
-		return count or '-'
-	end
-	columnIndex = columnIndex - count
-
-	return '...'
-end--]]

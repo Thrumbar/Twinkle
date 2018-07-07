@@ -24,8 +24,8 @@ function storage:GetColumnInfo(index)
 	local text, link, tooltipText, justify
 
 	return (index == 1 and 'Bag Slots')
-			or (index == 2 and 'Used')
-			or (index == 3 and 'Free'), link, tooltipText, justify
+		or (index == 2 and 'Used')
+		or (index == 3 and 'Free'), link, tooltipText, justify
 end
 
 function storage:GetCellInfo(characterKey, index)
@@ -42,5 +42,4 @@ function storage:GetCellInfo(characterKey, index)
 	else
 		return free
 	end
-	-- return text, link, tooltipText, justify
 end
