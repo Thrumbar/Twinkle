@@ -21,6 +21,9 @@ function plugin:OnEnable()
 	for _, mechanic in pairs(C_Garrison.GetAllEncounterThreats(LE_FOLLOWER_TYPE_SHIPYARD_6_2)) do
 		mechanics[mechanic.id] = true
 	end
+	for _, mechanic in pairs(C_Garrison.GetAllEncounterThreats(LE_FOLLOWER_TYPE_GARRISON_7_0)) do
+		mechanics[mechanic.id] = true
+	end
 
 	-- self:RegisterEvent('USE_GLYPH', 'Update')
 end
@@ -112,6 +115,7 @@ function plugin:GetRowInfo(characterKey, index)
 		local abilityID = select(3 + i, addon.data.GetFollowerInfo(characterKey, garrFollowerID))
 		if abilityID > 0 then
 			local mechanicID, _, icon = C_Garrison.GetFollowerAbilityCounterMechanicInfo(abilityID)
+			-- @todo Use correct spec icons for LE_FOLLOWER_TYPE_GARRISON_7_0 followers.
 			if icon and mechanics[mechanicID] then
 				-- most traits don't counter any mechanics
 				suffix = traitFormat:format(icon, suffix)
