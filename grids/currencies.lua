@@ -43,8 +43,7 @@ function currencies:GetCellInfo(characterKey, index)
 	if index == 1 then
 		-- Gold
 		local value = addon.data.GetMoney(characterKey)
-		-- @todo Format value nicely for tooltip.
-		return AbbreviateLargeNumbers(math.floor(value/COPPER_PER_GOLD)), nil, value, 'RIGHT'
+		return AbbreviateLargeNumbers(math.floor(value/COPPER_PER_GOLD)), nil, GetCoinTextureString(value), 'RIGHT'
 	end
 	index = index + 1
 
