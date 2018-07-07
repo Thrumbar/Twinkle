@@ -32,10 +32,10 @@ local skillLineMappings = {
 }
 
 function professions:OnEnable()
-	-- self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', 'Update')
+	self:RegisterEvent('SKILL_LINES_CHANGED', 'Update')
 end
 function professions:OnDisable()
-	-- self:UnregisterEvent('CURRENCY_DISPLAY_UPDATE')
+	self:UnregisterEvent('SKILL_LINES_CHANGED')
 end
 
 function professions:GetNumColumns()
@@ -59,7 +59,18 @@ function professions:GetCellInfo(characterKey, index)
 
 	local name, icon, rank, maxRank, skillLine, spellID, specSpellID = addon.data.GetProfessionInfo(characterKey, profession.skillLine)
 	if name then
-		text = addon.ColorizeText(rank, rank, maxRank)
+		local currExpMax = PROFESSION_RANKS[#PROFESSION_RANKS][1]
+		local prevExpMax = PROFESSION_RANKS[#PROFESSION_RANKS - 1][1]
+		if rank >= currExpMax then
+			-- Maxed out for this expansion.
+			text = addon.ColorizeText(rank, rank, rank)
+		elseif rank >= prevExpMax then
+			-- Still leveling for this expansion.
+			text = addon.ColorizeText(rank, rank - prevExpMax, currExpMax - prevExpMax)
+		else
+			-- Horribly outdated.
+			text = addon.ColorizeText(rank, 0)
+		end
 		-- @todo Add wrapper API.
 		link = DataStore:GetProfessionTradeLink(characterKey, skillLine)
 		justify = 'RIGHT'

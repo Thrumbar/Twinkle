@@ -10,6 +10,7 @@ local currencies = grids:NewModule('currencies', 'AceEvent-3.0')
       currencies.title = 'Currencies'
 
 function currencies:OnEnable()
+	-- @todo Add event for money updates.
 	self:RegisterEvent('CURRENCY_DISPLAY_UPDATE', 'Update')
 end
 function currencies:OnDisable()
