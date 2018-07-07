@@ -28,15 +28,22 @@ function plugin:OnDisable()
 	-- self:UnregisterEvent('USE_GLYPH')
 end
 
-local character, followers = nil, {}
+local character, followers, followerTypes = nil, {}, {}
 local function SortFollowers(a, b)
 	local aType, bType = C_Garrison.GetFollowerTypeByID(a), C_Garrison.GetFollowerTypeByID(b)
-	local aInactive = select(14, addon.data.GetFollowerInfo(character, a))
-	local bInactive = select(14, addon.data.GetFollowerInfo(character, b))
+	local aRarity, aLevel, aItemLevel, _, _, _, _, _, _, _, _, _, _, aInactive = addon.data.GetFollowerInfo(character, a)
+	local bRarity, bLevel, bItemLevel, _, _, _, _, _, _, _, _, _, _, bInactive = addon.data.GetFollowerInfo(character, b)
+
 	if aType ~= bType then
 		return aType > bType
 	elseif aInactive ~= bInactive then
 		return not aInactive
+	elseif aItemLevel ~= bItemLevel then
+		return aItemLevel > bItemLevel
+	elseif aLevel ~= bLevel then
+		return aLevel > bLevel
+	elseif aRarity ~= bRarity then
+		return aRarity > bRarity
 	else
 		return C_Garrison.GetFollowerNameByID(a) < C_Garrison.GetFollowerNameByID(b)
 	end
@@ -44,20 +51,38 @@ end
 function plugin:GetNumRows(characterKey)
 	local numFollowers = addon.data.GetNumFollowers(characterKey)
 	if characterKey ~= character then
+		-- Rebuild follower list for the requested character.
 		wipe(followers)
+		wipe(followerTypes)
 		character = characterKey
 		for followerID in pairs(addon.data.GetFollowers(characterKey)) do
+			-- table.insert(followerTypes, C_Garrison.GetFollowerTypeByID(followerID))
 			table.insert(followers, followerID)
 		end
 		table.sort(followers, SortFollowers)
+
+		-- Add headers
+		local currentFollowerType = nil
+		for i, followerID in ipairs(followers) do
+			local followerType = C_Garrison.GetFollowerTypeByID(followerID)
+			if followerType ~= currentFollowerType then
+				table.insert(followers, i, _G.GarrisonFollowerOptions[followerType].strings.FOLLOWER_COUNT_LABEL)
+				currentFollowerType = followerType
+			end
+		end
 	end
-	return numFollowers
+	return numFollowers + #followerTypes
 end
 
 function plugin:GetRowInfo(characterKey, index)
 	local garrFollowerID = followers[index]
 	if not garrFollowerID then return end
 	local suffix, prefix = '', nil
+
+	if type(garrFollowerID) == 'string' then
+		-- This is a header.
+		return 1, garrFollowerID
+	end
 
 	-- also available C_Garrison.GetFollower ... PortraitIconIDByID, DisplayIDByID, SourceTextByID
 	-- local specID = C_Garrison.GetFollowerClassSpecByID(garrFollowerID)
@@ -105,7 +130,7 @@ function plugin:GetItemInfo(characterKey, index, itemIndex)
 	local abilityID = select(3 + 4 + itemIndex, addon.data.GetFollowerInfo(characterKey, garrFollowerID))
 	if abilityID and abilityID > 0 then
 		-- link = C_Garrison.GetFollowerAbilityLink(abilityID)
-		icon = C_Garrison.GetFollowerAbilityIcon(abilityID)
+		icon = C_Garrison.GetFollowerAbilityIcon(abilityID) or ''
 		tooltipText = '|T' .. icon .. ':0|t ' .. C_Garrison.GetFollowerAbilityName(abilityID)
 			.. '|n' .. C_Garrison.GetFollowerAbilityDescription(abilityID)
 		count = 1
