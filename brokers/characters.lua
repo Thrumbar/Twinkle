@@ -107,7 +107,6 @@ local function ColorByItemLevel(itemLevel)
 	local color = _G.ITEM_QUALITY_COLORS[qualityIndex].hex
 	return color .. itemLevel .. '|r'
 end
--- FOO, BAR = itemLevelQualities, ColorByItemLevel
 
 local sortColumns = {'GetLevel', 'GetName', nil, 'GetAverageItemLevel'}
 local sortOrder = {1, 4, 2}
