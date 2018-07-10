@@ -41,7 +41,7 @@ function data.GetAllCharacters(useTable, ...)
 end
 
 local listRealms = {}
-function data.GetCharacters(useTable)
+function data.GetCharacters(useTable, sorter)
 	if useTable then wipe(useTable) else useTable = {} end
 	local filters = addon.db.profile.characterFilters
 	local currentRealm = filters.Realm.current and GetRealmName('player') or false
@@ -64,7 +64,7 @@ function data.GetCharacters(useTable)
 			end
 		end
 	end
-	table.sort(useTable)
+	table.sort(useTable, sorter)
 	return characters
 end
 

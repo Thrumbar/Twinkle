@@ -239,11 +239,19 @@ function addon:UpdateCharacterButton(button, characterKey)
 	end
 end
 
+--[[-- @todo Allow specifying sort order.
+local function characterSort(a, b)
+	-- Sort options:
+	-- Realm, Name, Level, Faction, Race, Class, Armor Type.
+	return a < b
+end--]]
+
 local characters = {}
+local characterSort
 function addon:UpdateCharacters()
 	local scrollFrame = self.frame.sidebar.scrollFrame
 	local offset = FauxScrollFrame_GetOffset(scrollFrame)
-	local characters = self.data.GetCharacters(characters)
+	local characters = self.data.GetCharacters(characters, characterSort)
 	for i, button in ipairs(scrollFrame) do
 		local index = i + offset
 		self:UpdateCharacterButton(button, characters[index])
