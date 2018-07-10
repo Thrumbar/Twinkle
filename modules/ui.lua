@@ -298,5 +298,5 @@ function addon:SelectCharacter(characterKey)
 	scrollFrame.selection = characterKey
 
 	addon:Update()
-	addon:SendMessage('TWINKLE_CHARACTER_CHANGED', listButton and listButton.element or nil)
+	addon:SendMessage('TWINKLE_CHARACTER_CHANGED', characterKey)
 end
