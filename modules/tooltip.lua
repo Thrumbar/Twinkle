@@ -282,17 +282,24 @@ function plugin:OnEnable()
 		_G[tooltip:GetName()..'TextRight'..tooltip:NumLines()]:SetText('*')
 	end)
 
-	-- TODO: does not trigger on zone quest lists
-	hooksecurefunc('QuestMapLogTitleButton_OnEnter', function(self)
+	local questLogButton_OnEnter = function(self)
 		local _, _, _, isHeader, _, _, _, questID = GetQuestLogTitle(self.questLogIndex)
 		local tooltip = GameTooltip
 		if not isHeader and questID and tooltip:IsShown() then
 			addon.AddOnQuestInfo(tooltip, questID)
 			tooltip:Show()
 		end
-	end)
+	end
+	-- Apply to already existing buttons.
+	local questLogButtons = { QuestMapFrame.QuestsFrame.Contents:GetChildren() }
+	for _, button in pairs(questLogButtons) do
+		if button:HasScript('OnEnter') and button:GetScript('OnEnter') == QuestMapLogTitleButton_OnEnter then
+			button:HookScript('OnEnter', questLogButton_OnEnter)
+		end
+	end
+	-- Apply to newly created buttons.
+	hooksecurefunc('QuestMapLogTitleButton_OnEnter', questLogButton_OnEnter)
 end
-
 
 --[[
 -- speciesId, petGUID = C_PetJournal.FindPetIDByName("petName")
