@@ -4,7 +4,7 @@ local addonName, addon, _ = ...
 -- GLOBALS: FauxScrollFrame_OnVerticalScroll, FauxScrollFrame_GetOffset, FauxScrollFrame_Update
 
 local views = addon:GetModule('views')
-local plugin = views:NewModule('grids')
+local plugin = views:NewModule('grids', 'AceEvent-3.0')
       plugin.icon = 'Interface\\ICONS\\INV_Misc_Net_01'
       plugin.title = 'Grids'
 
@@ -159,6 +159,13 @@ function plugin:Load()
 			plugin:UpdateList()
 		end
 	end)
+
+	self:RegisterMessage('TWINKLE_VIEW_CHANGED', function(event, newView, oldView)
+		if oldView and oldView == 'grids' then
+			-- Show previous selected character again.
+			addon:UpdateCharacters()
+		end
+	end)
 end
 
 function plugin:OnDisable()
@@ -190,6 +197,12 @@ function plugin:UpdateDataSources()
 end
 
 function plugin:UpdateList()
+	for _, button in ipairs(addon.frame.sidebar.scrollFrame) do
+		-- Deselect any characters in the sidebar.
+		button.highlight:SetVertexColor(.196, .388, .8)
+		button:UnlockHighlight()
+	end
+
 	local characterKey = addon:GetSelectedCharacter()
 	local scrollFrame  = self.panel.scrollFrame
 	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
