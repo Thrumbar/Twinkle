@@ -54,6 +54,23 @@ function plugin:SelectDataSource(provider)
 	end
 end
 
+local function CellOnClick(self, btn, up)
+	local link = self.link
+
+	if plugin.provider.OnCellClick then
+		local rowIndex = self.rowIndex
+		local columnIndex = self.columnIndex
+		local characterKey = addon.frame.sidebar.scrollFrame[rowIndex].element
+
+		-- Return a hyperlink to use that, or nil to stop processing.
+		link = plugin.provider:OnCellClick(characterKey, columnIndex, self, btn, up)
+	end
+
+	if link and IsModifiedClick() and HandleModifiedItemClick(link) then
+		return
+	end
+end
+
 function plugin:SetCell(rowIndex, columnIndex, label, link, tiptext, justify)
 	local panel = self.panel
 	if not panel.cells then panel.cells = {} end
@@ -61,12 +78,14 @@ function plugin:SetCell(rowIndex, columnIndex, label, link, tiptext, justify)
 
 	local cell = panel.cells[rowIndex][columnIndex]
 	if not cell then
-		cell = CreateFrame('Frame', '$parentRow' .. rowIndex .. 'Column' .. columnIndex, panel)
+		cell = CreateFrame('Button', nil, panel)
+		cell.rowIndex = rowIndex
+		cell.columnIndex = columnIndex
+
 		cell:SetHeight(16)
 		cell:SetScript('OnEnter', addon.ShowTooltip)
 		cell:SetScript('OnLeave', addon.HideTooltip)
-		-- @todo Add support for clicking if there's a link.
-		-- cell:SetScript('OnClick', OnRowClick)
+		cell:SetScript('OnClick', CellOnClick)
 
 		cell.text = cell:CreateFontString(nil, nil, 'GameFontNormal')
 		cell.text:SetAllPoints()

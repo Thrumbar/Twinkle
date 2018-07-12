@@ -71,10 +71,24 @@ function professions:GetCellInfo(characterKey, index)
 			-- Horribly outdated.
 			text = addon.ColorizeText(rank, 0)
 		end
-		-- @todo Add wrapper API.
-		link = DataStore:GetProfessionTradeLink(characterKey, skillLine)
+		link = GetSpellLink(specSpellID or spellID)
+
 		justify = 'RIGHT'
 	end
 
 	return text, link, tooltipText, justify
+end
+
+function professions:OnCellClick(characterKey, index, frame, btn, up)
+	local profession = skillLineMappings[index]
+
+	local name, icon, rank, maxRank, skillLine, spellID, specSpellID = addon.data.GetProfessionInfo(characterKey, profession.skillLine)
+
+	-- @todo Add wrapper API.
+	local link = DataStore:GetProfessionTradeLink(characterKey, skillLine)
+	if link and not IsModifiedClick() then
+		-- link = link:match("\124H(.-)\124")
+		-- SetItemRef(link)
+	end
+	return link
 end
