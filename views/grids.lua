@@ -120,7 +120,8 @@ function plugin:UpdateColumnWidth(columnIndex, width)
 			if not width then
 				width = 0
 				for row = 0, #self.panel.cells do
-					width = math.max(width, self.panel.cells[row][column].text:GetStringWidth())
+					local cell = self.panel.cells[row][column]
+					width = math.max(width, cell and cell.text:GetStringWidth() or 0)
 				end
 			end
 			self.panel.cells[0][column]:SetWidth(width)
@@ -197,13 +198,15 @@ function plugin:UpdateDataSources()
 end
 
 function plugin:UpdateList()
+	local numRows = 0
 	for _, button in ipairs(addon.frame.sidebar.scrollFrame) do
+		numRows = numRows + (button:IsShown() and 1 or 0)
+
 		-- Deselect any characters in the sidebar.
 		button.highlight:SetVertexColor(.196, .388, .8)
 		button:UnlockHighlight()
 	end
 
-	local characterKey = addon:GetSelectedCharacter()
 	local scrollFrame  = self.panel.scrollFrame
 	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
 
@@ -212,7 +215,6 @@ function plugin:UpdateList()
 	local maxWidth = self.panel:GetWidth() - (16 + 2*margin)
 	local usedWidth, numUsed = 0, 0
 
-	local numRows = #addon.frame.sidebar.scrollFrame
 	local numColumns = self.provider:GetNumColumns()
 	for columnIndex = 1, numColumns do
 		self:SetCell(0, columnIndex, self.provider:GetColumnInfo(columnIndex + offset))
@@ -228,10 +230,12 @@ function plugin:UpdateList()
 	end
 	scrollFrame.numColumns = numUsed
 
-	-- Hide unused columns.
-	for columnIndex = numUsed + 1, #self.panel.cells[0] do
-		for rowIndex = 0, numRows do
-			self:SetCell(rowIndex, columnIndex, nil)
+	-- Hide unused cells.
+	for columnIndex = 1, #self.panel.cells[0] do
+		for rowIndex = 1, #addon.frame.sidebar.scrollFrame do
+			if rowIndex > numRows or columnIndex > numUsed then
+				self:SetCell(rowIndex, columnIndex, nil)
+			end
 		end
 	end
 
