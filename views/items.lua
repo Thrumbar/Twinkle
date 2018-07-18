@@ -1,8 +1,8 @@
 local addonName, addon, _ = ...
 local L = addon.L
 
--- GLOBALS: _G, DataStore
--- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_SetOffset, FauxScrollFrame_OnVerticalScroll, WhoFrameColumn_SetWidth, GetItemInfo, GetItemQualityColor
+-- GLOBALS: _G, DataStore, SOUNDKIT
+-- GLOBALS: CreateFrame, IsModifiedClick, HandleModifiedItemClick, FauxScrollFrame_Update, FauxScrollFrame_GetOffset, FauxScrollFrame_SetOffset, FauxScrollFrame_OnVerticalScroll, WhoFrameColumn_SetWidth, GetItemInfo, GetItemQualityColor, PlaySound, GetItemInfoInstant, GetDetailedItemLevelInfo
 -- GLOBALS: ipairs, wipe, strjoin, type, select
 local tinsert, tremove, tsort, abs = table.insert, table.remove, table.sort, math.abs
 
@@ -27,7 +27,6 @@ local prototype = {
 items:SetDefaultModuleState(false)
 items:SetDefaultModulePrototype(prototype)
 
-local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 local ItemSearch     = LibStub('LibItemSearch-1.2')
 
 -- note: item based sorting matches index of GetItemInfo, collection based matches property name
@@ -178,8 +177,8 @@ local function Sort(a, b)
 		local realSort, ascending = abs(sortOption), sortOption > 0
 		local aValue, bValue
 		if realSort == SORT_BY_LEVEL then
-			aValue = LibItemUpgrade:GetUpgradedItemLevel(a.link)
-			bValue = LibItemUpgrade:GetUpgradedItemLevel(b.link)
+			aValue = GetDetailedItemLevelInfo(a.link)
+			bValue = GetDetailedItemLevelInfo(b.link)
 		elseif realSort == SORT_BY_COUNT then
 			aValue, bValue = 0, 0
 			for providerName, provider in items:IterateModules() do
@@ -294,7 +293,7 @@ function items:UpdateList()
 				local _, _, _, _, texture = GetItemInfoInstant(itemData.link)
 				local name, _, quality = GetItemInfo(itemData.link)
 				local r, g, b = GetItemQualityColor(quality or _G.LE_ITEM_QUALITY_COMMON)
-				local itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemData.link)
+				local itemLevel = GetDetailedItemLevelInfo(itemData.link)
 
 				button.name:SetText(name)
 				-- button.name:SetTextColor(r, g, b)

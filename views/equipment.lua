@@ -9,8 +9,6 @@ local equipment = views:NewModule('equipment', 'AceTimer-3.0')
       equipment.icon = 'Interface\\PaperDollInfoFrame\\UI-EquipmentManager-Toggle'
       equipment.title = _G.BAG_FILTER_EQUIPMENT
 
-local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
-
 local slotInfo = {
 	-- left aligned
 	'HeadSlot', 	-- 1 	_G.INVSLOT_HEAD
@@ -153,19 +151,18 @@ local function SetSlotItem(slotID, itemLink)
 			return
 		end
 		local qualityColor = _G.ITEM_QUALITY_COLORS[quality]
-		local itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink) or iLvl
-		slotButton.level:SetText(itemLevel)
+		local itemLevel, _, baseItemLevel = GetDetailedItemLevelInfo(itemLink)
+		slotButton.level:SetText(itemLevel or iLvl)
 		slotButton.level:SetTextColor(qualityColor.r, qualityColor.g, qualityColor.b)
 
 		-- item upgrades
-		local upgraded, maxUpgrade, iLvlDelta = LibItemUpgrade:GetItemUpgradeInfo(itemLink)
-		if not upgraded or maxUpgrade == 0 then
+		if not itemLevel or not baseItemLevel or itemLevel == baseItemLevel then
 			slotButton.upgrade:SetText('')
 		else
 			slotButton.upgrade:SetText('*')
-			local color = (upgraded == 0 and _G.RED_FONT_COLOR)
+			local color = _G.YELLOW_FONT_COLOR --[[(upgraded == 0 and _G.RED_FONT_COLOR)
 				or (upgraded ~= maxUpgrade and _G.YELLOW_FONT_COLOR)
-				or _G.GREEN_FONT_COLOR
+				or _G.GREEN_FONT_COLOR--]]
 			slotButton.upgrade:SetTextColor(color.r, color.g, color.b)
 		end
 

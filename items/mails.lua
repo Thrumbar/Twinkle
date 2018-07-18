@@ -4,7 +4,6 @@ local addonName, addon, _ = ...
 -- GLOBALS: GetItemInfo
 -- GLOBALS: string
 
-local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
 local LibItemLocations = LibStub('LibItemLocations', true)
 
 local views = addon:GetModule('views')

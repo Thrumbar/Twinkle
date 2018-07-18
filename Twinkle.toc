@@ -15,7 +15,6 @@ libs\AceConfig-3.0\AceConfig-3.0.lua
 libs\LibBabble-Faction-3.0\lib.xml
 libs\CustomSearch-1.0\CustomSearch-1.0.lua
 libs\LibItemSearch-1.2\LibItemSearch-1.2.lua
-libs\LibItemUpgradeInfo-1.0\Core.lua
 libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\LibQTip-1.0\LibQTip-1.0.lua
 libs\LibRealmInfo\LibRealmInfo.lua
