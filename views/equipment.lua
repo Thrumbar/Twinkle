@@ -151,6 +151,8 @@ local function SetSlotItem(slotID, itemLink)
 			return
 		end
 		local qualityColor = _G.ITEM_QUALITY_COLORS[quality]
+		-- @todo Fix this so it returns displayed character's item level, not
+		-- logged in one's.
 		local itemLevel, _, baseItemLevel = GetDetailedItemLevelInfo(itemLink)
 		slotButton.level:SetText(itemLevel or iLvl)
 		slotButton.level:SetTextColor(qualityColor.r, qualityColor.g, qualityColor.b)

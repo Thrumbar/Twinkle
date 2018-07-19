@@ -1,4 +1,4 @@
-## Interface: 60100
+## Interface: 80000
 ## Author: ckaotik
 ## Title: Twinkle
 ## Version: @project-version@
