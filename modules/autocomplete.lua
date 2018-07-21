@@ -1,6 +1,6 @@
 local addonName, addon, _ = ...
 
--- GLOBALS: _G, AUTOCOMPLETE_MAX_BUTTONS, AUTOCOMPLETE_SIMPLE_REGEX, AUTOCOMPLETE_SIMPLE_FORMAT_REGEX, AutoCompleteBox, LE_AUTOCOMPLETE_PRIORITY_GUILD, LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER
+-- GLOBALS: _G, AUTOCOMPLETE_MAX_BUTTONS, AUTOCOMPLETE_SIMPLE_REGEX, AUTOCOMPLETE_SIMPLE_FORMAT_REGEX, AutoCompleteBox, LE_AUTOCOMPLETE_PRIORITY_GUILD, LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER, LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER_SAME_REALM
 -- GLOBALS: SendMailNameEditBox, GetAutoCompleteResults, AutoComplete_UpdateResults, Ambiguate, RGBTableToColorCode, GetNumGuildMembers, GetGuildRosterInfo, GetNumClasses, GetClassInfo
 -- GLOBALS: pairs, string, table, tContains, hooksecurefunc, strlen, unpack, tonumber
 
@@ -62,22 +62,23 @@ end
 
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
 	if not parent or not parent.autoCompleteParams or text == '' then return end
-	-- possible flags can be found here: http://wow.go-hero.net/framexml/16650/AutoComplete.lua
-	local include, exclude = parent.autoCompleteParams.include, parent.autoCompleteParams.exclude
-	local newResults = GetAutoCompleteResults(text, include, exclude, AUTOCOMPLETE_MAX_BUTTONS+1, cursorPosition)
+	-- @see https://www.townlong-yak.com/framexml/live/AutoComplete.lua
+	local newResults = GetAutoCompleteResults(text, AUTOCOMPLETE_MAX_BUTTONS+1, cursorPosition, unpack(parent.autoCompleteParams))
 	blizzSuggestion = newResults[1]
 
-	-- color guild members by class
 	for index, suggestion in pairs(newResults) do
+		-- color guild members by class
 		if suggestion.priority == LE_AUTOCOMPLETE_PRIORITY_GUILD then
 			local characterName, fullName, classID = GetGuildCharacterInfo(suggestion.name)
 			if classID then
 				newResults[index].priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_GUILD, classID))
 			end
-		elseif suggestion.priority == LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER then
+		-- color own known characters by class
+		elseif suggestion.priority == LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER
+			or suggestion.priority == LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER_SAME_REALM then
 			local characterName, characterFullName, classID = GetAccountCharacterInfo(suggestion.name)
 			if classID then
-				newResults[index].priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER, classID))
+				newResults[index].priority = tonumber(string.format('%d.%.2d', suggestion.priority, classID))
 			end
 		end
 	end
@@ -104,13 +105,13 @@ end
 -- UnitIsGroupLeader(unit, LE_PARTY_HOME) local leader = '|TInterface\\GroupFrame\\UI-Group-LeaderIcon:0|t'
 -- local contact = '|TInterface\\FriendsFrame\\UI-Toast-FriendOnlineIcon:0|t' -- PlusManz-PlusManz, UI-Toast-FriendRequestIcon, UI-Toast-ToastIcons
 -- Battlenet-Battleneticon, Battlenet-WoWicon
-local alt   = '\124TInterface\\COMMON\\ReputationStar:10:10:0:0:32:32:0:16:0:16\124t'
+local alt   = '\124TInterface\\COMMON\\ReputationStar:10:10:0:0:32:32:0:16:0:16\124t '
 local guild = ''
 function autocomplete:OnEnable()
-	characters = addon.data.GetCharacters()
+	characters = addon.data.GetAllCharacters()
 	thisCharacter = addon.data.GetCurrentCharacter()
 
-	local your_character = string.gsub(_G.UNIT_YOU_SOURCE, _G.CHARACTER, '%%s')
+	local yourCharacter = string.gsub(_G.UNIT_YOU_SOURCE, _G.CHARACTER, '%%s')
 	for index = 1, GetNumClasses() do
 		local priority
 		local className, classTag, classID = GetClassInfo(index)
@@ -119,7 +120,14 @@ function autocomplete:OnEnable()
 		priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER, classID))
 		_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
 			key  = alt .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
-			text = string.format(your_character, className),
+			text = string.format(yourCharacter, className),
+		}
+
+		-- class coloring for alts on this realm
+		priority = tonumber(string.format('%d.%.2d', LE_AUTOCOMPLETE_PRIORITY_ACCOUNT_CHARACTER_SAME_REALM, classID))
+		_G.AUTOCOMPLETE_COLOR_KEYS[priority] = {
+			key  = alt .. RGBTableToColorCode(_G.RAID_CLASS_COLORS[classTag]),
+			text = string.format(yourCharacter, className),
 		}
 
 		-- class coloring for guild members
