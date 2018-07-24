@@ -256,7 +256,7 @@ function plugin:UpdateList()
 
 	-- Hide unused cells.
 	for columnIndex = 1, #self.panel.cells[0] do
-		for rowIndex = 1, #addon.frame.sidebar.scrollFrame do
+		for rowIndex = 0, #addon.frame.sidebar.scrollFrame do
 			if rowIndex > numRows or columnIndex > numUsed then
 				self:SetCell(rowIndex, columnIndex, nil)
 			end

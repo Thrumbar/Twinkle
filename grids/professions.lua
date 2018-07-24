@@ -12,23 +12,23 @@ local professions = grids:NewModule('professions', 'AceEvent-3.0')
 
 local skillLineMappings = {
 	-- primary crafting
-	{ skillLine = 171, spellID =  2259}, -- 'Alchemy',
-	{ skillLine = 164, spellID =  2018}, -- 'Blacksmithing',
 	{ skillLine = 333, spellID =  7411}, -- 'Enchanting',
+	{ skillLine = 197, spellID =  3908}, -- 'Tailoring',
+	{ skillLine = 165, spellID =  2108}, -- 'Leatherworking',
+	{ skillLine = 164, spellID =  2018}, -- 'Blacksmithing',
+	{ skillLine = 755, spellID = 25229}, -- 'Jewelcrafting',
 	{ skillLine = 202, spellID =  4036}, -- 'Engineering',
 	{ skillLine = 773, spellID = 45357}, -- 'Inscription',
-	{ skillLine = 755, spellID = 25229}, -- 'Jewelcrafting',
-	{ skillLine = 165, spellID =  2108}, -- 'Leatherworking',
-	{ skillLine = 197, spellID =  3908}, -- 'Tailoring',
+	{ skillLine = 171, spellID =  2259}, -- 'Alchemy',
 	-- primary gathering
 	{ skillLine = 182, spellID =  2366}, -- 'Herbalism',
 	{ skillLine = 186, spellID =  2575}, -- 'Mining',
 	{ skillLine = 393, spellID =  8613}, -- 'Skinning',
 	-- secondary
-	{ skillLine = 794, spellID = 78670}, -- 'Archaeology',
+	-- { skillLine = 129, spellID =  3273}, -- 'First Aid',
 	{ skillLine = 185, spellID =  2550}, -- 'Cooking',
-	{ skillLine = 129, spellID =  3273}, -- 'First Aid',
 	{ skillLine = 356, spellID =  7620}, -- 'Fishing',
+	{ skillLine = 794, spellID = 78670}, -- 'Archaeology',
 }
 
 function professions:OnEnable()

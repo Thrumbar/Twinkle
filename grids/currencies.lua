@@ -33,7 +33,7 @@ function currencies:GetColumnInfo(index)
 	local _, name, count, icon, weekly, currencyID = addon.data.GetCurrencyInfoByIndex(addon.data.GetCurrentCharacter(), -1 * index)
 	if name then
 		text = '|T' .. icon .. ':0|t'
-		link = GetCurrencyLink(currencyID)
+		link = GetCurrencyLink(currencyID, 0)
 	end
 	return text, link, tooltipText, justify
 end
