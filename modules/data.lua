@@ -382,8 +382,8 @@ local guildCounts = {}
 function data.GetGuildsItemCounts(itemID, uncached)
 	wipe(guildCounts)
 	for guild, identifier in pairs(DataStore:GetGuilds() or emptyTable) do
-		-- DataStore:GetGuildFaction(guild) == 'Horde' and
-		local guildText = string.format('%s%s|r', BATTLENET_FONT_COLOR_CODE,  guild)
+		local color = DataStore:GetGuildFaction(guild) == 'Horde' and ORANGE_FONT_COLOR_CODE or BATTLENET_FONT_COLOR_CODE
+		local guildText = string.format('%s%s|r', color,  guild)
 		local count = data.GetItemCounts(identifier, itemID)
 		if count > 0 then
 			guildCounts[ guildText ] = count
