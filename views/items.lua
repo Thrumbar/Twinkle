@@ -359,7 +359,12 @@ function items:Load()
 
 	scrollFrame:SetScript('OnVerticalScroll', function(self, offset)
 		local buttonHeight = self[1]:GetHeight()
-		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, function() items:UpdateList() end)
+		FauxScrollFrame_OnVerticalScroll(self, offset, buttonHeight, function()
+			if items.isUpdating then return end
+			items.isUpdating = true
+			items:UpdateList()
+			items.isUpdating = nil
+		end)
 	end)
 
 	for index = 1, 11 do

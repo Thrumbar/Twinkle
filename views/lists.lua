@@ -325,7 +325,12 @@ function lists:Load()
 	panel.scrollFrame = scrollFrame
 
 	scrollFrame:SetScript('OnVerticalScroll', function(self, offset)
-		FauxScrollFrame_OnVerticalScroll(self, offset, 20, function() lists:UpdateList() end)
+		FauxScrollFrame_OnVerticalScroll(self, offset, 20, function()
+			if lists.isUpdating then return end
+			lists.isUpdating = true
+			lists:UpdateList()
+			lists.isUpdating = nil
+		end)
 	end)
 
 	for index = 1, 16 do

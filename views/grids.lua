@@ -171,7 +171,12 @@ function plugin:Load()
 
 	scrollFrame:SetScript('OnVerticalScroll', function(self, offset)
 		local maxWidth = self:GetParent():GetWidth() - 24
-		FauxScrollFrame_OnVerticalScroll(self, offset, maxWidth / (self.numColumns or 1), function() plugin:UpdateList() end)
+		FauxScrollFrame_OnVerticalScroll(self, offset, maxWidth / (self.numColumns or 1), function()
+			if plugin.isUpdating then return end
+			plugin.isUpdating = true
+			plugin:UpdateList()
+			plugin.isUpdating = nil
+		end)
 	end)
 
 	hooksecurefunc(addon, 'UpdateCharacters', function()
