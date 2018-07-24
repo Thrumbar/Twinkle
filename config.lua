@@ -69,6 +69,9 @@ local function GetConfigurationVariables()
 			showInTooltip = 'multiselect',
 			showInLDB     = 'multiselect',
 		},
+		Garrison = { -- brokers: garrison
+			currencies = 'multiselect',
+		},
 		Notifications = { -- module: notifications
 			eventReminders = 'multiselect',
 		},
@@ -87,6 +90,11 @@ local function GetConfigurationVariables()
 			showInLDBValues = GetCurrencyLabel,
 			showWeeklyInLDBName = 'Show weekly progress',
 			showWeeklyInLDBDesc = 'Show weekly progress on data broker',
+		},
+		Garrison = {
+			currenciesName = 'Tooltip currencies',
+			currenciesValues = GetCurrencyLabel,
+			cacheFullWarningPercentName = '"Cache full" warning (%)',
 		},
 		Notifications = {
 			eventRemindersName = 'Event reminders',

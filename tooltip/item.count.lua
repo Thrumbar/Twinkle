@@ -36,7 +36,7 @@ function addon.AddItemCounts(tooltip, itemID)
 		for guild, count in pairs(addon.data.GetGuildsItemCounts(itemID)) do
 			if overallCount > 0 and count > 0 then hasMultiple = true end
 			if not linesAdded then addon.AddEmptyLine(tooltip, true) end
-			tooltip:AddDoubleLine(guild , LOCATION_COUNT:format(GUILD_BANK, GREEN_FONT_COLOR_CODE, AbbreviateLargeNumbers(count)))
+			tooltip:AddDoubleLine(guild, LOCATION_COUNT:format(GUILD_BANK, GREEN_FONT_COLOR_CODE, AbbreviateLargeNumbers(count)))
 			linesAdded = true
 			if plugin.db.global.itemCounts.includeGuildCountInTotal then
 				overallCount = overallCount + count
