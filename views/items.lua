@@ -266,6 +266,12 @@ function items:UpdateList()
 	local scrollFrame  = self.panel.scrollFrame
 	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
 
+	-- gather data if it's an unacached character, e.g. on load/after GC.
+	if not collection[characterKey] or #collection[characterKey] == 0 then
+		self:GatherItems(characterKey)
+		tsort(collection[characterKey], Sort)
+	end
+
 	-- numRows: including headers (=> scroll frame), numDataRows: excluding headers (=> result count)
 	local buttonIndex, numRows, numDataRows = 1, 0, 0
 	-- TODO somehow collections[characterKey] is sometimes nil
@@ -324,13 +330,6 @@ end
 
 function items:Update()
 	self:UpdateDataSources()
-
-	-- gather data
-	local characterKey = addon:GetSelectedCharacter()
-	if not collection[characterKey] or #collection[characterKey] == 0 then
-		self:GatherItems(characterKey)
-	end
-	tsort(collection[characterKey], Sort)
 
 	-- display data
 	local numRows = self:UpdateList()
