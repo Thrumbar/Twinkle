@@ -61,7 +61,7 @@ local function AddHighlightedText(editBox, text)
 end
 
 local function AddAltsToAutoComplete(parent, text, cursorPosition)
-	if not parent or not parent.autoCompleteParams or text == '' then return end
+	if text == '' or not parent or not parent.autoCompleteParams or #parent.autoCompleteParams < 2 then return end
 	-- @see https://www.townlong-yak.com/framexml/live/AutoComplete.lua
 	local newResults = GetAutoCompleteResults(text, AUTOCOMPLETE_MAX_BUTTONS+1, cursorPosition, unpack(parent.autoCompleteParams))
 	blizzSuggestion = newResults[1]
