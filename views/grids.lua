@@ -171,7 +171,8 @@ function plugin:Load()
 
 	scrollFrame:SetScript('OnVerticalScroll', function(self, offset)
 		local maxWidth = self:GetParent():GetWidth() - 24
-		FauxScrollFrame_OnVerticalScroll(self, offset, maxWidth / (self.numColumns or 1), function()
+		local stepSize = plugin.provider.columnWidth or maxWidth / (self.numColumns or 1)
+		FauxScrollFrame_OnVerticalScroll(self, offset, stepSize, function()
 			if plugin.isUpdating then return end
 			plugin.isUpdating = true
 			plugin:UpdateList()
@@ -231,26 +232,27 @@ function plugin:UpdateList()
 		button:UnlockHighlight()
 	end
 
-	local scrollFrame  = self.panel.scrollFrame
-	local offset       = FauxScrollFrame_GetOffset(scrollFrame)
+	local scrollFrame = self.panel.scrollFrame
+	local offset      = FauxScrollFrame_GetOffset(scrollFrame)
 
 	local padding = 6
 	local margin = 20
-	local maxWidth = self.panel:GetWidth() - (16 + 2*margin)
-	local usedWidth, numUsed = 0, 0
+	local maxWidth, usedWidth = scrollFrame:GetWidth(), 0
+	local numUsed = 0
 
 	local numColumns = self.provider:GetNumColumns()
-	for columnIndex = 1, numColumns do
-		self:SetCell(0, columnIndex, self.provider:GetColumnInfo(columnIndex + offset))
+	for dataIndex = 1 + offset, numColumns do
+		local columnIndex = dataIndex - offset
+		self:SetCell(0, columnIndex, self.provider:GetColumnInfo(dataIndex))
 
 		for rowIndex = 1, numRows do
 			local characterKey = addon.frame.sidebar.scrollFrame[rowIndex].element
-			self:SetCell(rowIndex, columnIndex, self.provider:GetCellInfo(characterKey, columnIndex + offset))
+			self:SetCell(rowIndex, columnIndex, self.provider:GetCellInfo(characterKey, dataIndex))
 		end
 
-		usedWidth = usedWidth + self:UpdateColumnWidth(columnIndex) + (2 * padding)
-		numUsed = numUsed + 1
+		usedWidth = usedWidth + self:UpdateColumnWidth(columnIndex, self.provider.columnWidth) + (2 * padding)
 		if usedWidth > maxWidth then break end
+		numUsed = numUsed + 1
 	end
 	scrollFrame.numColumns = numUsed
 
@@ -264,7 +266,9 @@ function plugin:UpdateList()
 	end
 
 	-- Display scroll bar when necessary.
-	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numColumns, numUsed, maxWidth / (numUsed or 1))
+	-- @todo Utilize Blizzard faux scroll frame magic more!
+	local stepSize = self.provider.columnWidth or maxWidth / (numUsed or 1)
+	local needsScrollBar = FauxScrollFrame_Update(scrollFrame, numColumns, numUsed, stepSize)
 	-- adjustments so rows have decent padding with and without scroll bar
 	scrollFrame:SetPoint('BOTTOMRIGHT', needsScrollBar and -24 or -12, 2)
 

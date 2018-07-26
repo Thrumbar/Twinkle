@@ -8,7 +8,7 @@ local grids = views:GetModule('grids')
 local professions = grids:NewModule('professions', 'AceEvent-3.0')
       professions.icon = 'Interface\\Icons\\70_professions_scroll_02'
       professions.title = 'Professions'
-
+      professions.columnWidth = 30
 
 local skillLineMappings = {
 	-- primary crafting
