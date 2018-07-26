@@ -60,9 +60,9 @@ local function CellOnClick(self, btn, up)
 	if plugin.provider.OnCellClick then
 		local rowIndex = self.rowIndex
 		local columnIndex = self.columnIndex
-		local characterKey = addon.frame.sidebar.scrollFrame[rowIndex].element
+		local characterKey = rowIndex > 0 and addon.frame.sidebar.scrollFrame[rowIndex].element or nil
 
-		-- Return a hyperlink to use that, or nil to stop processing.
+		-- Plugins should return a replacement hyperlink, or nil to stop processing.
 		link = plugin.provider:OnCellClick(characterKey, columnIndex, self, btn, up)
 	end
 
