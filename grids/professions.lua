@@ -46,7 +46,7 @@ function professions:GetColumnInfo(index)
 	local profession = skillLineMappings[index]
 	local name, _, icon = GetSpellInfo(profession.spellID)
 
-	local text = string.format('|T%s:0|t', icon)
+	local text = string.format('|T%s:16|t', icon)
 	local link = GetSpellLink(profession.spellID)
 	local tooltipText, justify = nil, nil
 
