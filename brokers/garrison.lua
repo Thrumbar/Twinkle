@@ -20,18 +20,12 @@ local defaults = {
 	},
 }
 
-local garrisonFollowerTypes = {}
-
 function broker:OnEnable()
 	-- Gather garrison type lookup data.
 	for garrisonFollowerType, _ in pairs(_G.GarrisonFollowerOptions) do
-		table.insert(garrisonFollowerTypes, garrisonFollowerType)
-
 		-- Enable by default.
 		defaults.profile.followerTypes[garrisonFollowerType] = true
 	end
-	table.sort(garrisonFollowerTypes)
-
 	self.db = addon.db:RegisterNamespace('Garrison', defaults)
 	-- self:RegisterEvent('EVENT_NAME', self.Update, self)
 
@@ -60,16 +54,21 @@ local ZERO = _G.GRAY_FONT_COLOR_CODE .. '0|r'
 local COMPLETE_ICON = _G.GREEN_FONT_COLOR_CODE .. '%d|r|TInterface\\RAIDFRAME\\ReadyCheck-Ready:0|t '
 local ACTIVE_ICON = _G.NORMAL_FONT_COLOR_CODE .. '%d|r|TInterface\\FriendsFrame\\StatusIcon-Away:0|t '
 
-local layout, currencyCounts, missionCounts = {}, {}, {}
+local layout, garrisonFollowerTypes = {}, {}
+local currencyCounts, missionCounts = {}, {}
 function broker:UpdateTooltip()
+	wipe(garrisonFollowerTypes)
+	for followerType, enabled in pairs(broker.db.profile.followerTypes) do
+		if enabled then table.insert(garrisonFollowerTypes, followerType) end
+	end
+	table.sort(garrisonFollowerTypes)
+
 	local missionIcon = '|TInterface\\HELPFRAME\\OpenTicketIcon:18|t'
 	wipe(layout)
 	table.insert(layout, 'LEFT') -- character
 	for i, garrisonFollowerType in ipairs(garrisonFollowerTypes) do
-		if broker.db.profile.followerTypes[garrisonFollowerType] then
-			table.insert(layout, 'RIGHT') -- currency
-			table.insert(layout, 'LEFT') -- missions
-		end
+		table.insert(layout, 'RIGHT') -- currency
+		table.insert(layout, 'LEFT') -- missions
 	end
 	table.insert(layout, 'LEFT') -- work orders
 
