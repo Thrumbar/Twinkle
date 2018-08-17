@@ -64,7 +64,9 @@ function data.GetCharacters(useTable, sorter)
 			end
 		end
 	end
-	table.sort(useTable, sorter)
+	if type(sorter) == 'function' then
+		table.sort(useTable, sorter)
+	end
 	return characters
 end
 
