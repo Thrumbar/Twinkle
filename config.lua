@@ -70,7 +70,7 @@ local function GetConfigurationVariables()
 			showInLDB     = 'multiselect',
 		},
 		Garrison = { -- brokers: garrison
-			currencies = 'multiselect',
+			followerTypes = 'multiselect',
 		},
 		Notifications = { -- module: notifications
 			eventReminders = 'multiselect',
@@ -92,8 +92,13 @@ local function GetConfigurationVariables()
 			showWeeklyInLDBDesc = 'Show weekly progress on data broker',
 		},
 		Garrison = {
-			currenciesName = 'Tooltip currencies',
-			currenciesValues = GetCurrencyLabel,
+			followerTypesName = 'Follower types',
+			followerTypesValues = {
+				[_G.LE_FOLLOWER_TYPE_GARRISON_6_0] = GARRISON_LANDING_PAGE_TITLE,
+				[_G.LE_FOLLOWER_TYPE_SHIPYARD_6_2] = GARRISON_SHIPYARD_TITLE,
+				[_G.LE_FOLLOWER_TYPE_GARRISON_7_0] = ORDER_HALL_LANDING_PAGE_TITLE,
+				[_G.LE_FOLLOWER_TYPE_GARRISON_8_0] = GARRISON_TYPE_8_0_LANDING_PAGE_TITLE,
+				},
 			cacheFullWarningPercentName = '"Cache full" warning (%)',
 		},
 		Notifications = {
