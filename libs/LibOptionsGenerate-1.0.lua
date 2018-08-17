@@ -1,4 +1,4 @@
-local MAJOR, MINOR = 'LibOptionsGenerate-1.0', 22
+local MAJOR, MINOR = 'LibOptionsGenerate-1.0', 24
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -91,18 +91,35 @@ local function SetColorSetting(info, r, g, b, a)
 	color[1], color[2], color[3], color[4] = r, g, b, a
 	set(info, color)
 end
-local function GetPercentSetting(info)        local get = GetAncestorProperty(info, 'get'); return get(info) * 100 end
-local function SetPercentSetting(info, value) local set = GetAncestorProperty(info, 'set'); set(info, value/100) end
-local function GetNumberSetting(info)         local get = GetAncestorProperty(info, 'get'); return tostring(get(info)) end
-local function SetNumberSetting(info, value)  local set = GetAncestorProperty(info, 'set'); set(info, tonumber(value)) end
-local function GetMultiSelectSetting(info, key) local get = GetAncestorProperty(info, 'get'); return get(info)[key] end
+local function GetPercentSetting(info)
+	local get = GetAncestorProperty(info, 'get')
+	return get(info) * 100
+end
+local function SetPercentSetting(info, value)
+	local set = GetAncestorProperty(info, 'set')
+	set(info, value/100)
+end
+local function GetNumberSetting(info)
+	local get = GetAncestorProperty(info, 'get')
+	return tostring(get(info))
+end
+local function SetNumberSetting(info, value)
+	local set = GetAncestorProperty(info, 'set')
+	set(info, tonumber(value))
+end
+local function GetMultiSelectSetting(info, key)
+	local get = GetAncestorProperty(info, 'get')
+	return get(info)[key]
+end
 local function SetMultiSelectSetting(info, key, value)
 	-- we get the container table and then set the specific value
 	local get = GetAncestorProperty(info, 'get')
 	get(info)[key] = value
 end
 
-local function GetTableFromList(dataString, seperator) return { strsplit(seperator, dataString) } end
+local function GetTableFromList(dataString, seperator)
+	return { strsplit(seperator, dataString) }
+end
 local function GetListFromTable(dataTable, seperator)
 	local output = ''
 	for _, value in pairs(dataTable) do
@@ -110,8 +127,14 @@ local function GetListFromTable(dataTable, seperator)
 	end
 	return output
 end
-local function GetListSetting(info) return GetListFromTable(info.options.args[ info[1] ].get(info), '\n') end
-local function SetListSetting(info, value) info.options.args[ info[1] ].set(info, GetTableFromList(value, '\n')) end
+local function GetListSetting(info)
+	local get = GetAncestorProperty(info, 'get')
+	return GetListFromTable(get(info), '\n')
+end
+local function SetListSetting(info, value)
+	local set = GetAncestorProperty(info, 'set')
+	set(info, GetTableFromList(value, '\n'))
+end
 
 local function Widget(key, option, widgetInfo)
 	-- trigger callback
@@ -360,6 +383,10 @@ local function ParseOption(key, option, L, typeMappings, path)
 				local key, value = valuesHandler(k, v)
 				widget.values[k] = nil
 				widget.values[key] = value
+			end
+		elseif type(valuesHandler) == 'table' then
+			for k, v in pairs(widget.values) do
+				widget.values[k] = valuesHandler[k] or v
 			end
 		end
 	end
