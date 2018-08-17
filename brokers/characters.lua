@@ -143,7 +143,7 @@ end
 -- TODO: FIXME: does not init levels properly
 function broker:OnEnable()
 	self:RegisterEvent('PLAYER_LEVEL_UP', self.Update, self)
-	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
+	-- self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY', self.Update, self)
 	self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED', self.Update, self)
 	self:RegisterEvent('PLAYER_TALENT_UPDATE', self.Update, self)
 	self:RegisterEvent('PLAYER_ENTERING_WORLD', self.Update, self)
@@ -154,7 +154,7 @@ function broker:OnEnable()
 end
 function broker:OnDisable()
 	self:UnregisterEvent('PLAYER_LEVEL_UP')
-	self:UnregisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
+	-- self:UnregisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
 	self:UnregisterEvent('PLAYER_EQUIPMENT_CHANGED')
 	self:UnregisterEvent('PLAYER_TALENT_UPDATE')
 	self:UnregisterEvent('PLAYER_ENTERING_WORLD')
