@@ -9,6 +9,7 @@ addon.data = data
 
 local emptyTable   = {}
 local thisCharacter = DataStore:GetCharacter() or UnitFullName('player')
+local itemInfo = CreateFromMixins(ItemMixin)
 
 local LibRealmInfo = LibStub('LibRealmInfo')
 local realms = {}
@@ -478,9 +479,17 @@ function data.GetContainerSlotInfo(characterKey, bag, slot)
 	end
 
 	container = container or DataStore:GetContainer(characterKey, containerNames[bag] or bag or '')
-	if container then
-		return DataStore:GetSlotInfo(container, slot)
-	end
+	if not container then return end
+
+	local itemID, itemLink, count = DataStore:GetSlotInfo(container, slot)
+	if not itemID then return end
+
+	-- Item links might be incomplete, try to fix that.
+	itemInfo:SetItemID(itemLink or itemID)
+	itemLink = itemInfo:GetItemLink()
+	itemInfo:Clear()
+
+	return itemID, itemLink, count
 end
 
 -- ========================================
