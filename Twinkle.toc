@@ -69,9 +69,12 @@ views\equipment.lua
 
 # plugins for items view
 items\inventory.lua
+items\bags.lua
 items\bank.lua
+items\reagents.lua
 items\voidstorage.lua
 items\mails.lua
+items\auction.lua
 items\guildbank.lua
 
 # plugins for lists view

@@ -394,7 +394,7 @@ function data.GetGuildsItemCounts(itemID, uncached)
 	end
 	return guildCounts
 end
-function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
+function data.GetInventoryItemLink(characterKey, slotID)
 	local item, _
 	if characterKey == thisCharacter and slotID <= _G.BANK_CONTAINER_INVENTORY_OFFSET then
 		-- bank containers is only available when at the bank, use stored data
@@ -402,14 +402,17 @@ function data.GetInventoryItemLink(characterKey, slotID, rawOnly)
 	elseif slotID >= _G.INVSLOT_FIRST_EQUIPPED and slotID <= _G.INVSLOT_LAST_EQUIPPED then
 		-- equipment is saved in DataStore_Inventory
 		item = DataStore:GetInventoryItem(characterKey, slotID)
-		if item and type(item) == 'number' and not rawOnly then
-			_, item = GetItemInfo(item)
-		end
 	else
 		-- DataStore saves equipped bags within its Containers module
 		_, _, item = data.GetContainerInfo(characterKey, slotID)
 	end
-	item = item and select(2, GetItemInfo(item))
+	if not item then return end
+
+	-- Item links might be incomplete, try to fix that.
+	itemInfo:SetItemID(item)
+	item = itemInfo:GetItemLink()
+	itemInfo:Clear()
+
 	return item
 end
 
