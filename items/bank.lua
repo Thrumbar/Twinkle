@@ -49,9 +49,8 @@ function bank:GetRowInfo(characterKey, index)
 
 	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, true, true) -- bank|bags
 	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, container, slot)
-	if itemID and not itemLink then
-		_, itemLink = GetItemInfo(itemID)
-	end
+	if not itemID then return end
+
 	return location, itemLink, count
 end
 
@@ -77,16 +76,14 @@ function reagents:OnDisable()
 end
 
 function reagents:GetNumRows(characterKey)
-	return addon.data.GetContainerInfo(characterKey, _G.REAGENTBANK_CONTAINER)
+	return (addon.data.GetContainerInfo(characterKey, _G.REAGENTBANK_CONTAINER))
 end
 
 function reagents:GetRowInfo(characterKey, index)
 	local slot = index
 	local location = LibItemLocations:PackInventoryLocation(0, slot, nil, nil, nil, nil, true) -- reagentBank
 	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, _G.REAGENTBANK_CONTAINER, slot)
-	if itemID and not itemLink then
-		_, itemLink = GetItemInfo(itemID)
-	end
+	if not itemID then return end
 
 	return location, itemLink, count
 end

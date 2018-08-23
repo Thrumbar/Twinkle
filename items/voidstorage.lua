@@ -32,9 +32,8 @@ function voidstorage:GetRowInfo(characterKey, index)
 	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, true) -- player|voidStorage
 
 	-- void storage removes enchants, gems etc
-	local itemID, _, count = addon.data.GetContainerSlotInfo(characterKey, 'VoidStorage'..container, slot)
+	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, 'VoidStorage'..container, slot)
 	if not itemID then return end
-	local _, itemLink = GetItemInfo(itemID)
 
 	return location, itemLink, count
 end

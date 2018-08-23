@@ -40,9 +40,7 @@ function guildbank:GetRowInfo(characterKey, index)
 
 	local location = LibItemLocations:PackInventoryLocation(container, slot, nil, nil, nil, nil, nil, nil, true)
 	local itemID, itemLink, count = addon.data.GetContainerSlotInfo(characterKey, 'GuildBank'..container, slot)
-	if itemID and not itemLink then
-		_, itemLink = GetItemInfo(itemID)
-	end
+	if not itemID then return end
 
 	return location, itemLink, count
 end
