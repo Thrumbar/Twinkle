@@ -209,7 +209,7 @@ function missions:GetItemInfo(characterKey, index, itemIndex)
 			elseif rewardInfo.currencyID then
 				-- currency
 				_, _, icon  = GetCurrencyInfo(rewardInfo.currencyID)
-				link        = GetCurrencyLink(rewardInfo.currencyID)
+				link        = GetCurrencyLink(rewardInfo.currencyID, 0)
 			else
 				tooltipText = rewardInfo.title
 				if rewardInfo.tooltip or rewardInfo.name then

@@ -25,7 +25,7 @@ function currencies:GetRowInfo(characterKey, index)
 	local prefix -- = '|T'..icon..':0|t'
 	local suffix = (not isHeader or count > 0) and AbbreviateLargeNumbers(count) or ''
 
-	return isHeader and 1 or nil, name, prefix, suffix, currencyID and GetCurrencyLink(currencyID)
+	return isHeader and 1 or nil, name, prefix, suffix, currencyID and GetCurrencyLink(currencyID, 0)
 end
 
 function currencies:GetItemInfo(characterKey, index, itemIndex)
@@ -34,7 +34,7 @@ function currencies:GetItemInfo(characterKey, index, itemIndex)
 		local isHeader, title
 		_, title, _, icon, weekly, currencyID = addon.data.GetCurrencyInfoByIndex(characterKey, index)
 		if currencyID then
-			link = GetCurrencyLink(currencyID)
+			link = GetCurrencyLink(currencyID, 0)
 		end
 	end
 	return icon, link, tooltipText, count
