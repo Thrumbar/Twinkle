@@ -242,10 +242,10 @@ function items:GatherItems(characterKey)
 	wipe(collection[characterKey])
 	for providerName, provider in self:IterateModules() do
 		for index = 1, provider:GetNumRows(characterKey) or 0 do
-			local location, hyperlink, count = provider:GetRowInfo(characterKey, index)
+			local location, itemLink, count = provider:GetRowInfo(characterKey, index)
 			-- TODO/FIXME: when item links are not available, we need to update, too!
-			if hyperlink then
-				AddItem(characterKey, providerName, GetBaseLink(hyperlink), location, count)
+			if itemLink then
+				AddItem(characterKey, providerName, GetBaseLink(itemLink), location, count)
 			end
 		end
 	end
