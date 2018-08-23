@@ -629,7 +629,7 @@ function data.GetCurrencyInfoByIndex(characterKey, index)
 		-- avoid duplicate code
 		isHeader, name, count, icon = data.GetCurrencyInfo(characterKey, currencyID)
 	end
-	return isHeader, name, count, icon, weekly, currencyID
+	return isHeader, name, count or 0, icon, weekly, currencyID
 end
 
 -- identifier may be currencyID or currencyName

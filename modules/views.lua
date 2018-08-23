@@ -151,10 +151,10 @@ function views:Search(query, searchResults)
 				local numMatches = 0
 				if view == currentView and characterKey == currentCharacter then
 					-- directly update displayed view
-					numMatches = self:Update() or 0
-				else
-					numMatches = view:Search(query, characterKey) or 0
+					self:Update()
 				end
+
+				numMatches = view:Search(query, characterKey) or 0
 				if numMatches > 0 then
 					-- store data as view.name, e.g. Twinkle_views_items
 					searchResults[characterKey] = searchResults[characterKey] or {}
