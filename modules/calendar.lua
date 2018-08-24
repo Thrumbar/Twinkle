@@ -253,8 +253,8 @@ end
 local characters = {} -- filled on load
 local thisCharacter   -- filled on load
 local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, contextEventIndex)
-	local month, year = CalendarGetMonth(monthOffset)
-	local thisDate = string.format("%04d-%02d-%02d", year, month, day)
+	local monthInfo = C_Calendar.GetMonthInfo(monthOffset)
+	local thisDate = string.format("%04d-%02d-%02d", monthInfo.year, monthInfo.month, day)
 
 	local dayButtonName = 'CalendarDayButton'..index
 	local dayButton = _G[dayButtonName]
@@ -273,8 +273,8 @@ local function UpdateDayEvents(index, day, monthOffset, selectedEventIndex, cont
 				if eventDate == thisDate then
 					-- events for this day
 					local isDuplicate = false
-					for index = 1, CalendarGetNumDayEvents(monthOffset, day) do
-						local blizzTitle, hour, minute, cType, _, blizzType = CalendarGetDayEvent(monthOffset, day, index)
+					for index = 1, C_Calendar.GetNumDayEvents(monthOffset, day) do
+						local blizzTitle, hour, minute, cType, _, blizzType = C_Calendar.GetDayEvent(monthOffset, day, index)
 						local blizzTime, blizzType = strjoin(':', hour, minute), tostring(blizzType)
 						if cType ~= 'HOLIDAY' and cType ~= 'RAID_LOCKOUT' and cType ~= 'RAID_RESET'
 							and blizzType == eventType and blizzTitle == title and blizzTime == eventTime then
